@@ -181,7 +181,7 @@ API_EXPORTED struct fp_driver **fprint_get_drivers (void)
 	return (struct fp_driver **) g_ptr_array_free (array, FALSE);
 }
 
-static struct fp_driver *find_supporting_driver(libusb_device *udev,
+static struct fp_driver *find_supporting_usb_driver(libusb_device *udev,
 	const struct usb_id **usb_id, uint32_t *devtype)
 {
 	int ret;
@@ -246,14 +246,14 @@ static struct fp_driver *find_supporting_driver(libusb_device *udev,
 	return best_drv;
 }
 
-static struct fp_dscv_dev *discover_dev(libusb_device *udev)
+static struct fp_dscv_dev *discover_usb_dev(libusb_device *udev)
 {
 	const struct usb_id *usb_id;
 	struct fp_driver *drv;
 	struct fp_dscv_dev *ddev;
 	uint32_t devtype;
 
-	drv = find_supporting_driver(udev, &usb_id, &devtype);
+	drv = find_supporting_usb_driver(udev, &usb_id, &devtype);
 
 	if (!drv)
 		return NULL;
@@ -298,10 +298,10 @@ API_EXPORTED struct fp_dscv_dev **fp_discover_devs(void)
 	/* Check each device against each driver, temporarily storing successfully
 	 * discovered devices in a GPtrArray. */
 	while ((udev = devs[i++]) != NULL) {
-		struct fp_dscv_dev *ddev = discover_dev(udev);
+		struct fp_dscv_dev *ddev = discover_usb_dev(udev);
 		if (!ddev)
 			continue;
-		/* discover_dev() doesn't hold a reference to the udev,
+		/* discover_usb_dev() doesn't hold a reference to the udev,
 		 * so increase the reference for ddev to hold this ref */
 		libusb_ref_device(udev);
 		g_ptr_array_add (tmparray, (gpointer) ddev);
