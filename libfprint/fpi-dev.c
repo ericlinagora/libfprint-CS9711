@@ -114,7 +114,34 @@ FP_INSTANCE_DATA (struct fp_dev *dev)
 libusb_device_handle *
 fpi_dev_get_usb_dev(struct fp_dev *dev)
 {
-	return dev->udev;
+	g_assert (dev->bus == BUS_TYPE_USB);
+
+	return dev->device.usb;
+}
+
+/**
+ * fpi_dev_get_virtual_env:
+ * @dev: a struct #fp_dev
+ *
+ * Returns the value of the environment variable that is assicated with
+ * the virtual device.
+ *
+ * Returns: the value of the environment variable
+ */
+const char *
+fpi_dev_get_virtual_env(struct fp_dev *dev)
+{
+	g_assert (dev->bus == BUS_TYPE_VIRTUAL);
+
+	return dev->device.virtual_env;
+}
+
+int
+fpi_dev_get_spi_dev(struct fp_dev *dev)
+{
+	g_assert (dev->bus == BUS_TYPE_SPI);
+
+	return dev->device.i2c;
 }
 
 /**

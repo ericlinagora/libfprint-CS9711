@@ -40,7 +40,8 @@ static const struct usb_id blacklist_id_table[] = {
 };
 
 struct fp_driver whitelist = {
-    .id_table = whitelist_id_table,
+    .bus = BUS_TYPE_USB,
+    .id_table.usb = whitelist_id_table,
     .full_name = "Hardcoded whitelist"
 };
 
@@ -52,13 +53,13 @@ static void print_driver (struct fp_driver *driver)
 
     num_printed = 0;
 
-    for (i = 0; driver->id_table[i].vendor != 0; i++) {
+    for (i = 0; driver->id_table.usb[i].vendor != 0; i++) {
         char *key;
 
 	blacklist = 0;
 	for (j = 0; blacklist_id_table[j].vendor != 0; j++) {
-	    if (driver->id_table[i].vendor == blacklist_id_table[j].vendor &&
-		driver->id_table[i].product == blacklist_id_table[j].product) {
+	    if (driver->id_table.usb[i].vendor == blacklist_id_table[j].vendor &&
+		driver->id_table.usb[i].product == blacklist_id_table[j].product) {
 		blacklist = 1;
 		break;
 	    }
@@ -66,7 +67,8 @@ static void print_driver (struct fp_driver *driver)
 	if (blacklist)
 	    continue;
 
-	key = g_strdup_printf ("%04x:%04x", driver->id_table[i].vendor, driver->id_table[i].product);
+	key = g_strdup_printf ("%04x:%04x", driver->id_table.usb[i].vendor,
+                               driver->id_table.usb[i].product);
 
 	if (g_hash_table_lookup (printed, key) != NULL) {
 	    g_free (key);
@@ -78,8 +80,12 @@ static void print_driver (struct fp_driver *driver)
 	if (num_printed == 0)
 	    printf ("# %s\n", driver->full_name);
 
-	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
-	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n", driver->id_table[i].vendor, driver->id_table[i].product, driver->full_name);
+	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n",
+                driver->id_table.usb[i].vendor,
+                driver->id_table.usb[i].product);
+	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n",
+                driver->id_table.usb[i].vendor,
+                driver->id_table.usb[i].product, driver->full_name);
 	num_printed++;
     }
 

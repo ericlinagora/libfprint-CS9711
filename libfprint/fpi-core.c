@@ -207,10 +207,13 @@ static struct fp_driver *find_supporting_usb_driver(libusb_device *udev,
 		uint32_t type = 0;
 		const struct usb_id *id;
 
-		for (id = drv->id_table; id->vendor; id++) {
+		if (drv->bus != BUS_TYPE_USB)
+			continue;
+
+		for (id = drv->id_table.usb; id->vendor; id++) {
 			if (dsc.idVendor == id->vendor && dsc.idProduct == id->product) {
-				if (drv->discover) {
-					int r = drv->discover(&dsc, &type);
+				if (drv->usb_discover) {
+					int r = drv->usb_discover(&dsc, &type);
 					if (r < 0)
 						fp_err("%s discover failed, code %d", drv->name, r);
 					if (r <= 0)
@@ -260,7 +263,8 @@ static struct fp_dscv_dev *discover_usb_dev(libusb_device *udev)
 
 	ddev = g_malloc0(sizeof(*ddev));
 	ddev->drv = drv;
-	ddev->udev = udev;
+	ddev->bus = BUS_TYPE_USB;
+	ddev->desc.usb = udev;
 	ddev->driver_data = usb_id->driver_data;
 	ddev->devtype = devtype;
 	return ddev;
@@ -330,7 +334,17 @@ API_EXPORTED void fp_dscv_devs_free(struct fp_dscv_dev **devs)
 		return;
 
 	for (i = 0; devs[i]; i++) {
-		libusb_unref_device(devs[i]->udev);
+		switch (devs[i]->bus) {
+		case BUS_TYPE_USB:
+			libusb_unref_device(devs[i]->desc.usb);
+			break;
+		case BUS_TYPE_SPI:
+			g_free(devs[i]->desc.spi_path);
+			break;
+		case BUS_TYPE_VIRTUAL:
+			/* Nothing to do */
+			break;
+		}
 		g_free(devs[i]);
 	}
 	g_free(devs);

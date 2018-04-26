@@ -773,7 +773,8 @@ struct fp_img_driver vfs0050_driver = {
 		   .id = VFS0050_ID,
 		   .name = FP_COMPONENT,
 		   .full_name = "Validity VFS0050",
-		   .id_table = id_table,
+		   .bus = BUS_TYPE_USB,
+		   .id_table.usb = id_table,
 		   .scan_type = FP_SCAN_TYPE_SWIPE,
 		   },
 

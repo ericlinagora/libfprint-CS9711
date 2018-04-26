@@ -90,8 +90,12 @@ struct fp_dev {
 
 	int nr_enroll_stages;
 
-	/* FIXME: This will eventually have a bus type */
-	libusb_device_handle *udev;
+	enum fp_bus_type bus;
+	union {
+		libusb_device_handle *usb;
+		const char *virtual_env;
+		int i2c;
+	} device;
 
 	/* read-only to drivers */
 	struct fp_print_data *verify_data;
@@ -156,7 +160,13 @@ struct fp_img_dev {
 
 /* fp_dscv_dev structure definition */
 struct fp_dscv_dev {
-	struct libusb_device *udev;
+	enum fp_bus_type bus;
+	union {
+		struct libusb_device *usb;
+		const char *virtual_env;
+		char *spi_path;
+	} desc;
+
 	struct fp_driver *drv;
 	unsigned long driver_data;
 	uint32_t devtype;

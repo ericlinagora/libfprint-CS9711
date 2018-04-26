@@ -66,7 +66,6 @@ API_EXPORTED int fp_async_dev_open(struct fp_dscv_dev *ddev, fp_dev_open_cb call
 {
 	struct fp_driver *drv;
 	struct fp_dev *dev;
-	libusb_device_handle *udevh;
 	int r;
 
 	g_return_val_if_fail(ddev != NULL, -ENODEV);
@@ -75,19 +74,31 @@ API_EXPORTED int fp_async_dev_open(struct fp_dscv_dev *ddev, fp_dev_open_cb call
 	drv = ddev->drv;
 
 	G_DEBUG_HERE();
-	r = libusb_open(ddev->udev, &udevh);
-	if (r < 0) {
-		fp_err("usb_open failed, error %d", r);
-		return r;
-	}
 
 	dev = g_malloc0(sizeof(*dev));
 	dev->drv = drv;
-	dev->udev = udevh;
+	dev->bus = ddev->bus;
 	dev->__enroll_stage = -1;
 	dev->state = DEV_STATE_INITIALIZING;
 	dev->open_cb = callback;
 	dev->open_cb_data = user_data;
+
+	switch (ddev->bus) {
+	case BUS_TYPE_USB:
+		r = libusb_open(ddev->desc.usb, &dev->device.usb);
+		if (r < 0) {
+			fp_err("usb_open failed, error %d", r);
+			g_free (dev);
+			return r;
+		}
+		break;
+	case BUS_TYPE_SPI:
+		/* TODO: Implement */
+		break;
+	case BUS_TYPE_VIRTUAL:
+		dev->device.virtual_env = ddev->desc.virtual_env;
+		break;
+	}
 
 	if (!drv->open) {
 		fpi_drvcb_open_complete(dev, 0);
@@ -98,7 +109,14 @@ API_EXPORTED int fp_async_dev_open(struct fp_dscv_dev *ddev, fp_dev_open_cb call
 	r = drv->open(dev, ddev->driver_data);
 	if (r) {
 		fp_err("device initialisation failed, driver=%s", drv->name);
-		libusb_close(udevh);
+		switch (ddev->bus) {
+		case BUS_TYPE_USB:
+			libusb_close(dev->device.usb);
+		case BUS_TYPE_SPI:
+		case BUS_TYPE_VIRTUAL:
+			/* Nothing to do (this might change for SPI) */
+			break;
+		}
 		g_free(dev);
 	}
 
@@ -112,7 +130,16 @@ void fpi_drvcb_close_complete(struct fp_dev *dev)
 	BUG_ON(dev->state != DEV_STATE_DEINITIALIZING);
 	dev->state = DEV_STATE_DEINITIALIZED;
 	fpi_timeout_cancel_all_for_dev(dev);
-	libusb_close(dev->udev);
+
+	switch (dev->bus) {
+	case BUS_TYPE_USB:
+		libusb_close(dev->device.usb);
+	case BUS_TYPE_SPI:
+	case BUS_TYPE_VIRTUAL:
+		/* Nothing to do (this might change for SPI) */
+		break;
+	}
+
 	if (dev->close_cb)
 		dev->close_cb(dev, dev->close_cb_data);
 	g_free(dev);

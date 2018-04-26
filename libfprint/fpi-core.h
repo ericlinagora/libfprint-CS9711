@@ -67,16 +67,37 @@ enum fp_driver_type {
 	DRIVER_IMAGING = 1,
 };
 
+/**
+ * fp_bus_type:
+ * @BUS_TYPE_USB: USB device
+ * @BUS_TYPE_SPI: SPI device
+ * @BUS_TYPE_VIRTUAL: Virtual test bus
+ *
+ * The bus type of the device/driver.
+ */
+enum fp_bus_type {
+	BUS_TYPE_USB,
+	BUS_TYPE_SPI,
+	BUS_TYPE_VIRTUAL
+};
+
 struct fp_driver {
 	const uint16_t id;
 	const char *name;
 	const char *full_name;
-	const struct usb_id * const id_table;
+
+	enum fp_bus_type bus;
+	union {
+		const struct usb_id * const usb;
+		const char * const *i2c;
+		const char * virtual_envvar;
+	} id_table;
+
 	enum fp_driver_type type;
 	enum fp_scan_type scan_type;
 
 	/* Device operations */
-	int (*discover)(struct libusb_device_descriptor *dsc, uint32_t *devtype);
+	int (*usb_discover)(struct libusb_device_descriptor *dsc, uint32_t *devtype);
 	int (*open)(struct fp_dev *dev, unsigned long driver_data);
 	void (*close)(struct fp_dev *dev);
 	int (*enroll_start)(struct fp_dev *dev);

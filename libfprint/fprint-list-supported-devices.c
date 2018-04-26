@@ -31,10 +31,11 @@ static GList *insert_driver (GList *list,
 {
     int i;
 
-    for (i = 0; driver->id_table[i].vendor != 0; i++) {
+    for (i = 0; driver->id_table.usb[i].vendor != 0; i++) {
         char *key;
 
-	key = g_strdup_printf ("%04x:%04x", driver->id_table[i].vendor, driver->id_table[i].product);
+	key = g_strdup_printf ("%04x:%04x", driver->id_table.usb[i].vendor,
+                               driver->id_table.usb[i].product);
 
 	if (g_hash_table_lookup (printed, key) != NULL) {
 	    g_free (key);
