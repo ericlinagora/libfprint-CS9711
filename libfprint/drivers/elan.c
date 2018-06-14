@@ -604,6 +604,7 @@ static void dev_deactivate(struct fp_img_dev *dev)
 static const struct usb_id id_table[] = {
 	{.vendor = 0x04f3,.product = 0x0907},
 	{.vendor = 0x04f3,.product = 0x0c26},
+	{.vendor = 0x04f3,.product = 0x0c16},
 	{0, 0, 0,},
 };
 
