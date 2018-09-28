@@ -357,7 +357,6 @@ static const struct usb_id id_table[] = {
 
 struct fp_img_driver vcom5s_driver = {
 	.driver = {
-		.id = VCOM5S_ID,
 		.name = FP_COMPONENT,
 		.full_name = "Veridicom 5thSense",
 		.id_table = id_table,

@@ -460,7 +460,6 @@ static const struct usb_id id_table[] = {
 
 struct fp_img_driver upektc_driver = {
 	.driver = {
-		.id = UPEKTC_ID,
 		.name = FP_COMPONENT,
 		.full_name = "UPEK TouchChip/Eikon Touch 300",
 		.id_table = id_table,

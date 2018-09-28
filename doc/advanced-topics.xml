@@ -71,10 +71,7 @@
     <title>Driver IDs</title>
 
     <para>
-    Each driver is assigned a unique ID by the project maintainer. These
-    assignments are
-    <ulink url="https://gitlab.freedesktop.org/libfprint/libfprint/blob/master/libfprint/drivers/driver_ids.h">
-    documented in the sources</ulink> and will never change.
+    Each driver is assigned a unique ID automatically based on the driver name.
     </para>
 
     <para>

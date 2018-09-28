@@ -1526,7 +1526,6 @@ struct fp_img_driver vfs101_driver =
 	/* Driver specification */
 	.driver =
 	{
-		.id = VFS101_ID,
 		.name = FP_COMPONENT,
 		.full_name = "Validity VFS101",
 		.id_table = id_table,

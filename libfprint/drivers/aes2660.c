@@ -97,7 +97,6 @@ static const struct usb_id id_table[] = {
 
 struct fp_img_driver aes2660_driver = {
 	.driver = {
-		.id = AES2660_ID,
 		.name = FP_COMPONENT,
 		.full_name = "AuthenTec AES2660",
 		.id_table = id_table,

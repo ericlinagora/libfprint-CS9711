@@ -34,6 +34,5 @@
 #include "fpi-usb.h"
 #include "fpi-img.h"
 #include "fpi-assembling.h"
-#include "drivers/driver_ids.h"
 
 #endif

@@ -35,7 +35,6 @@
 #include "fpi-dev-img.h"
 #include "fpi-data.h"
 #include "fpi-img.h"
-#include "drivers/driver_ids.h"
 
 /* Global variables */
 extern libusb_context *fpi_usb_ctx;
@@ -144,8 +143,6 @@ struct fp_img_dev {
 	/* FIXME: better place to put this? */
 	size_t identify_match_offset;
 };
-
-/* fp_driver structure definition */
 
 /* fp_img_driver structure definition */
 #define container_of(ptr, type, member) ({                      \

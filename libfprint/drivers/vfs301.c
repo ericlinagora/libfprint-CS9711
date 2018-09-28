@@ -268,7 +268,6 @@ struct fp_img_driver vfs301_driver =
 	/* Driver specification */
 	.driver =
 	{
-		.id = VFS301_ID,
 		.name = FP_COMPONENT,
 		.full_name = "Validity VFS301",
 		.id_table = id_table,

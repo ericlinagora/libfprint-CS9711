@@ -148,7 +148,7 @@ struct fp_print_data_item *fpi_print_data_item_new(size_t length)
 
 struct fp_print_data *fpi_print_data_new(struct fp_dev *dev)
 {
-	return print_data_new(dev->drv->id, dev->devtype,
+	return print_data_new(fp_driver_get_driver_id(dev->drv), dev->devtype,
 		fpi_driver_get_data_type(dev->drv));
 }
 
@@ -349,7 +349,7 @@ static char *__get_path_to_print(uint16_t driver_id, uint32_t devtype,
 
 static char *get_path_to_print(struct fp_dev *dev, enum fp_finger finger)
 {
-	return __get_path_to_print(dev->drv->id, dev->devtype, finger);
+	return __get_path_to_print(fp_driver_get_driver_id(dev->drv), dev->devtype, finger);
 }
 
 /**

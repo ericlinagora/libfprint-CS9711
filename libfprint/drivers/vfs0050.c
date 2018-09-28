@@ -770,7 +770,6 @@ static const struct usb_id id_table[] = {
 struct fp_img_driver vfs0050_driver = {
 	/* Driver specification */
 	.driver = {
-		   .id = VFS0050_ID,
 		   .name = FP_COMPONENT,
 		   .full_name = "Validity VFS0050",
 		   .id_table = id_table,

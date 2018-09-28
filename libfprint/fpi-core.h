@@ -68,7 +68,6 @@ enum fp_driver_type {
 };
 
 struct fp_driver {
-	const uint16_t id;
 	const char *name;
 	const char *full_name;
 	const struct usb_id * const id_table;

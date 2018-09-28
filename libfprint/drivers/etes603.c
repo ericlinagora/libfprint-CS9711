@@ -36,7 +36,6 @@
 #define FP_COMPONENT "etes603"
 
 #include "drivers_api.h"
-#include "driver_ids.h"
 
 /* libusb defines */
 #define EP_IN              0x81
@@ -1478,7 +1477,6 @@ static const struct usb_id id_table[] = {
 
 struct fp_img_driver etes603_driver = {
 	.driver = {
-		.id = ETES603_ID,
 		.name = FP_COMPONENT,
 		.full_name = "EgisTec ES603",
 		.id_table = id_table,

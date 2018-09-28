@@ -137,10 +137,13 @@ GSList *opened_devices = NULL;
 
 static GSList *registered_drivers = NULL;
 
+#define DRV_ID(drv) g_str_hash(drv->name)
+
 static void register_driver(struct fp_driver *drv)
 {
-	if (drv->id == 0) {
-		fp_err("not registering driver %s: driver ID is 0", drv->name);
+	if (drv->name == NULL ||
+	    strlen(drv->name) <= 2) {
+		fp_err("not registering driver %s, name is too short or absent", drv->name);
 		return;
 	}
 	registered_drivers = g_slist_prepend(registered_drivers, (gpointer) drv);
@@ -411,7 +414,7 @@ API_EXPORTED int fp_dscv_dev_supports_print_data(struct fp_dscv_dev *dev,
 	g_return_val_if_fail(dev, 0);
 	g_return_val_if_fail(print, 0);
 
-	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
+	return fpi_print_data_compatible(DRV_ID(dev->drv), dev->devtype,
 		fpi_driver_get_data_type(dev->drv), print->driver_id, print->devtype,
 		print->type);
 }
@@ -434,7 +437,7 @@ API_EXPORTED int fp_dscv_dev_supports_dscv_print(struct fp_dscv_dev *dev,
 	g_return_val_if_fail(dev, 0);
 	g_return_val_if_fail(print, 0);
 
-	return fpi_print_data_compatible(dev->drv->id, dev->devtype, 0,
+	return fpi_print_data_compatible(DRV_ID(dev->drv), dev->devtype, 0,
 		print->driver_id, print->devtype, 0);
 }
 
@@ -559,7 +562,7 @@ API_EXPORTED int fp_dev_supports_print_data(struct fp_dev *dev,
 	g_return_val_if_fail(dev, 0);
 	g_return_val_if_fail(data, 0);
 
-	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
+	return fpi_print_data_compatible(DRV_ID(dev->drv), dev->devtype,
 		fpi_driver_get_data_type(dev->drv), data->driver_id, data->devtype,
 		data->type);
 }
@@ -582,7 +585,7 @@ API_EXPORTED int fp_dev_supports_dscv_print(struct fp_dev *dev,
 	g_return_val_if_fail(dev, 0);
 	g_return_val_if_fail(print, 0);
 
-	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
+	return fpi_print_data_compatible(DRV_ID(dev->drv), dev->devtype,
 		0, print->driver_id, print->devtype, 0);
 }
 
@@ -628,7 +631,7 @@ API_EXPORTED uint16_t fp_driver_get_driver_id(struct fp_driver *drv)
 {
 	g_return_val_if_fail(drv, 0);
 
-	return drv->id;
+	return DRV_ID(drv);
 }
 
 /**

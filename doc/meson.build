@@ -17,7 +17,6 @@ private_headers = [
   'aes2660.h',
   'aes3k.h',
   'aesx660.h',
-  'driver_ids.h',
   'elan.h',
   'upek_proto.h',
   'upeksonly.h',

@@ -1428,7 +1428,6 @@ static const struct usb_id id_table[] = {
 
 struct fp_img_driver uru4000_driver = {
 	.driver = {
-		.id = URU4000_ID,
 		.name = FP_COMPONENT,
 		.full_name = "Digital Persona U.are.U 4000/4000B/4500",
 		.id_table = id_table,

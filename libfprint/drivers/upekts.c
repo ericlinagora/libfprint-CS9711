@@ -1421,7 +1421,6 @@ static const struct usb_id id_table[] = {
 };
 
 struct fp_driver upekts_driver = {
-	.id = UPEKTS_ID,
 	.name = FP_COMPONENT,
 	.full_name = "UPEK TouchStrip",
 	.id_table = id_table,

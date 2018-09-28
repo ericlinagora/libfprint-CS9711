@@ -302,7 +302,6 @@ static const struct usb_id id_table[] = {
 
 struct fp_img_driver fdu2000_driver = {
 	.driver = {
-		.id = FDU2000_ID,
 		.name = FP_COMPONENT,
 		.full_name = "Secugen FDU 2000",
 		.id_table = id_table,

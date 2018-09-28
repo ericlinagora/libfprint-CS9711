@@ -970,7 +970,6 @@ static void dev_deactivate(struct fp_img_dev *dev)
 
 struct fp_img_driver elan_driver = {
 	.driver = {
-		   .id = ELAN_ID,
 		   .name = FP_COMPONENT,
 		   .full_name = "ElanTech Fingerprint Sensor",
 		   .id_table = elan_id_table,
