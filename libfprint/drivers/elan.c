@@ -293,23 +293,22 @@ static void elan_process_frame_thirds(unsigned short *raw_frame,
 static void elan_submit_image(struct fp_img_dev *dev)
 {
 	struct elan_dev *elandev = FP_INSTANCE_DATA(FP_DEV(dev));
+	int num_frames;
+	GSList *raw_frames;
 	GSList *frames = NULL;
 	struct fp_img *img;
 
 	G_DEBUG_HERE();
 
-	for (int i = 0; i < ELAN_SKIP_LAST_FRAMES; i++)
-		elandev->frames = g_slist_next(elandev->frames);
-	elandev->num_frames -= ELAN_SKIP_LAST_FRAMES;
+	num_frames = elandev->num_frames - ELAN_SKIP_LAST_FRAMES;
+	raw_frames = g_slist_nth(elandev->frames, ELAN_SKIP_LAST_FRAMES);
 
 	assembling_ctx.frame_width = elandev->frame_width;
 	assembling_ctx.frame_height = elandev->frame_height;
 	assembling_ctx.image_width = elandev->frame_width * 3 / 2;
-	g_slist_foreach(elandev->frames, (GFunc) elandev->process_frame,
-			&frames);
-	fpi_do_movement_estimation(&assembling_ctx, frames,
-				   elandev->num_frames);
-	img = fpi_assemble_frames(&assembling_ctx, frames, elandev->num_frames);
+	g_slist_foreach(raw_frames, (GFunc) elandev->process_frame, &frames);
+	fpi_do_movement_estimation(&assembling_ctx, frames, num_frames);
+	img = fpi_assemble_frames(&assembling_ctx, frames, num_frames);
 
 	img->flags |= FP_IMG_PARTIAL;
 	fpi_imgdev_image_captured(dev, img);
