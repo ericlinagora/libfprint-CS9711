@@ -627,6 +627,14 @@ enum calibrate_states {
 	CALIBRATE_NUM_STATES,
 };
 
+static gboolean elan_supports_calibration(struct elan_dev *elandev)
+{
+	if (elandev->dev_type == ELAN_0C42)
+		return TRUE;
+
+	return elandev->fw_ver >= ELAN_MIN_CALIBRATION_FW;
+}
+
 static void calibrate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	struct fp_img_dev *dev = user_data;
@@ -640,7 +648,7 @@ static void calibrate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_da
 		break;
 	case CALIBRATE_SAVE_BACKGROUND:
 		elan_save_background(elandev);
-		if (elandev->fw_ver < ELAN_MIN_CALIBRATION_FW) {
+		if (!elan_supports_calibration(elandev)) {
 			fp_dbg("FW does not support calibration");
 			fpi_ssm_mark_completed(ssm);
 		} else
