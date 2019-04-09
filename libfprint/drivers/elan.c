@@ -603,6 +603,14 @@ static int elan_need_calibration(struct elan_dev *elandev)
 
 	g_assert(frame_size != 0);
 
+	if (elandev->dev_type == ELAN_0C42) {
+		if (calib_mean > 5500 ||
+		    calib_mean < 2500) {
+			fp_dbg("Forcing needed recalibration");
+			return 1;
+		}
+	}
+
 	for (int i = 0; i < frame_size; i++)
 		bg_mean += elandev->background[i];
 	bg_mean /= frame_size;
