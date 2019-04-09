@@ -755,6 +755,14 @@ static void activate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_dat
 			elandev->frame_height = elandev->raw_frame_height =
 			    elandev->last_read[0];
 		}
+		/* Work-around sensors returning the sizes as zero-based index
+		 * rather than the number of pixels. */
+		if ((elandev->frame_width % 2 == 1) &&
+		    (elandev->frame_height % 2 == 1)) {
+			elandev->frame_width++;
+			elandev->frame_height++;
+			elandev->raw_frame_height = elandev->frame_height;
+		}
 		if (elandev->frame_height > ELAN_MAX_FRAME_HEIGHT)
 			elandev->frame_height = ELAN_MAX_FRAME_HEIGHT;
 		fp_dbg("sensor dimensions, WxH: %dx%d", elandev->frame_width,
