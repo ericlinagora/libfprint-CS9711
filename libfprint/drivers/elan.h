@@ -56,7 +56,7 @@
 
 /* number of frames to drop at the end of capture because frames captured
  * while the finger is being lifted can be bad */
-#define ELAN_SKIP_LAST_FRAMES 1
+#define ELAN_SKIP_LAST_FRAMES 2
 
 #define ELAN_CMD_LEN 0x2
 #define ELAN_EP_CMD_OUT (0x1 | LIBUSB_ENDPOINT_OUT)
