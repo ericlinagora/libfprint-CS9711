@@ -383,6 +383,12 @@ static void elan_cmd_read(fpi_ssm *ssm, struct fp_img_dev *dev)
 		return;
 	}
 
+	if (elandev->dev_type == ELAN_0C42) {
+		/* ELAN_0C42 sends an extra byte in one byte responses */
+		if (elandev->cmd->response_len == 1)
+			response_len = 2;
+	}
+
 	if (elandev->cmd->cmd == get_image_cmd.cmd)
 		/* raw data has 2-byte "pixels" and the frame is vertical */
 		response_len =
