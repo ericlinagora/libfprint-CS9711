@@ -1,6 +1,5 @@
 /*
- * Driver IDs
- * Copyright (C) 2012 Vasily Khoruzhick <anarsoul@gmail.com>
+ * Copyright (C) 2019 Synaptics Inc
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,33 +15,49 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "mutex.h"
 
-#ifndef __DRIVER_IDS
-#define __DRIVER_IDS
+int bmkt_mutex_init(bmkt_mutex_t *mutex)
+{
+	pthread_mutex_init(&mutex->mutex, NULL);
+	return BMKT_SUCCESS;
+}
 
-enum {
-	UPEKTS_ID	= 1,
-	URU4000_ID	= 2,
-	AES4000_ID	= 3,
-	AES2501_ID	= 4,
-	UPEKTC_ID	= 5,
-	AES1610_ID	= 6,
-	FDU2000_ID	= 7,
-	VCOM5S_ID	= 8,
-	UPEKSONLY_ID	= 9,
-	VFS101_ID	= 10,
-	VFS301_ID	= 11,
-	AES2550_ID	= 12,
-	/* UPEKE2_ID = 13 */
-	AES1660_ID	= 14,
-	AES2660_ID	= 15,
-	AES3500_ID	= 16,
-	UPEKTC_IMG_ID	= 17,
-	ETES603_ID	= 18,
-	VFS5011_ID	= 19,
-	VFS0050_ID	= 20,
-	ELAN_ID		= 21,
-	SYNAPTICS_ID	= 22,
-};
+int bmkt_mutex_destroy(bmkt_mutex_t *mutex)
+{
+	int ret;
 
-#endif
+	ret = pthread_mutex_destroy(&mutex->mutex);
+	if (ret != 0)
+	{
+		return BMKT_GENERAL_ERROR;
+	}
+
+	return BMKT_SUCCESS;
+}
+
+int bmkt_mutex_lock(bmkt_mutex_t *mutex)
+{
+	int ret;
+
+	ret = pthread_mutex_lock(&mutex->mutex);
+	if (ret)
+	{
+		return BMKT_GENERAL_ERROR;
+	}
+
+	return BMKT_SUCCESS;
+}
+
+int bmkt_mutex_unlock(bmkt_mutex_t *mutex)
+{
+	int ret;
+
+	ret = pthread_mutex_unlock(&mutex->mutex);
+	if (ret)
+	{
+		return BMKT_GENERAL_ERROR;
+	}
+
+	return BMKT_SUCCESS;
+}

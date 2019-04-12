@@ -74,6 +74,24 @@ aesx660 = false
 aes3k = false
 drivers_sources = []
 drivers_cflags = []
+synaptics_drivers_sources = [
+    'drivers/synaptics/src/synaptics.c',
+    'drivers/synaptics/src/bmkt.c', 
+    'drivers/synaptics/src/crc.c',
+    'drivers/synaptics/src/util.c',
+    'drivers/synaptics/src/enroll.c',
+    'drivers/synaptics/src/auth.c',
+    'drivers/synaptics/src/bmkt_message.c',
+    'drivers/synaptics/src/sensor.c',
+    'drivers/synaptics/src/transport/transport.c',
+    'drivers/synaptics/src/platform/linux/plat_event.c',
+    'drivers/synaptics/src/platform/linux/plat_log.c',
+    'drivers/synaptics/src/platform/posix/posix.c',
+    'drivers/synaptics/src/transport/usb_transport.c',
+    'drivers/synaptics/src/platform/posix/plat_thread.c',
+    'drivers/synaptics/src/platform/posix/plat_mutex.c',
+]
+
 foreach driver: drivers
     if driver == 'upekts'
         drivers_sources += [ 'drivers/upekts.c' ]
@@ -146,6 +164,9 @@ foreach driver: drivers
     if driver == 'elan'
         drivers_sources += [ 'drivers/elan.c', 'drivers/elan.h' ]
     endif
+    if driver == 'synaptics'
+        drivers_sources += synaptics_drivers_sources
+    endif
 endforeach
 
 if aeslib
@@ -180,6 +201,18 @@ libfprint_sources += configure_file(input: 'empty_file',
                                     ])
 
 deps = [ mathlib_dep, glib_dep, libusb_dep, nss_dep, imaging_dep ]
+
+if driver == 'synaptics'
+    synaptics_include_directories = [
+        'drivers/synaptics/include',
+        'drivers/synaptics/include/platform/linux',
+        'drivers/synaptics/include/platform/posix',
+        'drivers/synaptics/include/transport'
+    ]
+    deps += dependency('threads')
+    drivers_cflags += ['-DTHREAD_SUPPORT']
+endif
+
 libfprint = library('fprint',
                     libfprint_sources + drivers_sources + nbis_sources + other_sources,
                     soversion: soversion,
@@ -188,6 +221,7 @@ libfprint = library('fprint',
                     include_directories: [
                       root_inc,
                       include_directories('nbis/include'),
+                      include_directories(synaptics_include_directories),
                     ],
                     dependencies: deps,
                     install: true)

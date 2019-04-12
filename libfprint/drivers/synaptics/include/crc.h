@@ -1,6 +1,5 @@
 /*
- * Driver IDs
- * Copyright (C) 2012 Vasily Khoruzhick <anarsoul@gmail.com>
+ * Copyright (C) 2019 Synaptics Inc
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,32 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __DRIVER_IDS
-#define __DRIVER_IDS
+#ifndef CRC_H_
+#define CRC_H_
 
-enum {
-	UPEKTS_ID	= 1,
-	URU4000_ID	= 2,
-	AES4000_ID	= 3,
-	AES2501_ID	= 4,
-	UPEKTC_ID	= 5,
-	AES1610_ID	= 6,
-	FDU2000_ID	= 7,
-	VCOM5S_ID	= 8,
-	UPEKSONLY_ID	= 9,
-	VFS101_ID	= 10,
-	VFS301_ID	= 11,
-	AES2550_ID	= 12,
-	/* UPEKE2_ID = 13 */
-	AES1660_ID	= 14,
-	AES2660_ID	= 15,
-	AES3500_ID	= 16,
-	UPEKTC_IMG_ID	= 17,
-	ETES603_ID	= 18,
-	VFS5011_ID	= 19,
-	VFS0050_ID	= 20,
-	ELAN_ID		= 21,
-	SYNAPTICS_ID	= 22,
+#include <stdint.h>
+
+uint32_t compute_crc32(uint8_t *data, uint8_t length, uint32_t prev_crc32);
+
+enum checksum_crc_polynomial
+{
+    CHECKSUM_CRC_POLY1,  /* polynomial: 0xedb88320 */
+    CHECKSUM_CRC_POLY2   /* polynomial: 0x04c11db7 */
 };
 
-#endif
+int crc_checksum(uint32_t initialValue, uint32_t *checksum, uint8_t *msg, uint32_t len, uint32_t poly);
+
+#endif /* CRC_H_ */

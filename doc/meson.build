@@ -27,6 +27,7 @@ private_headers = [
   'vfs301_proto_fragments.h',
   'vfs301_proto.h',
   'vfs5011_proto.h',
+  'synaptics.h',
 
   # NBIS
   'morph.h',

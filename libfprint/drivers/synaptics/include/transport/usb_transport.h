@@ -1,6 +1,5 @@
 /*
- * Driver IDs
- * Copyright (C) 2012 Vasily Khoruzhick <anarsoul@gmail.com>
+ * Copyright (C) 2019 Synaptics Inc
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,32 +16,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __DRIVER_IDS
-#define __DRIVER_IDS
+#ifndef _USB_TRANSPORT_H_
+#define _USB_TRANSPORT_H_
 
-enum {
-	UPEKTS_ID	= 1,
-	URU4000_ID	= 2,
-	AES4000_ID	= 3,
-	AES2501_ID	= 4,
-	UPEKTC_ID	= 5,
-	AES1610_ID	= 6,
-	FDU2000_ID	= 7,
-	VCOM5S_ID	= 8,
-	UPEKSONLY_ID	= 9,
-	VFS101_ID	= 10,
-	VFS301_ID	= 11,
-	AES2550_ID	= 12,
-	/* UPEKE2_ID = 13 */
-	AES1660_ID	= 14,
-	AES2660_ID	= 15,
-	AES3500_ID	= 16,
-	UPEKTC_IMG_ID	= 17,
-	ETES603_ID	= 18,
-	VFS5011_ID	= 19,
-	VFS0050_ID	= 20,
-	ELAN_ID		= 21,
-	SYNAPTICS_ID	= 22,
-};
+#include "libusb-1.0/libusb.h"
+#include "thread.h"
 
-#endif
+#define USB_DEFAULT_CONFIGURATION		0
+#define USB_DEFAULT_INTERFACE			0
+#define USB_DEFAULT_ALT_SETTING			0
+
+#define USB_EP_REQUEST					0x01
+#define USB_EP_REPLY					0x81
+#define USB_EP_FINGERPRINT				0x82
+#define USB_EP_INTERRUPT				0x83
+
+#define USB_INTERRUPT_DATA_SIZE			7
+
+typedef struct bmkt_usb_transport
+{
+	libusb_context *ctx;
+	libusb_device *device;
+	libusb_device_handle *handle;
+	bmkt_thread_t interrupt_thread;
+	int interrupt_mask;
+	uint8_t interrupt_data[USB_INTERRUPT_DATA_SIZE];
+	int completed;
+} bmkt_usb_transport_t;
+
+#endif /* _USB_TRANSPORT_H_ */

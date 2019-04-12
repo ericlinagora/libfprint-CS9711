@@ -45,8 +45,8 @@ mathlib_dep = cc.find_library('m', required: false)
 
 # Drivers
 drivers = get_option('drivers').split(',')
-all_drivers = [ 'upekts', 'upektc', 'upeksonly', 'vcom5s', 'uru4000', 'aes1610', 'aes1660', 'aes2501', 'aes2550', 'aes2660', 'aes3500', 'aes4000', 'vfs101', 'vfs301', 'vfs5011', 'upektc_img', 'etes603', 'vfs0050', 'elan' ]
-primitive_drivers = [ 'upekts' ]
+all_drivers = [ 'upekts', 'upektc', 'upeksonly', 'vcom5s', 'uru4000', 'aes1610', 'aes1660', 'aes2501', 'aes2550', 'aes2660', 'aes3500', 'aes4000', 'vfs101', 'vfs301', 'vfs5011', 'upektc_img', 'etes603', 'vfs0050', 'elan', 'synaptics' ]
+primitive_drivers = [ 'upekts', 'synaptics' ]
 
 if drivers == [ 'all' ]
     drivers = all_drivers
