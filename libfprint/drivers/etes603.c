@@ -1430,8 +1430,9 @@ static void dev_deactivate(struct fp_img_dev *idev)
 	/* this can be called even if still activated. */
 	if (dev->is_active == TRUE) {
 		dev->is_active = FALSE;
-		m_exit_start(idev);
 	}
+
+	m_exit_start(idev);
 }
 
 static int dev_open(struct fp_img_dev *idev, unsigned long driver_data)
