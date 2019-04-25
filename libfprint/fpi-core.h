@@ -87,6 +87,7 @@ struct fp_driver {
 	int (*identify_stop)(struct fp_dev *dev, gboolean iterating);
 	int (*capture_start)(struct fp_dev *dev);
 	int (*capture_stop)(struct fp_dev *dev);
+	int (*delete_finger)(struct fp_dev *dev);
 };
 
 /**

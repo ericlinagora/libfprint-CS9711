@@ -267,11 +267,16 @@ int fp_verify_finger(struct fp_dev *dev,
 	struct fp_print_data *enrolled_print);
 
 int fp_dev_supports_identification(struct fp_dev *dev);
+int fp_dev_supports_data_in_sensor(struct fp_dev *dev);
+
 int fp_identify_finger_img(struct fp_dev *dev,
 	struct fp_print_data **print_gallery, size_t *match_offset,
 	struct fp_img **img);
 int fp_identify_finger(struct fp_dev *dev,
 	struct fp_print_data **print_gallery, size_t *match_offset);
+
+int fp_delete_finger(struct fp_dev *dev,
+	struct fp_print_data *enrolled_print);
 
 /* Data handling */
 int fp_print_data_load(struct fp_dev *dev, enum fp_finger finger,
@@ -450,6 +455,22 @@ int fp_async_identify_stop(struct fp_dev *dev, fp_operation_stop_cb callback,
 int fp_async_capture_start(struct fp_dev *dev, int unconditional, fp_img_operation_cb callback, void *user_data);
 
 int fp_async_capture_stop(struct fp_dev *dev, fp_operation_stop_cb callback, void *user_data);
+
+/**
+ * fp_delete_result:
+ * @FP_DELETE_COMPLETE: Delete completed successfully.
+ * @FP_DELETE_FAIL: Delete failed
+ *
+ */
+enum fp_delete_result {
+	FP_DELETE_COMPLETE = 0,
+	FP_DELETE_FAIL = 1,
+};
+
+typedef void (*fp_delete_cb)(struct fp_dev *dev, int status, void *user_data);
+
+int fp_async_delete_finger(struct fp_dev *dev, struct fp_print_data *data, fp_img_operation_cb callback, void *user_data);
+
 
 #ifdef __cplusplus
 }

@@ -43,6 +43,7 @@ typedef enum syna_state
 	SYNA_STATE_IDENTIFY_DELAY_RESULT			,
 	SYNA_STATE_VERIFY							,
 	SYNA_STATE_VERIFY_DELAY_RESULT				,
+	SYNA_STATE_DELETE							,
 } syna_state_t;
 
 typedef struct synaptics_dev_s 
@@ -57,11 +58,6 @@ typedef struct synaptics_dev_s
 	struct syna_enroll_resp_data enroll_resp_data;
 	gboolean isFingerOnSensor;
 	syna_state_t state;
-	pthread_mutex_t op_mutex;
-	pthread_cond_t op_cond;
-	int op_finished;
-	GSList* file_gslist;
-	GSList* sensor_gslist;
 }synaptics_dev;
 
 #endif //__synaptics_h__

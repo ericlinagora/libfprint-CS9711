@@ -190,9 +190,6 @@ static int dev_init(struct fp_dev *dev, unsigned long driver_data)
 		return -1;
 	}
 	sdev->usb_config->product_id = dsc.idProduct;
-    
-	pthread_mutex_init(&sdev->op_mutex, NULL);
-	pthread_cond_init(&sdev->op_cond, NULL);
 
     result = bmkt_init(&(sdev->ctx));
 	if (result != BMKT_SUCCESS)
@@ -263,18 +260,6 @@ static void dev_exit(struct fp_dev *dev)
 	}
 
 	bmkt_exit(sdev->ctx);
-    
-	ret = pthread_mutex_destroy(&sdev->op_mutex);
-	if (ret)
-	{
-		fp_err("failed to destroy mutex");
-	}
-
-	ret = pthread_cond_destroy(&sdev->op_cond);
-	if (ret)
-	{
-		fp_err("failed to destroy cond ");
-	}
 
 	g_free(sdev);
 	fpi_drvcb_close_complete(dev);
@@ -299,121 +284,6 @@ static gboolean rand_string(char *str, size_t size)
 
 #define TEMPLATE_ID_SIZE 20
 
-void get_file_data(struct fp_dev *dev, const char *basepath)
-{
-	char path[PATH_MAX];
-	struct dirent *dp;
-	DIR *dir = opendir(basepath);
-	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
-	if(!dir)
-		return;
-	while( (dp = readdir(dir)) != NULL)
-	{
-		if(strcmp(dp->d_name, ".")!=0 && strcmp(dp->d_name,"..")!=0)
-		{
-			strcpy(path,basepath);
-			strcat(path,"/");
-			strcat(path,dp->d_name);
-			fp_info("%s type is %d ",dp->d_name,dp->d_type);
-			if(dp->d_type == DT_REG)
-			{
-				gsize length;
-				gchar *contents;
-				GError *err = NULL;
-				struct fp_print_data *fdata;
-				fp_info(" load file %s ", path);
-				g_file_get_contents(path, &contents, &length, &err);
-				if (err) {
-					fp_err("load file failed ");
-				}
-				else
-				{
-					fdata = fp_print_data_from_data(contents, length);
-					struct fp_print_data_item *item = fdata->prints->data;
-					struct syna_mis_print_data *print_data =(struct syna_mis_print_data *) item -> data;
-
-					char *data_node=(char *)g_malloc0(strlen(print_data->user_id) + 1);
-					memcpy(data_node, print_data->user_id, strlen(print_data->user_id) + 1);
-					sdev->file_gslist = g_slist_append(sdev->file_gslist, data_node);
-					g_free(contents);
-				}
-			}
-			else
-				get_file_data(dev, path);
-		}
-	}
-}
-
-static int get_enrolled_users_resp(bmkt_response_t *resp, void *ctx)
-{
-	
-	bmkt_enroll_templates_resp_t *get_enroll_templates_resp = &resp->response.enroll_templates_resp;
-	struct fp_dev *dev=(struct fp_dev *)ctx;
-	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
-
-	switch (resp->response_id)
-	{
-		case BMKT_RSP_QUERY_FAIL:
-			fp_info("Failed to query enrolled users: %d", resp->result);
-			pthread_mutex_lock(&sdev->op_mutex);
-			sdev->op_finished = 1;
-			pthread_cond_signal(&sdev->op_cond);
-			pthread_mutex_unlock(&sdev->op_mutex);
-			break;
-		case BMKT_RSP_QUERY_RESPONSE_COMPLETE:
-			pthread_mutex_lock(&sdev->op_mutex);
-			sdev->op_finished = 1;
-			pthread_cond_signal(&sdev->op_cond);
-			pthread_mutex_unlock(&sdev->op_mutex);
-			fp_info("Query complete!");
-			break;
-		case BMKT_RSP_TEMPLATE_RECORDS_REPORT:  
-
-			for (int n = 0; n < BMKT_MAX_NUM_TEMPLATES_INTERNAL_FLASH; n++)
-			{
-				if (get_enroll_templates_resp->templates[n].user_id_len == 0)
-					continue;
-
-				fp_info("![query %d of %d] template %d: status=0x%x, userId=%s, fingerId=%d",
-					get_enroll_templates_resp->query_sequence,
-					get_enroll_templates_resp->total_query_messages,
-					n,
-					get_enroll_templates_resp->templates[n].template_status,
-					get_enroll_templates_resp->templates[n].user_id,
-					get_enroll_templates_resp->templates[n].finger_id);
-				char *data_node = (char *)g_malloc0(strlen(get_enroll_templates_resp->templates[n].user_id) + 1);
-				memcpy(data_node, get_enroll_templates_resp->templates[n].user_id, 
-				strlen(get_enroll_templates_resp->templates[n].user_id) + 1 );
-				sdev->sensor_gslist = g_slist_prepend(sdev->sensor_gslist, data_node);
-			}
-			break;
-	}
-	
-	return 0;
-}
-
-void get_sensor_data(struct fp_dev *dev)
-{
-	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
-	int result;
-	sdev->op_finished = 0;
-	result = bmkt_get_enrolled_users(sdev->sensor, get_enrolled_users_resp, dev);
-	if (result != BMKT_SUCCESS)
-	{
-		fp_err("Failed to get enrolled users: %d", result);
-	}
-	else
-	{
-		fp_info("get enrolled data started.");
-	}
-	pthread_mutex_lock(&sdev->op_mutex);
-	if(sdev->op_finished == 0)
-	{
-		pthread_cond_wait(&sdev->op_cond, &sdev->op_mutex);
-	}
-	pthread_mutex_unlock(&sdev->op_mutex);
-}
-
 static int del_enrolled_user_resp(bmkt_response_t *resp, void *ctx)
 {
 	bmkt_del_user_resp_t *del_user_resp = &resp->response.del_user_resp;
@@ -428,84 +298,33 @@ static int del_enrolled_user_resp(bmkt_response_t *resp, void *ctx)
 			break;
 		case BMKT_RSP_DEL_USER_FP_FAIL:
 			fp_info("Failed to delete enrolled user: %d", resp->result);
-			pthread_mutex_lock(&sdev->op_mutex);
-			sdev->op_finished = 1;
-			pthread_cond_signal(&sdev->op_cond);
-			pthread_mutex_unlock(&sdev->op_mutex);
+			if(sdev->state == SYNA_STATE_DELETE)
+			{
+				/* Return result complete when record doesn't exist, otherwise host data
+				won't be deleted. */
+				if(resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)
+					fpi_drvcb_delete_complete(dev, FP_DELETE_COMPLETE);
+				else
+					fpi_drvcb_delete_complete(dev, FP_DELETE_FAIL);
+			}
 			break;
 		case BMKT_RSP_DEL_USER_FP_OK:
 			fp_info("Successfully deleted enrolled user");
-			pthread_mutex_lock(&sdev->op_mutex);
-			sdev->op_finished = 1;
-			pthread_cond_signal(&sdev->op_cond);
-			pthread_mutex_unlock(&sdev->op_mutex);
+			if(sdev->state == SYNA_STATE_DELETE)
+			{
+				fpi_drvcb_delete_complete(dev, FP_DELETE_COMPLETE);
+			}
 			break;
 	}
 	return 0;
 }
 
 
-const char FPRINTD_DATAPATH[]="/usr/local/var/lib/fprint";
-/* 
- * Delete the data which doesn't exist in fprintd folder from sensor database, 
- * otherwise, new finger may have problem to be recognized if it 
- * already exists in sensor.
-*/
-void sync_database(struct fp_dev *dev)
-{
-	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
-	int result = 0;
-	int sindex, findex;
-	GSList* snode;
-	GSList* fnode;
-
-	get_file_data(dev, FPRINTD_DATAPATH);
-	get_sensor_data(dev);
-	
-	for(sindex = 0; (snode = g_slist_nth(sdev->sensor_gslist, sindex)); sindex++)
-	{
-		for(findex = 0; (fnode = g_slist_nth(sdev->file_gslist, findex)); findex++)
-		{
-			if(strlen(snode->data) == strlen(fnode->data) &&
-				strncmp(snode->data, fnode->data, strlen(snode->data)) == 0)
-			{
-				break;
-			}
-		}
-		if(!fnode)
-		{
-			sdev->op_finished = 0;
-			result = bmkt_delete_enrolled_user(sdev->sensor, 1, snode->data, 
-			strlen(snode->data), del_enrolled_user_resp, dev);
-			if (result != BMKT_SUCCESS)
-			{
-				fp_err("Failed to delete enrolled user: %d", result);
-			}
-			else
-			{
-				
-				pthread_mutex_lock(&sdev->op_mutex);
-				if(sdev->op_finished == 0)
-				{
-					pthread_cond_wait(&sdev->op_cond, &sdev->op_mutex);
-				}
-				pthread_mutex_unlock(&sdev->op_mutex);
-
-			}
-			
-		}
-	}
-
-	g_slist_free(sdev->file_gslist);
-	g_slist_free(sdev->sensor_gslist);
-}
 static int enroll_start(struct fp_dev *dev)
 {
 	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
 	int result = 0;
 	char userid[TEMPLATE_ID_SIZE + 1];
-
-	sync_database(dev);
 	
 	fp_info("enroll_start");
 
@@ -587,7 +406,49 @@ static int verify_response(bmkt_response_t *resp, void *ctx)
 
 	return 0;
 }
+static int delete_finger(struct fp_dev *dev)
+{
+	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
+	int result = 0;
+	struct fp_print_data *print = fpi_dev_get_delete_data(dev);;
+	struct fp_print_data_item *item = print->prints->data;
+	struct syna_mis_print_data *print_data;
+	bmkt_user_id_t user;
 
+	if(item->length != sizeof(struct syna_mis_print_data))
+	{
+		fp_err("print data is incorrect !");
+		goto cleanup;
+	}
+
+	print_data = (struct syna_mis_print_data *)item->data;
+
+	memset(&user, 0, sizeof(bmkt_user_id_t));
+	memcpy(user.user_id, print_data->user_id, sizeof(print_data->user_id));
+
+	fp_info("delete finger !");
+
+	user.user_id_len = strlen(user.user_id);
+	if (user.user_id_len <= 0 || user.user_id[0] == ' ')
+	{
+		fp_err("Invalid user name.");
+		goto cleanup;
+	}
+
+	sdev->state = SYNA_STATE_DELETE;
+	result = bmkt_delete_enrolled_user(sdev->sensor, 1, print_data->user_id, 
+	user.user_id_len, del_enrolled_user_resp, dev);
+	if (result != BMKT_SUCCESS)
+	{
+		fp_err("Failed to delete enrolled user: %d", result);
+		goto cleanup;
+	}
+
+	return 0;
+
+cleanup:
+	return -1;
+}
 static int verify_start(struct fp_dev *dev)
 {
 	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
@@ -658,6 +519,7 @@ struct fp_driver synaptics_driver = {
 	.enroll_stop = enroll_stop,
 	.verify_start = verify_start,
 	.verify_stop = verify_stop,
+	.delete_finger = delete_finger,
 };
 
 

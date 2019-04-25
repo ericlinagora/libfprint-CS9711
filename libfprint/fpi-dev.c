@@ -148,3 +148,17 @@ fpi_dev_get_verify_data(struct fp_dev *dev)
 {
 	return dev->verify_data;
 }
+
+/**
+ * fpi_dev_get_delete_data:
+ * @dev: a struct #fp_dev
+ *
+ * Returns the delete data associated with @dev.
+ * Returns: a struct #fp_print_data pointer or %NULL
+ */
+struct fp_print_data *
+fpi_dev_get_delete_data(struct fp_dev *dev)
+{
+	return dev->delete_data;
+}
+

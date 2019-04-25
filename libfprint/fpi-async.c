@@ -680,3 +680,58 @@ API_EXPORTED int fp_async_capture_stop(struct fp_dev *dev,
 	}
 	return r;
 }
+
+/**
+ * fp_async_delete_finger:
+ * @dev: the struct #fp_dev device
+ * @data: data to delete. Must have been previously enrolled.
+ * @callback: the callback to call when data deleted.
+ * @user_data: user data to pass to the callback
+ *
+ * Request to delete data in sensor.
+ *
+ * Returns: 0 on success, non-zero on error
+ */
+
+API_EXPORTED int fp_async_delete_finger(struct fp_dev *dev,
+	struct fp_print_data *data, fp_img_operation_cb callback, void *user_data)
+{
+	struct fp_driver *drv;
+	int r;
+
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+	g_return_val_if_fail (callback != NULL, -EINVAL);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
+	if (!drv->delete_finger)
+		return -ENOTSUP;
+
+	dev->state = DEV_STATE_DELETING;
+	dev->delete_cb = callback;
+	dev->delete_cb_data = user_data;
+	dev->delete_data = data;
+
+	r = drv->delete_finger(dev);
+	if (r < 0) {
+		dev->delete_cb = NULL;
+		dev->state = DEV_STATE_ERROR;
+		fp_err("failed to delete data, error %d", r);
+	}
+	return r;
+}
+/* Drivers call this when delete done */
+void fpi_drvcb_delete_complete(struct fp_dev *dev, int status)
+{
+	fp_dbg("status %d", status);
+	BUG_ON(dev->state != DEV_STATE_DELETING);
+	dev->state = (status) ? DEV_STATE_ERROR : DEV_STATE_DELETE_DONE;
+	if (dev->delete_cb)
+		dev->delete_cb(dev, status, dev->delete_cb_data);
+
+}
+
+
+
+
