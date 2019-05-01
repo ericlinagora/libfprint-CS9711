@@ -45,8 +45,7 @@ struct fp_print_data *enroll(struct fp_dev *dev) {
 
 	do {
 		struct fp_img *img = NULL;
-	
-		sleep(1);
+
 		printf("\nScan your finger now.\n");
 
 		r = fp_enroll_finger_img(dev, &enrolled_print, &img);

@@ -43,7 +43,6 @@ struct fp_print_data *enroll(struct fp_dev *dev) {
 		"complete the process.\n", fp_dev_get_nr_enroll_stages(dev));
 
 	do {
-		sleep(1);
 		printf("\nScan your finger now.\n");
 		r = fp_enroll_finger(dev, &enrolled_print);
 		if (r < 0) {
