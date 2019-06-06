@@ -42,6 +42,7 @@ enum {
 	VFS5011_ID	= 19,
 	VFS0050_ID	= 20,
 	ELAN_ID		= 21,
+	VIRTUAL_IMG_ID	= 22,
 };
 
 #endif
