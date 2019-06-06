@@ -270,6 +270,60 @@ static struct fp_dscv_dev *discover_usb_dev(libusb_device *udev)
 	return ddev;
 }
 
+static void discover_usb_devs(GPtrArray *found_devices)
+{
+	libusb_device *udev;
+	libusb_device **devs;
+	int r;
+	int i = 0;
+
+	r = libusb_get_device_list(fpi_usb_ctx, &devs);
+	if (r < 0) {
+		fp_err("couldn't enumerate USB devices, error %d", r);
+		return;
+	}
+
+	/* Check each device against each driver, temporarily storing successfully
+	 * discovered devices in a GPtrArray. */
+	while ((udev = devs[i++]) != NULL) {
+		struct fp_dscv_dev *ddev = discover_usb_dev(udev);
+		if (!ddev)
+			continue;
+		/* discover_usb_dev() doesn't hold a reference to the udev,
+		 * so increase the reference for ddev to hold this ref */
+		libusb_ref_device(udev);
+		g_ptr_array_add (found_devices, (gpointer) ddev);
+	}
+	libusb_free_device_list(devs, 1);
+}
+
+static void discover_virtual_devs(GPtrArray *found_devices)
+{
+	GSList *elem;
+
+	for (elem = registered_drivers; elem; elem = g_slist_next(elem)) {
+		struct fp_driver *drv = elem->data;
+		struct fp_dscv_dev *ddev = NULL;
+		const gchar *var;
+
+		if (drv->bus != BUS_TYPE_VIRTUAL)
+			continue;
+
+		var = g_getenv (drv->id_table.virtual_envvar);
+
+		if (var == NULL)
+			continue;
+
+		ddev = g_malloc0(sizeof(*ddev));
+		ddev->drv = drv;
+		ddev->bus = BUS_TYPE_VIRTUAL;
+		ddev->desc.virtual_env = var;
+		ddev->devtype = 0;
+
+		g_ptr_array_add (found_devices, ddev);
+	}
+}
+
 /**
  * fp_discover_devs:
  *
@@ -283,39 +337,25 @@ static struct fp_dscv_dev *discover_usb_dev(libusb_device *udev)
  */
 API_EXPORTED struct fp_dscv_dev **fp_discover_devs(void)
 {
-	GPtrArray *tmparray;
-	libusb_device *udev;
-	libusb_device **devs;
-	int r;
-	int i = 0;
+	GPtrArray *found_devices;
 
 	g_return_val_if_fail (registered_drivers != NULL, NULL);
 
-	r = libusb_get_device_list(fpi_usb_ctx, &devs);
-	if (r < 0) {
-		fp_err("couldn't enumerate USB devices, error %d", r);
+	found_devices = g_ptr_array_new ();
+
+	discover_usb_devs (found_devices);
+	discover_virtual_devs (found_devices);
+
+	/* Return NULL if no devices were found. */
+	if (found_devices->len == 0) {
+		g_ptr_array_free (found_devices, TRUE);
 		return NULL;
 	}
 
-	tmparray = g_ptr_array_new ();
-
-	/* Check each device against each driver, temporarily storing successfully
-	 * discovered devices in a GPtrArray. */
-	while ((udev = devs[i++]) != NULL) {
-		struct fp_dscv_dev *ddev = discover_usb_dev(udev);
-		if (!ddev)
-			continue;
-		/* discover_usb_dev() doesn't hold a reference to the udev,
-		 * so increase the reference for ddev to hold this ref */
-		libusb_ref_device(udev);
-		g_ptr_array_add (tmparray, (gpointer) ddev);
-	}
-	libusb_free_device_list(devs, 1);
-
 	/* Convert our temporary array into a standard NULL-terminated pointer
 	 * array. */
-	g_ptr_array_add (tmparray, NULL);
-	return (struct fp_dscv_dev **) g_ptr_array_free (tmparray, FALSE);
+	g_ptr_array_add (found_devices, NULL);
+	return (struct fp_dscv_dev **) g_ptr_array_free (found_devices, FALSE);
 }
 
 /**
