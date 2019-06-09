@@ -207,26 +207,6 @@ void fpi_timeout_cancel(fpi_timeout *timeout)
 	fpi_timeout_free(timeout);
 }
 
-void
-fpi_timeout_cancel_for_dev(struct fp_dev *dev)
-{
-	GSList *l;
-
-	g_return_if_fail (dev != NULL);
-
-	l = active_timers;
-	while (l) {
-		struct fpi_timeout *timeout = l->data;
-		GSList *current = l;
-
-		l = l->next;
-		if (timeout->dev == dev) {
-			fpi_timeout_free (timeout);
-			active_timers = g_slist_delete_link (active_timers, current);
-		}
-	}
-}
-
 /* get the expiry time and optionally the timeout structure for the next
  * timeout. returns 0 if there are no expired timers, or 1 if the
  * timeval/timeout output parameters were populated. if the returned timeval
