@@ -75,64 +75,38 @@
  * for example.
  */
 
-/* this is a singly-linked list of pending timers, sorted with the timer that
- * is expiring soonest at the head. */
+static GMainContext *fpi_main_ctx = NULL;
 static GSList *active_timers = NULL;
 
 /* notifiers for added or removed poll fds */
 static fp_pollfd_added_cb fd_added_cb = NULL;
 static fp_pollfd_removed_cb fd_removed_cb = NULL;
 
+
 struct fpi_timeout {
-	struct timeval expiry;
-	fpi_timeout_fn callback;
-	struct fp_dev *dev;
-	void *data;
-	char *name;
+	fpi_timeout_fn  callback;
+	struct fp_dev  *dev;
+	void           *data;
+	GSource        *source;
 };
 
-static int timeout_sort_fn(gconstpointer _a, gconstpointer _b)
-{
-	fpi_timeout *a = (fpi_timeout *) _a;
-	fpi_timeout *b = (fpi_timeout *) _b;
-	struct timeval *tv_a = &a->expiry;
-	struct timeval *tv_b = &b->expiry;
-
-	if (timercmp(tv_a, tv_b, <))
-		return -1;
-	else if (timercmp(tv_a, tv_b, >))
-		return 1;
-	else
-		return 0;
-}
-
 static void
-fpi_timeout_free(fpi_timeout *timeout)
+fpi_timeout_destroy (gpointer data)
 {
-	if (timeout == NULL)
-		return;
+	fpi_timeout *timeout = data;
 
-	g_free(timeout->name);
-	g_free(timeout);
+	active_timers = g_slist_remove (active_timers, timeout);
+	g_free (timeout);
 }
 
-/**
- * fpi_timeout_set_name:
- * @timeout: a #fpi_timeout
- * @name: the name to give the timeout
- *
- * Sets a name for a timeout, allowing that name to be printed
- * along with any timeout related debug.
- */
-void
-fpi_timeout_set_name(fpi_timeout *timeout,
-		     const char  *name)
+static gboolean
+fpi_timeout_wrapper_cb (gpointer data)
 {
-	g_return_if_fail (timeout != NULL);
-	g_return_if_fail (name != NULL);
-	g_return_if_fail (timeout->name == NULL);
+	fpi_timeout *timeout = (fpi_timeout*) data;
 
-	timeout->name = g_strdup(name);
+	timeout->callback (timeout->dev, timeout->data);
+
+	return G_SOURCE_REMOVE;
 }
 
 /**
@@ -154,43 +128,37 @@ fpi_timeout_set_name(fpi_timeout *timeout,
  *
  * Returns: an #fpi_timeout structure
  */
-fpi_timeout *fpi_timeout_add(unsigned int    msec,
-			     fpi_timeout_fn  callback,
-			     struct fp_dev  *dev,
-			     void           *data)
+fpi_timeout *
+fpi_timeout_add(unsigned int    msec,
+		fpi_timeout_fn  callback,
+		struct fp_dev  *dev,
+		void           *data)
 {
-	struct timespec ts;
-	struct timeval add_msec;
 	fpi_timeout *timeout;
-	int r;
 
-	g_return_val_if_fail (dev != NULL, NULL);
+	timeout = g_new0 (fpi_timeout, 1);
+	timeout->source = g_timeout_source_new (msec);
+	active_timers = g_slist_prepend (active_timers, timeout);
 
-	fp_dbg("in %dms", msec);
-
-	r = clock_gettime(CLOCK_MONOTONIC, &ts);
-	if (r < 0) {
-		fp_err("failed to read monotonic clock, errno=%d", errno);
-		BUG();
-		return NULL;
-	}
-
-	timeout = g_new0(fpi_timeout, 1);
-	timeout->callback = callback;
-	timeout->dev = dev;
-	timeout->data = data;
-	TIMESPEC_TO_TIMEVAL(&timeout->expiry, &ts);
-
-	/* calculate timeout expiry by adding delay to current monotonic clock */
-	timerclear(&add_msec);
-	add_msec.tv_sec = msec / 1000;
-	add_msec.tv_usec = (msec % 1000) * 1000;
-	timeradd(&timeout->expiry, &add_msec, &timeout->expiry);
-
-	active_timers = g_slist_insert_sorted(active_timers, timeout,
-		timeout_sort_fn);
+	g_source_set_callback (timeout->source, fpi_timeout_wrapper_cb, timeout, fpi_timeout_destroy);
+	g_source_attach (timeout->source, fpi_main_ctx);
 
 	return timeout;
+}
+
+/**
+ * fpi_timeout_set_name:
+ * @timeout: a #fpi_timeout
+ * @name: the name to give the timeout
+ *
+ * Sets a name for a timeout, allowing that name to be printed
+ * along with any timeout related debug.
+ */
+void
+fpi_timeout_set_name(fpi_timeout *timeout,
+		     const char  *name)
+{
+	g_source_set_name (timeout->source, name);
 }
 
 /**
@@ -200,81 +168,16 @@ fpi_timeout *fpi_timeout_add(unsigned int    msec,
  * Cancels a timeout scheduled with fpi_timeout_add(), and frees the
  * @timeout structure.
  */
-void fpi_timeout_cancel(fpi_timeout *timeout)
+void
+fpi_timeout_cancel(fpi_timeout *timeout)
 {
-	G_DEBUG_HERE();
-	active_timers = g_slist_remove(active_timers, timeout);
-	fpi_timeout_free(timeout);
+	g_source_destroy (timeout->source);
 }
 
-/* get the expiry time and optionally the timeout structure for the next
- * timeout. returns 0 if there are no expired timers, or 1 if the
- * timeval/timeout output parameters were populated. if the returned timeval
- * is zero then it means the timeout has already expired and should be handled
- * ASAP. */
-static int get_next_timeout_expiry(struct timeval *out,
-	struct fpi_timeout **out_timeout)
+static gboolean
+dummy_cb (gpointer user_data)
 {
-	struct timespec ts;
-	struct timeval tv;
-	struct fpi_timeout *next_timeout;
-	int r;
-
-	if (active_timers == NULL)
-		return 0;
-
-	r = clock_gettime(CLOCK_MONOTONIC, &ts);
-	if (r < 0) {
-		fp_err("failed to read monotonic clock, errno=%d", errno);
-		return r;
-	}
-	TIMESPEC_TO_TIMEVAL(&tv, &ts);
-
-	next_timeout = active_timers->data;
-	if (out_timeout)
-		*out_timeout = next_timeout;
-
-	if (timercmp(&tv, &next_timeout->expiry, >=)) {
-		if (next_timeout->name)
-			fp_dbg("first timeout '%s' already expired", next_timeout->name);
-		else
-			fp_dbg("first timeout already expired");
-		timerclear(out);
-	} else {
-		timersub(&next_timeout->expiry, &tv, out);
-		if (next_timeout->name)
-			fp_dbg("next timeout '%s' in %ld.%06lds", next_timeout->name,
-			       out->tv_sec, out->tv_usec);
-		else
-			fp_dbg("next timeout in %ld.%06lds", out->tv_sec, out->tv_usec);
-	}
-
-	return 1;
-}
-
-/* handle a timeout that has expired */
-static void handle_timeout(struct fpi_timeout *timeout)
-{
-	G_DEBUG_HERE();
-	timeout->callback(timeout->dev, timeout->data);
-	active_timers = g_slist_remove(active_timers, timeout);
-	fpi_timeout_free(timeout);
-}
-
-static int handle_timeouts(void)
-{
-	struct timeval next_timeout_expiry;
-	struct fpi_timeout *next_timeout;
-	int r;
-
-	r = get_next_timeout_expiry(&next_timeout_expiry, &next_timeout);
-	if (r <= 0)
-		return r;
-
-	if (!timerisset(&next_timeout_expiry))
-		handle_timeout(next_timeout);
-
-	return 0;
+	return G_SOURCE_REMOVE;
 }
 
 /**
@@ -290,37 +193,22 @@ static int handle_timeouts(void)
  */
 API_EXPORTED int fp_handle_events_timeout(struct timeval *timeout)
 {
-	struct timeval next_timeout_expiry;
-	struct timeval select_timeout;
-	struct fpi_timeout *next_timeout;
-	int r;
+	GSource *timeout_source;
 
-	r = get_next_timeout_expiry(&next_timeout_expiry, &next_timeout);
-	if (r < 0)
-		return r;
-
-	if (r) {
-		/* timer already expired? */
-		if (!timerisset(&next_timeout_expiry)) {
-			handle_timeout(next_timeout);
-			return 0;
-		}
-
-		/* choose the smallest of next URB timeout or user specified timeout */
-		if (timercmp(&next_timeout_expiry, timeout, <))
-			select_timeout = next_timeout_expiry;
-		else
-			select_timeout = *timeout;
-	} else {
-		select_timeout = *timeout;
+	if (timeout->tv_sec == 0 && timeout->tv_usec == 0) {
+		g_main_context_iteration (fpi_main_ctx, FALSE);
+		return 0;
 	}
 
-	r = libusb_handle_events_timeout(fpi_usb_ctx, &select_timeout);
-	*timeout = select_timeout;
-	if (r < 0)
-		return r;
+	/* Register a timeout on the mainloop and then run in blocking mode */
+	timeout_source = g_timeout_source_new (timeout->tv_sec * 1000 + timeout->tv_usec / 1000);
+	g_source_set_name (timeout_source, "fpi poll timeout");
+	g_source_set_callback (timeout_source, dummy_cb, NULL, NULL);
+	g_source_attach (timeout_source, fpi_main_ctx);
+	g_main_context_iteration (fpi_main_ctx, TRUE);
+	g_source_destroy (timeout_source);
 
-	return handle_timeouts();
+	return 0;
 }
 
 /**
@@ -350,34 +238,36 @@ API_EXPORTED int fp_handle_events(void)
  */
 API_EXPORTED int fp_get_next_timeout(struct timeval *tv)
 {
-	struct timeval fprint_timeout = { 0, 0 };
-	struct timeval libusb_timeout = { 0, 0 };
-	int r_fprint;
-	int r_libusb;
+	int timeout_;
 
-	r_fprint = get_next_timeout_expiry(&fprint_timeout, NULL);
-	r_libusb = libusb_get_next_timeout(fpi_usb_ctx, &libusb_timeout);
+	g_return_val_if_fail (g_main_context_acquire (fpi_main_ctx), 0);
 
-	/* if we have no pending timeouts and the same is true for libusb,
-	 * indicate that we have no pending timouts */
-	if (r_fprint <= 0 && r_libusb <= 0)
+	g_main_context_query (fpi_main_ctx,
+			      G_MININT,
+			      &timeout_,
+			      NULL,
+			      0);
+
+	if (timeout_ < 0)
 		return 0;
 
-	/* if fprint have no pending timeouts return libusb timeout */
-	else if (r_fprint == 0)
-		*tv = libusb_timeout;
+	tv->tv_sec = timeout_ / 1000;
+	tv->tv_usec = (timeout_ % 1000) * 1000;
 
-	/* if libusb have no pending timeouts return fprint timeout */
-	else if (r_libusb == 0)
-		*tv = fprint_timeout;
-
-	/* otherwise return the smaller of the 2 timeouts */
-	else if (timercmp(&fprint_timeout, &libusb_timeout, <))
-		*tv = fprint_timeout;
-	else
-		*tv = libusb_timeout;
 	return 1;
 }
+
+typedef struct {
+	GSource source;
+	GSList *fds;
+} fpi_libusb_source;
+
+typedef struct {
+	int fd;
+	gpointer tag;
+} fpi_libusb_fd;
+
+static fpi_libusb_source *libusb_source = NULL;
 
 /**
  * fp_get_pollfds:
@@ -394,33 +284,52 @@ API_EXPORTED int fp_get_next_timeout(struct timeval *tv)
  */
 API_EXPORTED ssize_t fp_get_pollfds(struct fp_pollfd **pollfds)
 {
-	const struct libusb_pollfd **usbfds;
-	const struct libusb_pollfd *usbfd;
-	struct fp_pollfd *ret;
-	ssize_t cnt = 0;
-	size_t i = 0;
+	gint timeout_;
+	GPollFD fds_static[16];
+	GPollFD *fds = fds_static;
+	gint n_fds;
+	int i;
 
-	g_return_val_if_fail (fpi_usb_ctx != NULL, -EIO);
+	g_return_val_if_fail (g_main_context_acquire (fpi_main_ctx), -1);
 
-	usbfds = libusb_get_pollfds(fpi_usb_ctx);
-	if (!usbfds) {
-		*pollfds = NULL;
-		return -EIO;
+	n_fds = g_main_context_query (fpi_main_ctx,
+				      G_MININT,
+				      &timeout_,
+				      fds,
+				      G_N_ELEMENTS (fds_static));
+
+	if (n_fds > G_N_ELEMENTS (fds_static)) {
+		fds = g_new0 (GPollFD, n_fds);
+
+		n_fds = g_main_context_query (fpi_main_ctx,
+					      G_MININT,
+					      &timeout_,
+					      fds,
+					      n_fds);
 	}
 
-	while ((usbfd = usbfds[i++]) != NULL)
-		cnt++;
+	g_main_context_release (fpi_main_ctx);
 
-	ret = g_malloc(sizeof(struct fp_pollfd) * cnt);
-	i = 0;
-	while ((usbfd = usbfds[i]) != NULL) {
-		ret[i].fd = usbfd->fd;
-		ret[i].events = usbfd->events;
-		i++;
+	*pollfds = g_new0 (struct fp_pollfd, n_fds);
+	for (i = 0; i < n_fds; i++) {
+		(*pollfds)[i].fd = fds[i].fd;
+
+		if (fds[i].events & G_IO_IN)
+			(*pollfds)[i].events |= POLL_IN;
+		if (fds[i].events & G_IO_OUT)
+			(*pollfds)[i].events |= POLL_OUT;
+		if (fds[i].events & G_IO_PRI)
+			(*pollfds)[i].events |= POLL_PRI;
+		if (fds[i].events & G_IO_ERR)
+			(*pollfds)[i].events |= POLL_ERR;
+		if (fds[i].events & G_IO_HUP)
+			(*pollfds)[i].events |= POLL_HUP;
 	}
 
-	*pollfds = ret;
-	return cnt;
+	if (fds != fds_static)
+		g_free (fds);
+
+	return n_fds;
 }
 
 /**
@@ -440,29 +349,128 @@ API_EXPORTED void fp_set_pollfd_notifiers(fp_pollfd_added_cb added_cb,
 
 static void add_pollfd(int fd, short events, void *user_data)
 {
+	GIOCondition io_cond = 0;
+	fpi_libusb_fd *data;
+	gpointer tag;
+
+	if (events & POLL_IN)
+		io_cond |= G_IO_IN;
+	if (events & POLL_OUT)
+		io_cond |= G_IO_OUT;
+	if (events & POLL_PRI)
+		io_cond |= G_IO_PRI;
+	if (events & POLL_ERR)
+		io_cond |= G_IO_ERR;
+	if (events & POLL_HUP)
+		io_cond |= G_IO_HUP;
+
+	tag = g_source_add_unix_fd (&libusb_source->source, fd, io_cond);
+
+	data = g_new0 (fpi_libusb_fd, 1);
+	data->fd = fd;
+	data->tag = tag;
+
+	libusb_source->fds = g_slist_prepend (libusb_source->fds, data);
+
 	if (fd_added_cb)
 		fd_added_cb(fd, events);
 }
 
 static void remove_pollfd(int fd, void *user_data)
 {
+	GSList *elem = g_slist_find_custom (libusb_source->fds, &fd, g_int_equal);
+	fpi_libusb_fd *item;
+
+	g_return_if_fail (elem != NULL);
+
+	item = (fpi_libusb_fd*) elem->data;
+
+	g_source_remove_unix_fd (&libusb_source->source, item->tag);
+
+	libusb_source->fds = g_slist_remove_link (libusb_source->fds, elem);
+	g_slist_free (elem);
+	g_free (item);
+
 	if (fd_removed_cb)
 		fd_removed_cb(fd);
 }
 
+static gboolean
+fpi_libusb_prepare (GSource    *source,
+                    gint       *timeout_)
+{
+	struct timeval tv;
+
+	*timeout_ = -1;
+
+	if (libusb_get_next_timeout(fpi_usb_ctx, &tv) == 1) {
+		if (tv.tv_sec == 0 && tv.tv_usec == 0)
+			return TRUE;
+
+		*timeout_ = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	}
+
+	return FALSE;
+}
+
+static gboolean
+fpi_libusb_check (GSource *source)
+{
+	/* Just call into libusb for every mainloop cycle */
+	return TRUE;
+}
+
+static gboolean
+fpi_libusb_dispatch (GSource     *source,
+                     GSourceFunc  callback,
+                     gpointer     user_data)
+{
+	struct timeval zero_tv = { 0, 0 };
+
+	libusb_handle_events_timeout (fpi_usb_ctx, &zero_tv);
+
+	return G_SOURCE_CONTINUE;
+}
+
+static void
+fpi_libusb_finalize (GSource *source)
+{
+	fpi_libusb_source *fpi_source = (fpi_libusb_source*) source;
+
+	g_slist_free_full (fpi_source->fds, g_free);
+}
+
+GSourceFuncs libusb_source_funcs = {
+	.prepare = fpi_libusb_prepare,
+	.check = fpi_libusb_check,
+	.dispatch = fpi_libusb_dispatch,
+	.finalize = fpi_libusb_finalize,
+};
+
 void fpi_poll_init(void)
 {
+	fpi_main_ctx = g_main_context_new ();
+
+	libusb_source = (fpi_libusb_source*) g_source_new (&libusb_source_funcs, sizeof(fpi_libusb_source));
+	g_source_set_name (&libusb_source->source, "libfprint internal libusb source");
+	g_source_attach (&libusb_source->source, fpi_main_ctx);
+
 	libusb_set_pollfd_notifiers(fpi_usb_ctx, add_pollfd, remove_pollfd, NULL);
 }
 
 void fpi_poll_exit(void)
 {
-	g_slist_free_full(active_timers, (GDestroyNotify) fpi_timeout_free);
-	active_timers = NULL;
+	g_source_destroy (&libusb_source->source);
+	libusb_source = NULL;
+	g_main_context_unref (fpi_main_ctx);
+	fpi_main_ctx = NULL;
+
 	fd_added_cb = NULL;
 	fd_removed_cb = NULL;
+
 	libusb_set_pollfd_notifiers(fpi_usb_ctx, NULL, NULL, NULL);
 }
+
 
 void
 fpi_timeout_cancel_all_for_dev(struct fp_dev *dev)
@@ -473,13 +481,10 @@ fpi_timeout_cancel_all_for_dev(struct fp_dev *dev)
 
 	l = active_timers;
 	while (l) {
-		struct fpi_timeout *timeout = l->data;
-		GSList *current = l;
+		fpi_timeout *cb_data = l->data;
 
 		l = l->next;
-		if (timeout->dev == dev) {
-			g_free (timeout);
-			active_timers = g_slist_delete_link (active_timers, current);
-		}
+		if (cb_data->dev == dev)
+			g_source_destroy (cb_data->source);
 	}
 }
