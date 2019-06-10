@@ -28,6 +28,7 @@
 #include <sys/time.h>
 
 #include <glib.h>
+#include <glib-unix.h>
 #include <libusb.h>
 
 /**
@@ -172,6 +173,100 @@ void
 fpi_timeout_cancel(fpi_timeout *timeout)
 {
 	g_source_destroy (timeout->source);
+}
+
+struct fpi_io_condition {
+	fpi_io_condition_fn  callback;
+	int                  fd;
+	struct fp_dev       *dev;
+	void                *data;
+	GSource             *source;
+};
+
+static gboolean
+fpi_io_condition_wrapper_cb (int fd, GIOCondition cond, gpointer data)
+{
+	fpi_io_condition *io_cond = data;
+	short events = 0;
+
+	if (cond & G_IO_IN)
+		events |= POLL_IN;
+	if (cond & G_IO_OUT)
+		events |= POLL_OUT;
+	if (cond & G_IO_PRI)
+		events |= POLL_PRI;
+	if (cond & G_IO_ERR)
+		events |= POLL_ERR;
+	if (cond & G_IO_HUP)
+		events |= POLL_HUP;
+
+	io_cond->callback (io_cond->dev, fd, cond, io_cond->data);
+
+	return G_SOURCE_CONTINUE;
+}
+
+static void
+fpi_io_condition_destroy (gpointer data)
+{
+	fpi_io_condition *io_cond = data;
+
+	if (fd_removed_cb)
+		fd_removed_cb(io_cond->fd);
+
+	g_free (io_cond);
+}
+
+fpi_io_condition *
+fpi_io_condition_add(int                  fd,
+		     short int            events,
+		     fpi_io_condition_fn  callback,
+		     struct fp_dev       *dev,
+		     void                *data)
+{
+	fpi_io_condition *io_cond;
+	GIOCondition cond = 0;
+
+	if (events & POLL_IN)
+		cond |= G_IO_IN;
+	if (events & POLL_OUT)
+		cond |= G_IO_OUT;
+	if (events & POLL_PRI)
+		cond |= G_IO_PRI;
+	if (events & POLL_ERR)
+		cond |= G_IO_ERR;
+	if (events & POLL_HUP)
+		cond |= G_IO_HUP;
+
+	io_cond = g_new0 (fpi_io_condition, 1);
+	io_cond->source = g_unix_fd_source_new (fd, cond);
+	io_cond->fd = fd;
+	io_cond->callback = callback;
+	io_cond->data = data;
+	io_cond->dev = dev;
+
+	g_source_set_callback (io_cond->source,
+			       G_SOURCE_FUNC (fpi_io_condition_wrapper_cb),
+			       io_cond,
+			       fpi_io_condition_destroy);
+	g_source_attach (io_cond->source, fpi_main_ctx);
+
+	if (fd_added_cb)
+		fd_added_cb(fd, events);
+
+	return io_cond;
+}
+
+void
+fpi_io_condition_set_name(fpi_io_condition *io_cond,
+			  const char       *name)
+{
+	g_source_set_name (io_cond->source, name);
+}
+
+void
+fpi_io_condition_remove(fpi_io_condition *io_cond)
+{
+	g_source_destroy(io_cond->source);
 }
 
 static gboolean

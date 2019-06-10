@@ -48,4 +48,34 @@ void fpi_timeout_set_name(fpi_timeout *timeout,
 			  const char  *name);
 void fpi_timeout_cancel(fpi_timeout *timeout);
 
+
+/**
+ * fpi_io_condition_fn:
+ * @dev: the struct #fp_dev passed to fpi_io_condition_add()
+ * @fd: the registered file descriptor
+ * @events: The events that poll returend for the descriptor
+ * @data: the data passed to fpi_io_condition_add()
+ *
+ * The prototype of the callback function for fpi_io_condition_add().
+ * Note that structure will be free'ed when unregistering the condition.
+ */
+typedef void (*fpi_io_condition_fn)(struct fp_dev *dev, int fd, short int events, void *data);
+
+/**
+ * fpi_io_cond:
+ *
+ * An opaque structure representing a pollable file descriptor and a
+ * callback function created with fpi_io_condition_add().
+ */
+typedef struct fpi_io_condition fpi_io_condition;
+
+fpi_io_condition *fpi_io_condition_add(int                  fd,
+				       short int            events,
+				       fpi_io_condition_fn  callback,
+				       struct fp_dev       *dev,
+				       void                *data);
+void fpi_io_condition_set_name(fpi_io_condition *io_cond,
+			       const char       *name);
+void fpi_io_condition_remove(fpi_io_condition *io_cond);
+
 #endif
