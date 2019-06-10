@@ -21,29 +21,24 @@
 
 #include "bmkt.h"
 #include "bmkt_message.h"
-#include "platform.h"
+#include <time.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <string.h>
+#include <stdio.h>
+#include "fp_internal.h"
 
-#define container_of(ptr, type, member) ({						\
-		const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
-		(type *)( (char *)__mptr - offsetof(type,member) );})
-
-typedef enum
-{
-	BYTE_ORDER_BIG = 0,
-	BYTE_ORDER_LITTLE = 1,
-	BYTE_ORDER_SENSOR = BYTE_ORDER_LITTLE,
-} bmkt_byte_order_t;
-
-uint32_t extract32(const uint8_t *buf, int *offset, bmkt_byte_order_t byte_order);
-uint16_t extract16(const uint8_t *buf, int *offset, bmkt_byte_order_t byte_order);
-uint8_t extract8(const uint8_t *buf, int *offset, bmkt_byte_order_t byte_order);
-
-void encode32(uint32_t value, uint8_t *buf, int *offset, bmkt_byte_order_t byte_order);
-void encode16(uint16_t value, uint8_t *buf, int *offset, bmkt_byte_order_t byte_order);
-void encode8(uint8_t value, uint8_t *buf, int *offset, bmkt_byte_order_t byte_order);
-
-#ifdef FULL_LOGGING
+uint32_t extract32(const uint8_t *buf, int *offset);
+uint16_t extract16(const uint8_t *buf, int *offset);
+uint8_t extract8(const uint8_t *buf, int *offset);
 void print_buffer(uint8_t *buf, int len);
-#endif
+
+
+#define bmkt_dbg_log	fp_dbg
+#define bmkt_info_log	fp_info
+#define bmkt_warn_log	fp_warn
+#define bmkt_err_log	fp_err
+
+void bmkt_op_next_state(bmkt_sensor_t *sensor);
 
 #endif /* _BMKT_INTERNAL_H_ */

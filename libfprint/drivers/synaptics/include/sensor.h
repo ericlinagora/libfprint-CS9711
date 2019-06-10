@@ -19,10 +19,7 @@
 #ifndef _SENSOR_H_
 #define _SENSOR_H_
 
-#include "transport.h"
-#include "event.h"
-#include "thread.h"
-
+#include "usb_transport.h"
 #define BMKT_MAX_PENDING_SESSIONS		2
 
 typedef enum bmkt_sensor_state
@@ -55,26 +52,21 @@ typedef struct bmkt_sensor_version
 
 typedef struct bmkt_sensor
 {
-	bmkt_transport_t xport;
+	bmkt_usb_transport_t usb_xport;
 	bmkt_sensor_version_t version;
 	bmkt_session_ctx_t pending_sessions[BMKT_MAX_PENDING_SESSIONS];
 	int empty_session_idx;
-	int expect_response;
 	int flags;
 	int seq_num;
-	bmkt_event_t interrupt_event;
 	bmkt_sensor_state_t sensor_state;
 	bmkt_event_cb_t finger_event_cb;
 	void *finger_cb_ctx;
 	bmkt_general_error_cb_t gen_err_cb;
 	void *gen_err_cb_ctx;
-#ifdef THREAD_SUPPORT
-	bmkt_thread_t interrupt_thread;
-	bmkt_mutex_t interrupt_mutex;
-#endif /* THREAD_SUPPORT */
+	bmkt_op_state_t op_state;
 } bmkt_sensor_t;
 
-int bmkt_sensor_open(bmkt_sensor_t *sensor, const bmkt_sensor_desc_t *desc,
+int bmkt_sensor_open(bmkt_sensor_t *sensor, 
 						bmkt_general_error_cb_t err_cb, void *err_cb_ctx);
 int bmkt_sensor_close(bmkt_sensor_t *sensor);
 
@@ -85,7 +77,6 @@ int bmkt_sensor_send_message(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t payl
 int bmkt_sensor_send_message_sync(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t payload_size,
 						uint8_t *payload, uint8_t **resp_buf, int *resp_len, bmkt_response_t *resp);
 int bmkt_sensor_handle_response(bmkt_sensor_t *sensor, uint8_t *resp_buf, int resp_len, bmkt_msg_resp_t *msg_resp);
-int bmkt_sensor_handle_interrupt(bmkt_sensor_t *sensor);
 
-int bmkt_sensor_process_pending_interrupts(bmkt_sensor_t *sensor);
+int bmkt_sensor_send_async_read_command(bmkt_sensor_t *sensor);
 #endif /* _SENSOR_H_ */

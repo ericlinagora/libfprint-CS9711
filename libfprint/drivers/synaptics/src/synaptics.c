@@ -31,14 +31,6 @@ static const struct usb_id id_table[] = {
     { 0, 0, 0, }, /* terminating entry */
 };
 
-#define SYNA_ASSERT(_state, _message, _err) ({ \
-		if (__builtin_expect(!(_state), 0)) \
-		{ \
-			fp_err("%s",(_message)); \
-			result = (_err); \
-			goto cleanup; \
-		} \
-})
 
 static int general_error_callback(uint16_t error, void *ctx)
 {
@@ -66,6 +58,7 @@ static int finger_event_callback(bmkt_finger_event_t *event, void *ctx)
 			if(sdev->state == SYNA_STATE_VERIFY_DELAY_RESULT)
 			{
 				fp_info("verify no match");
+				bmkt_op_set_state(sdev->sensor, BMKT_OP_STATE_COMPLETE);
 				fpi_drvcb_report_verify_result(dev, FP_VERIFY_NO_MATCH, NULL);
 			}
 			break;
@@ -159,6 +152,7 @@ static int enroll_response(bmkt_response_t *resp, void *ctx)
 			memcpy(item->data, &mis_data,
 				sizeof(struct syna_mis_print_data));
 			fdata->prints = g_slist_prepend(fdata->prints, item);
+			bmkt_op_set_state(sdev->sensor, BMKT_OP_STATE_COMPLETE);
 			fpi_drvcb_enroll_stage_completed(dev, 1, fdata, NULL);
 			break;
 		}
@@ -170,7 +164,6 @@ static int dev_init(struct fp_dev *dev, unsigned long driver_data)
 {
 	synaptics_dev *sdev = NULL;
 	int result = 0, ret = 0;
-	struct libusb_device_descriptor dsc;
 	libusb_device *udev = libusb_get_device(fpi_dev_get_usb_dev(dev));
 
 	fp_info("%s ", __func__);
@@ -180,18 +173,8 @@ static int dev_init(struct fp_dev *dev, unsigned long driver_data)
 
     /* Initialize private structure */
 	sdev = g_malloc0(sizeof(synaptics_dev));
-	sdev->sensor_desc.xport_type = BMKT_TRANSPORT_TYPE_USB;
-	sdev->usb_config = &sdev->sensor_desc.xport_config.usb_config;
 
-	result = libusb_get_device_descriptor(udev, &dsc);
-	if(result)
-	{
-		fp_err("Failed to get device descriptor");
-		return -1;
-	}
-	sdev->usb_config->product_id = dsc.idProduct;
-
-    result = bmkt_init(&(sdev->ctx));
+	result = bmkt_init(&(sdev->ctx));
 	if (result != BMKT_SUCCESS)
 	{
 		fp_err("Failed to initialize bmkt context: %d", result);
@@ -199,7 +182,7 @@ static int dev_init(struct fp_dev *dev, unsigned long driver_data)
 	}
 	fp_info("bmkt_init successfully.");
 
-    result = bmkt_open(sdev->ctx, &sdev->sensor_desc, &sdev->sensor, general_error_callback, NULL);
+	result = bmkt_open(sdev->ctx, &sdev->sensor, general_error_callback, NULL, fpi_dev_get_usb_dev(dev));
 	if (result != BMKT_SUCCESS)
 	{
 		fp_err("Failed to open bmkt sensor: %d", result);
@@ -298,6 +281,7 @@ static int del_enrolled_user_resp(bmkt_response_t *resp, void *ctx)
 			break;
 		case BMKT_RSP_DEL_USER_FP_FAIL:
 			fp_info("Failed to delete enrolled user: %d", resp->result);
+			bmkt_op_set_state(sdev->sensor, BMKT_OP_STATE_COMPLETE);
 			if(sdev->state == SYNA_STATE_DELETE)
 			{
 				/* Return result complete when record doesn't exist, otherwise host data
@@ -310,6 +294,7 @@ static int del_enrolled_user_resp(bmkt_response_t *resp, void *ctx)
 			break;
 		case BMKT_RSP_DEL_USER_FP_OK:
 			fp_info("Successfully deleted enrolled user");
+			bmkt_op_set_state(sdev->sensor, BMKT_OP_STATE_COMPLETE);
 			if(sdev->state == SYNA_STATE_DELETE)
 			{
 				fpi_drvcb_delete_complete(dev, FP_DELETE_COMPLETE);
@@ -356,11 +341,6 @@ static int enroll_stop(struct fp_dev *dev)
 	int ret;
 	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
 	sdev->state = SYNA_STATE_IDLE;
-	ret = bmkt_cancel_op(sdev->sensor, cancel_resp, dev);
-	if (ret != BMKT_SUCCESS)
-	{
-		fp_err("Failed to cancel operation: %d", ret);
-	}
 	fpi_drvcb_enroll_stopped(dev);
 	return 1;
 }
@@ -392,13 +372,17 @@ static int verify_response(bmkt_response_t *resp, void *ctx)
 				sdev->state = SYNA_STATE_VERIFY_DELAY_RESULT;
 			}
 			else
+			{
+				bmkt_op_set_state(sdev->sensor, BMKT_OP_STATE_COMPLETE);
 				fpi_drvcb_report_verify_result(dev, FP_VERIFY_NO_MATCH, NULL);
+			}
 			break;
 		}
 		case BMKT_RSP_VERIFY_OK:
 		{
 			fp_info("Verify was successful! for user: %s finger: %d score: %f",
 					verify_resp->user_id, verify_resp->finger_id, verify_resp->match_result);
+			bmkt_op_set_state(sdev->sensor, BMKT_OP_STATE_COMPLETE);
 			fpi_drvcb_report_verify_result(dev, FP_VERIFY_MATCH, NULL);
 			break;
 		}
@@ -498,11 +482,6 @@ static int verify_stop(struct fp_dev *dev, gboolean iterating)
 	int ret;
 	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
 	sdev->state = SYNA_STATE_IDLE;
-	ret = bmkt_cancel_op(sdev->sensor, cancel_resp, dev);
-	if (ret != BMKT_SUCCESS)
-	{
-		fp_err("Failed to cancel operation: %d", ret);
-	}
 	fpi_drvcb_verify_stopped(dev);
 	return 0;
 }

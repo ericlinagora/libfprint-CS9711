@@ -72,22 +72,22 @@
 
 typedef struct bmkt_msg_resp
 {
-    uint8_t msg_id;
-    uint8_t seq_num;
-    uint8_t payload_len;
-    uint8_t *payload;
-    int result;
+	uint8_t msg_id;
+	uint8_t seq_num;
+	uint8_t payload_len;
+	uint8_t *payload;
+	int result;
 } bmkt_msg_resp_t;
 
 typedef struct bmkt_session_ctx
 {
-    uint8_t seq_num;
-    bmkt_resp_cb_t resp_cb;
-    void *cb_ctx;
+	uint8_t seq_num;
+	bmkt_resp_cb_t resp_cb;
+	void *cb_ctx;
 } bmkt_session_ctx_t;
 
 int bmkt_compose_message(uint8_t *cmd, int *cmd_len, uint8_t msg_id, uint8_t seq_num,
-                        uint8_t payload_size, uint8_t *payload);
+				uint8_t payload_size, uint8_t *payload);
 
 int bmkt_parse_message_header(uint8_t *resp_buf, int resp_len, bmkt_msg_resp_t *msg_resp);
 int bmkt_parse_message_payload(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp);

@@ -694,7 +694,7 @@ API_EXPORTED int fp_async_capture_stop(struct fp_dev *dev,
  */
 
 API_EXPORTED int fp_async_delete_finger(struct fp_dev *dev,
-	struct fp_print_data *data, fp_img_operation_cb callback, void *user_data)
+	struct fp_print_data *data, fp_delete_cb callback, void *user_data)
 {
 	struct fp_driver *drv;
 	int r;

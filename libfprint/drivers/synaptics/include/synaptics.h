@@ -23,7 +23,7 @@
 #define SYNAPTICS_PRODUCT_ID_A9	    0x00a9
 
 /* Number of enroll stages */
-#define ENROLL_SAMPLES		8
+#define ENROLL_SAMPLES		12
 
 #define SYNAPTICS_DRIVER_FULLNAME    "Synaptics Sensors"
 #include "bmkt.h"
@@ -48,13 +48,8 @@ typedef enum syna_state
 
 typedef struct synaptics_dev_s 
 {
-	void *hImage;
-	void *pEnrollData;
-	void *pCtx;
 	bmkt_ctx_t *ctx;
-	bmkt_sensor_desc_t sensor_desc;
 	bmkt_sensor_t *sensor;
-	bmkt_usb_config_t *usb_config;
 	struct syna_enroll_resp_data enroll_resp_data;
 	gboolean isFingerOnSensor;
 	syna_state_t state;

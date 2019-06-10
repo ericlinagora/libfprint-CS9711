@@ -303,14 +303,22 @@
 #define BMKT_RSP_RETRIEVE_FINAL_RESULT_FAIL       0xE5
 
 /**
+* Response payload data structure returned by sensor initialization operation.
+*/
+typedef struct bmkt_init_resp
+{
+	uint8_t finger_presence;				/**< Indicates finger existence on the sensor during startup */
+} bmkt_init_resp_t;
+
+/**
 * bmkt_enroll_resp:
 * Response payload data structure returned by enrollment operation.
 */
 typedef struct bmkt_enroll_resp
 {
-    int progress;                           /**< Shows current progress stutus [0-100] */
-    uint8_t finger_id;                      /**< User's finger id [1-10] */
-    uint8_t user_id[BMKT_MAX_USER_ID_LEN];  /**< User name to be enrolled */
+	int progress;                           /**< Shows current progress stutus [0-100] */
+	uint8_t finger_id;                      /**< User's finger id [1-10] */
+	uint8_t user_id[BMKT_MAX_USER_ID_LEN];  /**< User name to be enrolled */
 } bmkt_enroll_resp_t;
 
 /**
@@ -319,9 +327,9 @@ typedef struct bmkt_enroll_resp
 */
 struct bmkt_auth_resp
 {
-    double match_result;                    /**< match result returned by matcher */
-    uint8_t finger_id;                      /**< Matched templates's finger id */
-    uint8_t user_id[BMKT_MAX_USER_ID_LEN];  /**< Matched template's user id */
+	double match_result;                    /**< match result returned by matcher */
+	uint8_t finger_id;                      /**< Matched templates's finger id */
+	uint8_t user_id[BMKT_MAX_USER_ID_LEN];  /**< Matched template's user id */
 };
 
 typedef struct bmkt_auth_resp bmkt_verify_resp_t;   /**< Returned by verify */
@@ -333,10 +341,10 @@ typedef struct bmkt_auth_resp bmkt_identify_resp_t; /**< Returned by identify */
 */
 typedef struct bmkt_fps_mode_resp
 {
-    uint8_t mode;               /**< One of the Level I bmkt_mode_t values */
-    uint8_t level2_mode;        /**< One of the Level II bmkt_mode_level2_t values */
-    uint8_t cmd_id;             /**< Message ID of command being executed when bmkt_get_fps_mode was called */
-    uint8_t finger_presence;    /**< Finger presence status value finger on sensor 1 / finger not on sensor 0 */
+	uint8_t mode;               /**< One of the Level I bmkt_mode_t values */
+	uint8_t level2_mode;        /**< One of the Level II bmkt_mode_level2_t values */
+	uint8_t cmd_id;             /**< Message ID of command being executed when bmkt_get_fps_mode was called */
+	uint8_t finger_presence;    /**< Finger presence status value finger on sensor 1 / finger not on sensor 0 */
 } bmkt_fps_mode_resp_t;
 
 /**
@@ -345,11 +353,11 @@ typedef struct bmkt_fps_mode_resp
 */
 typedef struct bmkt_get_version_resp
 {
-    uint8_t part[BMKT_PART_NUM_LEN];            /**< Software Part Number */
-    uint8_t year;                               /**< Software Version Year */
-    uint8_t week;                               /**< Software Version Week */
-    uint8_t patch;                              /**< Software Version Patch Level */
-    uint8_t supplier_id[BMKT_SUPPLIER_ID_LEN];  /**< Software Supplier Identification */
+	uint8_t part[BMKT_PART_NUM_LEN];            /**< Software Part Number */
+	uint8_t year;                               /**< Software Version Year */
+	uint8_t week;                               /**< Software Version Week */
+	uint8_t patch;                              /**< Software Version Patch Level */
+	uint8_t supplier_id[BMKT_SUPPLIER_ID_LEN];  /**< Software Supplier Identification */
 } bmkt_get_version_resp_t;
 
 /**
@@ -358,10 +366,10 @@ typedef struct bmkt_get_version_resp
 */
 typedef struct bmkt_get_db_capacity_resp
 {
-    uint8_t total;              /**< Total Available Capacity: Total number of template records that can be stored */
-    uint8_t empty;              /**< Free Capacity: Number of template records that can still be stored */
-    uint8_t bad_slots;          /**< Number of bad template storage slots */
-    uint8_t corrupt_templates;  /**< Number of corrupt templates */
+	uint8_t total;              /**< Total Available Capacity: Total number of template records that can be stored */
+	uint8_t empty;              /**< Free Capacity: Number of template records that can still be stored */
+	uint8_t bad_slots;          /**< Number of bad template storage slots */
+	uint8_t corrupt_templates;  /**< Number of corrupt templates */
 } bmkt_get_db_capacity_resp_t;
 
 /**
@@ -370,9 +378,9 @@ typedef struct bmkt_get_db_capacity_resp
 */
 typedef enum bmkt_sec_level
 {
-    BMKT_SECURITY_LEVEL_LOW     = 0x10,
-    BMKT_SECURITY_LEVEL_MEDIUM  = 0x40,
-    BMKT_SECURITY_LEVEL_HIGH    = 0x60,
+	BMKT_SECURITY_LEVEL_LOW     = 0x10,
+	BMKT_SECURITY_LEVEL_MEDIUM  = 0x40,
+	BMKT_SECURITY_LEVEL_HIGH    = 0x60,
 } bmkt_sec_level_t;
 
 /**
@@ -381,7 +389,7 @@ typedef enum bmkt_sec_level
 */
 typedef struct bmkt_set_sec_level_resp
 {
-    bmkt_sec_level_t sec_level; /**< One of the bmkt_sec_level_t values */
+	bmkt_sec_level_t sec_level; /**< One of the bmkt_sec_level_t values */
 } bmkt_set_sec_level_resp_t;
 
 /**
@@ -390,7 +398,7 @@ typedef struct bmkt_set_sec_level_resp
 */
 typedef struct bmkt_del_all_users_resp
 {
-    int progress;   /**< Progress indicator as a percentage */
+	int progress;   /**< Progress indicator as a percentage */
 } bmkt_del_all_users_resp_t;
 
 /**
@@ -399,7 +407,7 @@ typedef struct bmkt_del_all_users_resp
 */
 typedef struct bmkt_del_user_resp
 {
-    int progress;   /**< Progress indicator as a percentage */
+	int progress;   /**< Progress indicator as a percentage */
 } bmkt_del_user_resp_t;
 
 /**
@@ -408,10 +416,10 @@ typedef struct bmkt_del_user_resp
 */
 typedef struct bmkt_enroll_template
 {
-    uint8_t user_id_len;                        /**< Length of user_id string */
-    uint8_t template_status;                    /**< Template record status  */
-    uint8_t finger_id;                          /**< ID of enrolled finger */
-    uint8_t user_id[BMKT_MAX_USER_ID_LEN + 1];  /**< Name of the enrolled user */
+	uint8_t user_id_len;                        /**< Length of user_id string */
+	uint8_t template_status;                    /**< Template record status  */
+	uint8_t finger_id;                          /**< ID of enrolled finger */
+	uint8_t user_id[BMKT_MAX_USER_ID_LEN + 1];  /**< Name of the enrolled user */
 } bmkt_enroll_template_t;
 
 /**
@@ -420,9 +428,9 @@ typedef struct bmkt_enroll_template
 */
 typedef struct bmkt_enroll_templates_resp
 {
-    uint8_t total_query_messages;                                            /**< Total query response messages */
-    uint8_t query_sequence;                                                  /**< Query response sequence number */
-    bmkt_enroll_template_t templates[BMKT_MAX_NUM_TEMPLATES_INTERNAL_FLASH]; /**< Enrolled user template records list */
+	uint8_t total_query_messages;                                            /**< Total query response messages */
+	uint8_t query_sequence;                                                  /**< Query response sequence number */
+	bmkt_enroll_template_t templates[BMKT_MAX_NUM_TEMPLATES_INTERNAL_FLASH]; /**< Enrolled user template records list */
 } bmkt_enroll_templates_resp_t;
 
 /**
@@ -431,8 +439,8 @@ typedef struct bmkt_enroll_templates_resp
 */
 typedef struct bmkt_enrolled_fingers
 {
-    uint8_t finger_id;          /**< ID of enrolled finger */
-    uint8_t template_status;    /**< Template record status of finger_id */
+	uint8_t finger_id;          /**< ID of enrolled finger */
+	uint8_t template_status;    /**< Template record status of finger_id */
 } bmkt_enrolled_fingers_t;
 
 /**
@@ -441,7 +449,7 @@ typedef struct bmkt_enrolled_fingers
 */
 typedef struct bmkt_enrolled_fingers_resp
 {
-    bmkt_enrolled_fingers_t fingers[10]; /**< List of enroled fingers, max number of supported fingers per user is 10 */
+	bmkt_enrolled_fingers_t fingers[10]; /**< List of enroled fingers, max number of supported fingers per user is 10 */
 } bmkt_enrolled_fingers_resp_t;
 
 /**
@@ -449,17 +457,18 @@ typedef struct bmkt_enrolled_fingers_resp
 * Union combining all response payload data types.
 */
 typedef union {
-    bmkt_enroll_resp_t enroll_resp;
-    bmkt_verify_resp_t verify_resp;
-    bmkt_identify_resp_t id_resp;
-    bmkt_fps_mode_resp_t fps_mode_resp;
-    bmkt_get_version_resp_t get_version_resp;
-    bmkt_get_db_capacity_resp_t db_cap_resp;
-    bmkt_set_sec_level_resp_t sec_level_resp;
-    bmkt_del_all_users_resp_t del_all_users_resp;
-    bmkt_enroll_templates_resp_t enroll_templates_resp;
-    bmkt_del_user_resp_t del_user_resp;
-    bmkt_enrolled_fingers_resp_t enrolled_fingers_resp;
+	bmkt_init_resp_t init_resp;
+	bmkt_enroll_resp_t enroll_resp;
+	bmkt_verify_resp_t verify_resp;
+	bmkt_identify_resp_t id_resp;
+	bmkt_fps_mode_resp_t fps_mode_resp;
+	bmkt_get_version_resp_t get_version_resp;
+	bmkt_get_db_capacity_resp_t db_cap_resp;
+	bmkt_set_sec_level_resp_t sec_level_resp;
+	bmkt_del_all_users_resp_t del_all_users_resp;
+	bmkt_enroll_templates_resp_t enroll_templates_resp;
+	bmkt_del_user_resp_t del_user_resp;
+	bmkt_enrolled_fingers_resp_t enrolled_fingers_resp;
 } bmkt_response_data_t;
 
 /**
@@ -469,10 +478,10 @@ typedef union {
 */
 typedef struct bmkt_response
 {
-    int response_id;                /**< Response message ID, one of th BMKT_RSP_XXX */
-    int result;                     /**< Operation execution result code */
-    int complete;                   /**< Operation completion status 1: complete / 0: not completed */
-    bmkt_response_data_t response;  /**< Operation specific response union */
+	int response_id;                /**< Response message ID, one of th BMKT_RSP_XXX */
+	int result;                     /**< Operation execution result code */
+	int complete;                   /**< Operation completion status 1: complete / 0: not completed */
+	bmkt_response_data_t response;  /**< Operation specific response union */
 } bmkt_response_t;
 
 #endif /* _BMKT_RESPONSE_H_ */

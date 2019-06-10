@@ -39,7 +39,7 @@ static int get_version(bmkt_sensor_t *sensor, bmkt_sensor_version_t *mis_version
 	int cmd_buf_len;
 	int offset = 0;
 
-	ret = bmkt_transport_get_command_buffer(&sensor->xport, &cmd, &cmd_buf_len);
+	ret = usb_get_command_buffer(&sensor->usb_xport, &cmd, &cmd_buf_len);
 	if (ret != BMKT_SUCCESS)
 	{
 		return BMKT_OUT_OF_MEMORY;
@@ -50,18 +50,18 @@ static int get_version(bmkt_sensor_t *sensor, bmkt_sensor_version_t *mis_version
 		return BMKT_OUT_OF_MEMORY;
 	}
 
-	encode8(SENSOR_CMD_GET_VERSION, cmd, &cmd_len, BYTE_ORDER_SENSOR);
-
-	ret = bmkt_transport_send_command_sync(&sensor->xport, cmd_len, &resp, &resp_len);
+	cmd[0] = SENSOR_CMD_GET_VERSION;
+	cmd_len = 1;
+	ret = usb_send_command_sync(&sensor->usb_xport, cmd_len, &resp, &resp_len);
 	if (ret != BMKT_SUCCESS)
 	{
 		return ret;
 	}
 
-	status = extract16(resp, &offset, BYTE_ORDER_SENSOR);
+	status = extract16(resp, &offset);
 	if (status)
 	{
-		bmkt_err_log("The sensor reported an error when sending get version command: 0x%x\n",
+		bmkt_err_log("The sensor reported an error when sending get version command: 0x%x",
 					status);
 		return BMKT_SENSOR_MALFUNCTION;
 	}
@@ -71,17 +71,17 @@ static int get_version(bmkt_sensor_t *sensor, bmkt_sensor_version_t *mis_version
 		return BMKT_SENSOR_MALFUNCTION;
 	}
 
-	mis_version->build_time = extract32(resp, &offset, BYTE_ORDER_SENSOR);
-	mis_version->build_num = extract32(resp, &offset, BYTE_ORDER_SENSOR);
-	mis_version->version_major = extract8(resp, &offset, BYTE_ORDER_SENSOR);
-	mis_version->version_minor = extract8(resp, &offset, BYTE_ORDER_SENSOR);
-	mis_version->target = extract8(resp, &offset, BYTE_ORDER_SENSOR);
-	mis_version->product = extract8(resp, &offset, BYTE_ORDER_SENSOR);
+	mis_version->build_time = extract32(resp, &offset);
+	mis_version->build_num = extract32(resp, &offset);
+	mis_version->version_major = extract8(resp, &offset);
+	mis_version->version_minor = extract8(resp, &offset);
+	mis_version->target = extract8(resp, &offset);
+	mis_version->product = extract8(resp, &offset);
 
-	ret = bmkt_transport_release_command_buffer(&sensor->xport);
+	ret = usb_release_command_buffer(&sensor->usb_xport);
 	if (ret != BMKT_SUCCESS)
 	{
-		bmkt_dbg_log("%s: failed to release command buffer: %d\n", __func__, ret);
+		bmkt_dbg_log("%s: failed to release command buffer: %d", __func__, ret);
 		return ret;
 	}
 
@@ -113,8 +113,8 @@ static bmkt_session_ctx_t *get_session_ctx(bmkt_sensor_t *sensor, int seq_num)
 	int i;
 	bmkt_session_ctx_t *ctx;
 
-	// Sequence number of 0 is not valid for a response to
-	// a command.
+	/* Sequence number of 0 is not valid for a response to
+	 a command.*/
 	if (seq_num == 0)
 	{
 		return NULL;
@@ -140,20 +140,19 @@ static int release_session_ctx(bmkt_sensor_t *sensor, bmkt_session_ctx_t *ctx)
 	return BMKT_SUCCESS;
 }
 
-int bmkt_sensor_open(bmkt_sensor_t *sensor, const bmkt_sensor_desc_t *desc,
-						bmkt_general_error_cb_t err_cb, void *err_cb_ctx)
+int bmkt_sensor_open(bmkt_sensor_t *sensor, bmkt_general_error_cb_t err_cb, void *err_cb_ctx)
 {
 	int ret;
 
 	sensor->seq_num = 1;
-	sensor->flags = desc->flags;
 
 	sensor->sensor_state = BMKT_SENSOR_STATE_UNINIT;
+	sensor->usb_xport.sensor = sensor;
+	ret = usb_open(&sensor->usb_xport);
 
-	ret = bmkt_transport_open(&sensor->xport, desc->xport_type, &desc->xport_config, sensor);
 	if (ret != BMKT_SUCCESS)
 	{
-		bmkt_err_log("Failed to open transport: %d\n", ret);
+		bmkt_err_log("Failed to open transport: %d", ret);
 		return ret;
 	}
 
@@ -163,38 +162,15 @@ int bmkt_sensor_open(bmkt_sensor_t *sensor, const bmkt_sensor_desc_t *desc,
 	ret = get_version(sensor, &sensor->version);
 	if (ret != BMKT_SUCCESS)
 	{
-		bmkt_err_log("Failed to get version info: %d\n", ret);
+		bmkt_err_log("Failed to get version info: %d", ret);
 		return ret;
 	}
 
-	bmkt_dbg_log("Build Time: %d\n", sensor->version.build_time);
-	bmkt_dbg_log("Build Num: %d\n", sensor->version.build_num);
-	bmkt_dbg_log("Version: %d.%d\n", sensor->version.version_major, sensor->version.version_minor);
-	bmkt_dbg_log("Target: %d\n", sensor->version.target);
-	bmkt_dbg_log("Product: %d\n", sensor->version.product);
-
-	ret = bmkt_event_init(&sensor->interrupt_event);
-	if (ret != BMKT_SUCCESS)
-	{
-		return ret;
-	}
-
-#ifdef THREAD_SUPPORT
-	ret = bmkt_mutex_init(&sensor->interrupt_mutex);
-	if (ret != BMKT_SUCCESS)
-	{
-		bmkt_err_log("Failed to initialize interrupt mutex: %d\n", ret);
-		return ret;
-	}
-
-	ret = bmkt_thread_create(&sensor->interrupt_thread, bmkt_interrupt_thread, sensor);
-	if (ret != BMKT_SUCCESS)
-	{
-		bmkt_err_log("Failed to start interrupt thread: %d\n", ret);
-		return ret;
-	}
-#endif /* THREAD_SUPPORT */
-
+	bmkt_dbg_log("Build Time: %d", sensor->version.build_time);
+	bmkt_dbg_log("Build Num: %d", sensor->version.build_num);
+	bmkt_dbg_log("Version: %d.%d", sensor->version.version_major, sensor->version.version_minor);
+	bmkt_dbg_log("Target: %d", sensor->version.target);
+	bmkt_dbg_log("Product: %d", sensor->version.product);
 
 	return BMKT_SUCCESS;
 }
@@ -204,26 +180,8 @@ int bmkt_sensor_close(bmkt_sensor_t *sensor)
 	int ret;
 
 	sensor->sensor_state = BMKT_SENSOR_STATE_EXIT;
-	bmkt_event_set(&sensor->interrupt_event);
 
-#ifdef THREAD_SUPPORT
-	ret = bmkt_thread_destroy(&sensor->interrupt_thread);
-	if (ret != BMKT_SUCCESS)
-	{
-		bmkt_err_log("Failed to destroy interrupt thread: %d\n", ret);
-		return ret;
-	}
-
-	bmkt_mutex_destroy(&sensor->interrupt_mutex);
-#endif /* THREAD_SUPPORT */
-
-	ret = bmkt_event_destroy(&sensor->interrupt_event);
-	if (ret != BMKT_SUCCESS)
-	{
-		// warn
-	}
-
-	ret = bmkt_transport_close(&sensor->xport);
+	ret = usb_close(&sensor->usb_xport);
 	if (ret != BMKT_SUCCESS)
 	{
 		return ret;
@@ -236,7 +194,6 @@ int bmkt_sensor_close(bmkt_sensor_t *sensor)
 int bmkt_sensor_init_fps(bmkt_sensor_t *sensor)
 {
 	sensor->sensor_state = BMKT_SENSOR_STATE_INIT;
-	bmkt_event_set(&sensor->interrupt_event);
 
 	return BMKT_SUCCESS;
 }
@@ -256,26 +213,27 @@ int bmkt_sensor_send_message(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t payl
 		return BMKT_OPERATION_DENIED;
 	}
 
-  if (sensor->seq_num > 255) {
-    // seq. number is in range [1 – 255]. After it reaches 255, it rolls over to 1 and starts over again. 
-    // (0 is reserved for special purposes)
-    sensor->seq_num = 1;
-  }
+	if (sensor->seq_num > 255) {
+		/* seq. number is in range [1 – 255]. After it reaches 255, it rolls over to 1 and starts over again. 
+		 (0 is reserved for special purposes) */
+		sensor->seq_num = 1;
+	}
 	session_ctx->seq_num = sensor->seq_num++;
 	session_ctx->resp_cb = resp_cb;
 	session_ctx->cb_ctx = cb_ctx;
 
-  bmkt_dbg_log("session_ctx->seq_num=%d, sensor->seq_num=%d\n", session_ctx->seq_num, sensor->seq_num);
+	bmkt_dbg_log("session_ctx->seq_num=%d, sensor->seq_num=%d", session_ctx->seq_num, sensor->seq_num);
 
+	bmkt_op_set_state(sensor, BMKT_OP_STATE_START);
 	for (;;)
 	{
-		ret = bmkt_transport_get_command_buffer(&sensor->xport, &cmd, &cmd_buf_len);
+		ret = usb_get_command_buffer(&sensor->usb_xport, &cmd, &cmd_buf_len);
 		if (ret != BMKT_SUCCESS)
 		{
 			return BMKT_OUT_OF_MEMORY;
 		}
 
-		// MIS sensors send ACE commands encapsulated in FW commands
+		/* MIS sensors send ACE commands encapsulated in FW commands*/
 		cmd[0] = SENSOR_CMD_ACE_COMMAND;
 		msg_len = cmd_buf_len - SENSOR_FW_CMD_HEADER_LEN;
 
@@ -287,34 +245,22 @@ int bmkt_sensor_send_message(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t payl
 		ret = bmkt_compose_message(&cmd[1], &msg_len, msg_id, seq_num, payload_size, payload);
 		if (ret != BMKT_SUCCESS)
 		{
-			bmkt_dbg_log("Failed to compose ace message: %d\n", ret);
+			bmkt_dbg_log("Failed to compose ace message: %d", ret);
 			goto cleanup;
 		}
 
-		ret = bmkt_transport_send_command(&sensor->xport, msg_len + SENSOR_FW_CMD_HEADER_LEN);
-		if (ret == BMKT_SENSOR_RESPONSE_PENDING)
+		ret = usb_send_command(&sensor->usb_xport, msg_len + SENSOR_FW_CMD_HEADER_LEN);
+
+		if (ret != BMKT_SUCCESS)
 		{
-			bmkt_transport_release_command_buffer(&sensor->xport);
-			ret = bmkt_sensor_handle_interrupt(sensor);
-			if (ret != BMKT_SUCCESS)
-			{
-				bmkt_dbg_log("bmkt_sensor_send_message: Failed to handle interrupt: %d\n", ret);
-				goto cleanup;
-			}
-			continue;
-		}
-		else if (ret != BMKT_SUCCESS)
-		{
-			bmkt_dbg_log("%s: failed to send ACE command: %d\n", __func__, ret);
+			bmkt_dbg_log("%s: failed to send ACE command: %d", __func__, ret);
 			goto cleanup;
 		}
 		break;
 	}
 
-	sensor->expect_response = 1;
-
 cleanup:
-	bmkt_transport_release_command_buffer(&sensor->xport);
+	usb_release_command_buffer(&sensor->usb_xport);
 	if (ret != BMKT_SUCCESS)
 	{
 		release_session_ctx(sensor, session_ctx);
@@ -323,40 +269,38 @@ cleanup:
 	return ret;
 }
 
-static int bmkt_sensor_send_async_read_command(bmkt_sensor_t *sensor)
+int bmkt_sensor_send_async_read_command(bmkt_sensor_t *sensor)
 {
 	int ret;
 	uint8_t *cmd;
 	int cmd_buf_len = 0;
 
-	ret = bmkt_transport_get_command_buffer(&sensor->xport, &cmd, &cmd_buf_len);
+	ret = usb_get_command_buffer(&sensor->usb_xport, &cmd, &cmd_buf_len);
 	if (ret != BMKT_SUCCESS)
 	{
 		return BMKT_OUT_OF_MEMORY;
 	}
 
-	// MIS sensors send ACE commands encapsulated in FW commands
+	/* MIS sensors send ACE commands encapsulated in FW commands */
 	cmd[0] = SENSOR_CMD_ASYNCMSG_READ;
 
-	ret = bmkt_transport_send_command(&sensor->xport, SENSOR_FW_CMD_HEADER_LEN);
+	ret = usb_send_command(&sensor->usb_xport, SENSOR_FW_CMD_HEADER_LEN);
 	if (ret == BMKT_SENSOR_RESPONSE_PENDING)
 	{
-		// The caller needs to handle the response before we can send this command
+		/* The caller needs to handle the response before we can send this command */
 		goto cleanup;
 	}
 	else if (ret != BMKT_SUCCESS)
 	{
 		if (ret != BMKT_SENSOR_NOT_READY)
 		{
-			bmkt_dbg_log("%s: failed to send ACE ASYNC READ command: %d\n", __func__, ret);
+			bmkt_dbg_log("%s: failed to send ACE ASYNC READ command: %d", __func__, ret);
 		}
 		goto cleanup;
 	}
 
-	sensor->expect_response = 1;
-
 cleanup:
-	bmkt_transport_release_command_buffer(&sensor->xport);
+	usb_release_command_buffer(&sensor->usb_xport);
 
 	return ret;
 }
@@ -372,7 +316,7 @@ int bmkt_sensor_send_message_sync(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t
 
 	*resp_len = BMKT_MAX_TRANSFER_LEN;
 
-	ret = bmkt_transport_get_command_buffer(&sensor->xport, &cmd, &cmd_buf_len);
+	ret = usb_get_command_buffer(&sensor->usb_xport, &cmd, &cmd_buf_len);
 	if (ret != BMKT_SUCCESS)
 	{
 		return BMKT_OUT_OF_MEMORY;
@@ -385,15 +329,15 @@ int bmkt_sensor_send_message_sync(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t
 						payload);
 	if (ret != BMKT_SUCCESS)
 	{
-		bmkt_dbg_log("Failed to compose ace message: %d\n", ret);
+		bmkt_dbg_log("Failed to compose ace message: %d", ret);
 		goto cleanup;
 	}
 
-	ret = bmkt_transport_send_command_sync(&sensor->xport, msg_len + SENSOR_FW_CMD_HEADER_LEN,
+	ret = usb_send_command_sync(&sensor->usb_xport, msg_len + SENSOR_FW_CMD_HEADER_LEN,
 						resp_buf, resp_len);
 	if (ret != BMKT_SUCCESS)
 	{
-		bmkt_dbg_log("%s: failed to send ACE command: %d\n", __func__, ret);
+		bmkt_dbg_log("%s: failed to send ACE command: %d", __func__, ret);
 		goto cleanup;
 	}
 
@@ -410,10 +354,10 @@ int bmkt_sensor_send_message_sync(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t
 	}
 
 cleanup:
-	ret = bmkt_transport_release_command_buffer(&sensor->xport);
+	ret = usb_release_command_buffer(&sensor->usb_xport);
 	if (ret != BMKT_SUCCESS)
 	{
-		bmkt_dbg_log("%s: failed to release command buffer: %d\n", __func__, ret);
+		bmkt_dbg_log("%s: failed to release command buffer: %d", __func__, ret);
 		return ret;
 	}
 	return ret;
@@ -426,11 +370,10 @@ int bmkt_sensor_handle_response(bmkt_sensor_t *sensor, uint8_t *resp_buf, int re
 	bmkt_response_t resp;
 	int i;
 
-	sensor->expect_response = 0;
 	ret = bmkt_parse_message_header(&resp_buf[2], resp_len - 2, msg_resp);
 	if (ret == BMKT_CORRUPT_MESSAGE)
 	{
-		bmkt_warn_log("Corrupt Message Received\n");
+		bmkt_warn_log("Corrupt Message Received");
 		return ret;
 	}
 	else if (ret != BMKT_SUCCESS)
@@ -438,46 +381,40 @@ int bmkt_sensor_handle_response(bmkt_sensor_t *sensor, uint8_t *resp_buf, int re
 		return ret;
 	}
 
-#if 0 // invalid finger event seq num hack!!
-	if (msg_resp->seq_num == 0)
+	if (msg_resp->msg_id == BMKT_EVT_FINGER_REPORT)
 	{
-#endif // invalid finger event seq num hack!!
-		if (msg_resp->msg_id == BMKT_EVT_FINGER_REPORT)
+		/* finger event message */
+		bmkt_info_log("Finger event!");
+		bmkt_finger_event_t finger_event;
+
+		if (msg_resp->payload_len != 1)
 		{
-			// finger event message
-			bmkt_info_log("Finger event!");
-			bmkt_finger_event_t finger_event;
-
-			if (msg_resp->payload_len != 1)
-			{
-				return BMKT_UNRECOGNIZED_MESSAGE;
-			}
-
-			if (msg_resp->payload[0] == 0x01)
-			{
-				finger_event.finger_state = BMKT_FINGER_STATE_ON_SENSOR;
-			}
-			else
-			{
-				finger_event.finger_state = BMKT_FINGER_STATE_NOT_ON_SENSOR;
-			}
-
-			if (sensor->finger_event_cb != NULL)
-			{
-				sensor->finger_event_cb(&finger_event, sensor->finger_cb_ctx);
-			}
-			return BMKT_SUCCESS;
+			return BMKT_UNRECOGNIZED_MESSAGE;
 		}
-#if 0 // invalid finger event seq num hack!!
+
+		if (msg_resp->payload[0] == 0x01)
+		{
+			finger_event.finger_state = BMKT_FINGER_STATE_ON_SENSOR;
+		}
 		else
-#else // invalid finger event seq num hack!!
+		{
+			finger_event.finger_state = BMKT_FINGER_STATE_NOT_ON_SENSOR;
+		}
+
+		if (sensor->finger_event_cb != NULL)
+		{
+			sensor->finger_event_cb(&finger_event, sensor->finger_cb_ctx);
+		}
+		return BMKT_SUCCESS;
+	}
+
 	if (msg_resp->seq_num == 0)
 	{
-#endif // invalid finger event seq num hack!!
+
 		if (msg_resp->msg_id == BMKT_RSP_GENERAL_ERROR)
 		{
-			// report general error
-			bmkt_info_log("General Error!\n");
+			/* report general error */
+			bmkt_info_log("General Error!");
 			uint16_t err;
 
 			if (sensor->gen_err_cb != NULL)
@@ -492,14 +429,14 @@ int bmkt_sensor_handle_response(bmkt_sensor_t *sensor, uint8_t *resp_buf, int re
 	ret = bmkt_parse_message_payload(msg_resp, &resp);
 	if (ret != BMKT_SUCCESS)
 	{
-		bmkt_warn_log("Failed to process response: %d\n", ret);
+		bmkt_warn_log("Failed to process response: %d", ret);
 		return ret;
 	}
 
 	session_ctx = get_session_ctx(sensor, msg_resp->seq_num);
 	if (session_ctx == NULL)
 	{
-		bmkt_warn_log("Response received with invalid sequence number: %d, return BMKT_UNRECOGNIZED_MESSAGE(112)\n", msg_resp->seq_num);
+		bmkt_warn_log("Response received with invalid sequence number: %d, return BMKT_UNRECOGNIZED_MESSAGE(112)", msg_resp->seq_num);
 		return BMKT_UNRECOGNIZED_MESSAGE;
 	}
 
@@ -508,7 +445,7 @@ int bmkt_sensor_handle_response(bmkt_sensor_t *sensor, uint8_t *resp_buf, int re
 		ret = session_ctx->resp_cb(&resp, session_ctx->cb_ctx);
 		if (ret != BMKT_SUCCESS)
 		{
-			bmkt_warn_log("response callback failed: %d\n", ret);
+			bmkt_warn_log("response callback failed: %d", ret);
 		}
 	}
 
@@ -523,117 +460,11 @@ int bmkt_sensor_handle_response(bmkt_sensor_t *sensor, uint8_t *resp_buf, int re
 
 	if (resp.response_id == BMKT_RSP_CANCEL_OP_OK && resp.result == BMKT_SUCCESS)
 	{
-		// The previous commands have been canceled. Release all session ctx
+		/* The previous commands have been canceled. Release all session ctx */
 		for (i = 0; i < BMKT_MAX_PENDING_SESSIONS; i++)
 		{
 			release_session_ctx(sensor, &sensor->pending_sessions[i]);
 		}
-	}
-
-	return BMKT_SUCCESS;
-}
-
-int bmkt_sensor_handle_interrupt(bmkt_sensor_t *sensor)
-{
-	int ret = BMKT_SUCCESS;
-	int mask = 0;
-	int len = 0;
-	uint8_t *resp_buf;
-	int resp_len;
-	bmkt_msg_resp_t msg_resp;
-
-#ifdef THREAD_SUPPORT
-	ret = bmkt_mutex_lock(&sensor->interrupt_mutex);
-	if (ret != BMKT_SUCCESS)
-	{
-		bmkt_err_log("Failed to lock mutex: %d\n", ret);
-		return ret;
-	}
-#endif /* THREAD_SUPPORT */
-
-	for (;;)
-	{
-		ret = bmkt_transport_read_interrupt_status(&sensor->xport, &mask);
-		if (ret != BMKT_SUCCESS)
-		{
-			bmkt_dbg_log("bmkt_sensor_handle_interrupt: bmkt_transport_read_interrupt_status failed with ret=0x%x\n", ret);
-			goto cleanup;
-		}
-
-		if (mask == BMKT_XPORT_INT_NONE)
-		{
-			ret = BMKT_SUCCESS;
-			bmkt_dbg_log("bmkt_sensor_handle_interrupt: bmkt_transport_read_interrupt_status get mask=0, ret BMKT_SUCCESS\n");
-			goto cleanup;
-		}
-
-		if (mask & BMKT_XPORT_INT_RESPONSE)
-		{
-			ret = bmkt_transport_get_response_buffer(&sensor->xport, &resp_buf, &resp_len);
-			if (ret != BMKT_SUCCESS)
-			{
-				bmkt_dbg_log("bmkt_sensor_handle_interrupt: bmkt_transport_get_response_buffer failed with ret=0x%x\n", ret);
-				goto cleanup;
-			}
-			ret = bmkt_transport_receive_response(&sensor->xport, &len);
-			if (ret == BMKT_SUCCESS)
-			{
-				ret = bmkt_sensor_handle_response(sensor, resp_buf, resp_len, &msg_resp);
-			}
-			bmkt_transport_release_response_buffer(&sensor->xport);
-
-			if (ret != BMKT_SUCCESS)
-			{
-				goto cleanup;
-			}
-		}
-
-		if (mask & BMKT_XPORT_INT_FINGER)
-		{
-			// may not use this
-		}
-
-		if (mask & BMKT_XPORT_INT_ASYNC)
-		{
-			ret = bmkt_sensor_send_async_read_command(sensor);
-			if (ret != BMKT_SUCCESS)
-			{
-				if (ret == BMKT_SENSOR_NOT_READY || ret == BMKT_SENSOR_RESPONSE_PENDING)
-				{
-					continue;
-				}
-				else
-				{
-					goto cleanup;
-				}
-			}
-		}
-
-		break;
-	}
-
-cleanup:
-#ifdef THREAD_SUPPORT
-	bmkt_mutex_unlock(&sensor->interrupt_mutex);
-#endif /* THREAD_SUPPORT */
-	return BMKT_SUCCESS;
-}
-
-int bmkt_sensor_process_pending_interrupts(bmkt_sensor_t *sensor)
-{
-	int ret;
-
-	if (sensor->sensor_state == BMKT_SENSOR_STATE_UNINIT || 
-				(!(sensor->expect_response) && !(sensor->flags & BMKT_SENSOR_FLAGS_POLLING)))
-	{
-		bmkt_event_wait(&sensor->interrupt_event, 0);
-	}
-
-	ret = bmkt_sensor_handle_interrupt(sensor);
-	if (ret != BMKT_SUCCESS)
-	{
-		bmkt_warn_log("bmkt_sensor_process_pending_interrupts: Failed to handle interrupt: %d\n", ret);
-		return ret;
 	}
 
 	return BMKT_SUCCESS;

@@ -469,7 +469,7 @@ enum fp_delete_result {
 
 typedef void (*fp_delete_cb)(struct fp_dev *dev, int status, void *user_data);
 
-int fp_async_delete_finger(struct fp_dev *dev, struct fp_print_data *data, fp_img_operation_cb callback, void *user_data);
+int fp_async_delete_finger(struct fp_dev *dev, struct fp_print_data *data, fp_delete_cb callback, void *user_data);
 
 
 #ifdef __cplusplus

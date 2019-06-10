@@ -19,7 +19,7 @@
 #include "bmkt_internal.h"
 #include "bmkt_response.h"
 #include "bmkt_message.h"
-#include "transport.h"
+#include "usb_transport.h"
 #include "sensor.h"
 
 static int parse_error_response(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
@@ -34,6 +34,21 @@ static int parse_error_response(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp
 	return BMKT_SUCCESS;
 }
 
+static int parse_init_ok(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
+{
+	bmkt_init_resp_t *init_resp = &resp->response.init_resp;
+
+	if (msg_resp->payload_len != 1)
+	{
+		return BMKT_UNRECOGNIZED_MESSAGE;
+	}
+
+	init_resp->finger_presence = extract8(msg_resp->payload, NULL);
+
+	return BMKT_SUCCESS;
+}
+
+
 static int parse_fps_mode_report(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
 {
 	int offset = 0;
@@ -44,10 +59,10 @@ static int parse_fps_mode_report(bmkt_msg_resp_t *msg_resp, bmkt_response_t *res
 		return BMKT_UNRECOGNIZED_MESSAGE;
 	}
 
-	fps_mode_resp->mode = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-	fps_mode_resp->level2_mode = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-	fps_mode_resp->cmd_id = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-	fps_mode_resp->finger_presence = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+	fps_mode_resp->mode = extract8(msg_resp->payload, &offset);
+	fps_mode_resp->level2_mode = extract8(msg_resp->payload, &offset);
+	fps_mode_resp->cmd_id = extract8(msg_resp->payload, &offset);
+	fps_mode_resp->finger_presence = extract8(msg_resp->payload, &offset);
 
 	return BMKT_SUCCESS;
 }
@@ -61,7 +76,7 @@ static int parse_enroll_report(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
 		return BMKT_UNRECOGNIZED_MESSAGE;
 	}
 
-	enroll_resp->progress = extract8(msg_resp->payload, NULL, BYTE_ORDER_SENSOR);
+	enroll_resp->progress = extract8(msg_resp->payload, NULL);
 
 	return BMKT_SUCCESS;
 }
@@ -106,7 +121,7 @@ static int parse_security_level_report(bmkt_msg_resp_t *msg_resp, bmkt_response_
 		return BMKT_UNRECOGNIZED_MESSAGE;
 	}
 
-	sec_level_resp->sec_level = extract8(msg_resp->payload, NULL, BYTE_ORDER_SENSOR);
+	sec_level_resp->sec_level = extract8(msg_resp->payload, NULL);
 
 	return BMKT_SUCCESS;
 }
@@ -120,7 +135,7 @@ static int parse_del_all_users_progress_report(bmkt_msg_resp_t *msg_resp, bmkt_r
 		return BMKT_UNRECOGNIZED_MESSAGE;
 	}
 
-	del_all_users_resp->progress = extract8(msg_resp->payload, NULL, BYTE_ORDER_SENSOR);
+	del_all_users_resp->progress = extract8(msg_resp->payload, NULL);
 
 	return BMKT_SUCCESS;
 }
@@ -135,13 +150,13 @@ static int parse_db_cap_report(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
 		return BMKT_UNRECOGNIZED_MESSAGE;
 	}
 
-	db_cap_resp->total = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-	db_cap_resp->empty = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+	db_cap_resp->total = extract8(msg_resp->payload, &offset);
+	db_cap_resp->empty = extract8(msg_resp->payload, &offset);
 
 	if (msg_resp->payload_len == 4)
 	{
-		db_cap_resp->bad_slots = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-		db_cap_resp->corrupt_templates = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+		db_cap_resp->bad_slots = extract8(msg_resp->payload, &offset);
+		db_cap_resp->corrupt_templates = extract8(msg_resp->payload, &offset);
 	}
 
 	return BMKT_SUCCESS;
@@ -156,15 +171,15 @@ static int parse_get_enrolled_fingers_report(bmkt_msg_resp_t *msg_resp, bmkt_res
 	{
 		 return BMKT_UNRECOGNIZED_MESSAGE;
 	}
-	// 2 bytes per finger so calculate the total number of fingers to process
+	/* 2 bytes per finger so calculate the total number of fingers to process*/
 	int num_fingers = (msg_resp->payload_len) / 2;
 
 	bmkt_enrolled_fingers_resp_t *get_enrolled_fingers_resp = &resp->response.enrolled_fingers_resp;
 
 	for (i = 0; i < num_fingers; i++)
 	{
-		get_enrolled_fingers_resp->fingers[i].finger_id = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-		get_enrolled_fingers_resp->fingers[i].template_status = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+		get_enrolled_fingers_resp->fingers[i].finger_id = extract8(msg_resp->payload, &offset);
+		get_enrolled_fingers_resp->fingers[i].template_status = extract8(msg_resp->payload, &offset);
 
 	}
 	return BMKT_SUCCESS;
@@ -174,7 +189,7 @@ static int parse_get_enrolled_users_report(bmkt_msg_resp_t *msg_resp, bmkt_respo
 	int offset = 0;
 	int i = 0;
 
-	// the payload is 2 bytes + template data
+	/* the payload is 2 bytes + template data */
 	if (msg_resp->payload_len < 2)
 	{
 		return BMKT_UNRECOGNIZED_MESSAGE;
@@ -182,24 +197,24 @@ static int parse_get_enrolled_users_report(bmkt_msg_resp_t *msg_resp, bmkt_respo
 	
 	bmkt_enroll_templates_resp_t *get_enroll_templates_resp = &resp->response.enroll_templates_resp;
 
-	get_enroll_templates_resp->total_query_messages = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-	get_enroll_templates_resp->query_sequence = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+	get_enroll_templates_resp->total_query_messages = extract8(msg_resp->payload, &offset);
+	get_enroll_templates_resp->query_sequence = extract8(msg_resp->payload, &offset);
 
 	int n = 0;
 	for (n = 0; n < BMKT_MAX_NUM_TEMPLATES_INTERNAL_FLASH; n++)
 	{
 		if (offset >= msg_resp->payload_len)
 			break;
-		get_enroll_templates_resp->templates[n].user_id_len = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR) - 2;
+		get_enroll_templates_resp->templates[n].user_id_len = extract8(msg_resp->payload, &offset) - 2;
 		if(get_enroll_templates_resp->templates[n].user_id_len > BMKT_MAX_USER_ID_LEN)
 		{
 			return BMKT_UNRECOGNIZED_MESSAGE;
 		}
-		get_enroll_templates_resp->templates[n].template_status = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-		get_enroll_templates_resp->templates[n].finger_id = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+		get_enroll_templates_resp->templates[n].template_status = extract8(msg_resp->payload, &offset);
+		get_enroll_templates_resp->templates[n].finger_id = extract8(msg_resp->payload, &offset);
 		for (i = 0; i < get_enroll_templates_resp->templates[n].user_id_len; i++)
 		{
-			get_enroll_templates_resp->templates[n].user_id[i] = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+			get_enroll_templates_resp->templates[n].user_id[i] = extract8(msg_resp->payload, &offset);
 		}
 		get_enroll_templates_resp->templates[n].user_id[i] = '\0';
 	}
@@ -219,9 +234,9 @@ static int parse_get_version_report(bmkt_msg_resp_t *msg_resp, bmkt_response_t *
 
 	memcpy(get_version_resp->part, msg_resp->payload, BMKT_PART_NUM_LEN);
 	offset += BMKT_PART_NUM_LEN;
-	get_version_resp->year = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-	get_version_resp->week = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
-	get_version_resp->patch = extract8(msg_resp->payload, &offset, BYTE_ORDER_SENSOR);
+	get_version_resp->year = extract8(msg_resp->payload, &offset);
+	get_version_resp->week = extract8(msg_resp->payload, &offset);
+	get_version_resp->patch = extract8(msg_resp->payload, &offset);
 	memcpy(get_version_resp->supplier_id, msg_resp->payload + offset, BMKT_SUPPLIER_ID_LEN);
 
 	return BMKT_SUCCESS;
@@ -305,11 +320,15 @@ int bmkt_parse_message_payload(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
 			break;
 
 		case BMKT_RSP_FPS_INIT_OK:
+			ret = parse_init_ok(msg_resp, resp);
+			resp->complete = 1;
+			break;
+
 		case BMKT_RSP_CANCEL_OP_OK:
 		case BMKT_RSP_DEL_FULL_DB_OK:
 		case BMKT_RSP_DEL_USER_FP_OK:
-			// responses with a payload of 0
-			// so the response indicates success
+			/* responses with a payload of 0
+			 so the response indicates success */
 			resp->result = BMKT_SUCCESS;
 			resp->complete = 1;
 			break;
@@ -322,7 +341,7 @@ int bmkt_parse_message_payload(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
 
 		case BMKT_RSP_GET_SECURITY_LEVEL_REPORT:
 		case BMKT_RSP_SET_SECURITY_LEVEL_REPORT:
-			// parse security level result
+			/* parse security level result */
 			ret = parse_security_level_report(msg_resp, resp);
 			resp->complete = 1;
 			break;

@@ -37,14 +37,12 @@ int bmkt_init(bmkt_ctx_t **ctx)
 	memset(&g_ctx, 0, sizeof(bmkt_ctx_t));
 	*ctx = &g_ctx;
 
-	bmkt_log_open("bmkt.log");
-	bmkt_dbg_log("%s: context size: %ld\n", __func__, sizeof(bmkt_ctx_t));
+	bmkt_dbg_log("%s: context size: %ld", __func__, sizeof(bmkt_ctx_t));
 	return BMKT_SUCCESS;
 }
 
 void bmkt_exit(bmkt_ctx_t *ctx)
 {
-	bmkt_log_close();
 
 	if (ctx == NULL)
 	{
@@ -52,8 +50,8 @@ void bmkt_exit(bmkt_ctx_t *ctx)
 	}
 }
 
-int bmkt_open(bmkt_ctx_t *ctx, const bmkt_sensor_desc_t *desc, bmkt_sensor_t **sensor,
-				bmkt_general_error_cb_t err_cb, void *err_cb_ctx)
+int bmkt_open(bmkt_ctx_t *ctx, bmkt_sensor_t **sensor,
+				bmkt_general_error_cb_t err_cb, void *err_cb_ctx, libusb_device_handle *usb_handle)
 {
 	int ret;
 
@@ -66,7 +64,9 @@ int bmkt_open(bmkt_ctx_t *ctx, const bmkt_sensor_desc_t *desc, bmkt_sensor_t **s
 
 	memset(*sensor, 0, sizeof(bmkt_sensor_t));
 
-	ret = bmkt_sensor_open(*sensor, desc, err_cb, err_cb_ctx);
+	(*sensor)->usb_xport.handle = usb_handle;
+
+	ret = bmkt_sensor_open(*sensor, err_cb, err_cb_ctx);
 	if (ret != BMKT_SUCCESS)
 	{
 		return ret;
@@ -111,85 +111,6 @@ int bmkt_close(bmkt_sensor_t *sensor)
 	return bmkt_sensor_close(sensor);
 }
 
-int bmkt_cancel_op(bmkt_sensor_t *sensor, bmkt_resp_cb_t resp_cb, void *cb_ctx)
-{
-	int ret;
-
-	if (sensor == NULL)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_CANCEL_OP, 0, NULL, resp_cb, cb_ctx);
-	if (ret != BMKT_SUCCESS)
-	{
-		return ret;
-	}
-
-	return BMKT_SUCCESS;
-}
-
-int bmkt_get_fps_mode(bmkt_sensor_t *sensor, bmkt_resp_cb_t resp_cb, void *cb_ctx)
-{
-	int ret;
-
-	if (sensor == NULL)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_GET_FPS_MODE, 0, NULL, resp_cb, cb_ctx);
-	if (ret != BMKT_SUCCESS)
-	{
-		return ret;
-	}
-
-	return BMKT_SUCCESS;
-}
-
-int bmkt_get_security_level(bmkt_sensor_t *sensor, bmkt_resp_cb_t resp_cb, void *cb_ctx)
-{
-	int ret;
-
-	if (sensor == NULL)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_GET_SECURITY_LEVEL, 0, NULL, resp_cb, cb_ctx);
-	if (ret != BMKT_SUCCESS)
-	{
-		return ret;
-	}
-
-	return BMKT_SUCCESS;
-}
-
-int bmkt_set_security_level(bmkt_sensor_t *sensor, bmkt_sec_level_t level, bmkt_resp_cb_t resp_cb,
-							void *cb_ctx)
-{
-	int ret;
-
-	if (sensor == NULL)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	if(level != BMKT_SECURITY_LEVEL_LOW && level != BMKT_SECURITY_LEVEL_MEDIUM &&
-		level != BMKT_SECURITY_LEVEL_HIGH)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_SET_SECURITY_LEVEL, 1, (uint8_t*)&level,
-							resp_cb, cb_ctx);
-	if (ret != BMKT_SUCCESS)
-	{
-		return ret;
-	}
-
-	return BMKT_SUCCESS;
-}
 
 int bmkt_delete_enrolled_user(bmkt_sensor_t *sensor, uint8_t finger_id, const char *user_id, uint32_t user_id_len, 
                             bmkt_resp_cb_t resp_cb, void *cb_ctx)
@@ -222,68 +143,17 @@ int bmkt_delete_enrolled_user(bmkt_sensor_t *sensor, uint8_t finger_id, const ch
 	return BMKT_SUCCESS;
 }
 
-int bmkt_delete_all_enrolled_users(bmkt_sensor_t *sensor, bmkt_resp_cb_t resp_cb, void *cb_ctx)
+int bmkt_enroll(bmkt_sensor_t *sensor, const uint8_t *user_id, uint32_t user_id_len,
+				uint8_t finger_id, bmkt_resp_cb_t resp_cb, void *cb_ctx)
 {
-	int ret;
+	int ret = BMKT_GENERAL_ERROR;
+	/* Payload data for enroll_user [1 byte<backup option> 1 byte<finger Id> maximum length: 100 bytes]*/
+	uint8_t payload[BMKT_MAX_USER_ID_LEN + 2];
+	uint8_t payload_len = 0;
+	/* Backup options is not supported for Prometheus. */
+	uint8_t backup_opt	= 0;
 
-	if (sensor == NULL)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_DEL_FULL_DB, 0, NULL, resp_cb, cb_ctx);
-	if (ret != BMKT_SUCCESS)
-	{
-		return ret;
-	}
-
-	return BMKT_SUCCESS;
-}
-
-int bmkt_db_capacity(bmkt_sensor_t *sensor,	bmkt_resp_cb_t resp_cb, void *cb_ctx)
-{
-	int ret;
-
-	if (sensor == NULL)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_GET_DATABASE_CAPACITY, 0, NULL, resp_cb,
-							cb_ctx);
-	if (ret != BMKT_SUCCESS)
-	{
-		return ret;
-	}
-
-	return BMKT_SUCCESS;
-}
-
-int bmkt_get_enrolled_users(bmkt_sensor_t *sensor, bmkt_resp_cb_t resp_cb, void *cb_ctx)
-{
-    int ret;
-
-    if (sensor == NULL)
-    {
-        return BMKT_INVALID_PARAM;
-    }
-
-    ret = bmkt_sensor_send_message(sensor, BMKT_CMD_GET_TEMPLATE_RECORDS, 0, NULL, resp_cb, cb_ctx);
-    if (ret != BMKT_SUCCESS)
-    {
-        return ret;
-    }
-
-    return BMKT_SUCCESS;
-}
-
-int bmkt_get_enrolled_fingers(bmkt_sensor_t *sensor, const char *user_id, uint32_t user_id_len,
-                bmkt_resp_cb_t resp_cb, void *cb_ctx)
-{
-	int ret;
-	uint8_t payload[BMKT_MAX_USER_ID_LEN];
-	uint8_t payload_len;
-	if (sensor == NULL)
+	if (sensor == NULL || user_id == NULL)
 	{
 		return BMKT_INVALID_PARAM;
 	}
@@ -293,12 +163,12 @@ int bmkt_get_enrolled_fingers(bmkt_sensor_t *sensor, const char *user_id, uint32
 		return BMKT_INVALID_PARAM;
 	}
 
-	memset(payload, 0, sizeof(payload));
-	payload_len = user_id_len;
-	memcpy(&payload[0], user_id, user_id_len);
+	payload_len = user_id_len + 2;
+	payload[0] = backup_opt;
+	payload[1] = finger_id;
+	memcpy(&payload[2], user_id, user_id_len);
 
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_GET_ENROLLED_FINGERS, payload_len, payload, 
-		resp_cb, cb_ctx);
+	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_ENROLL_USER, payload_len, payload, resp_cb, cb_ctx);
 	if (ret != BMKT_SUCCESS)
 	{
 		return ret;
@@ -307,17 +177,30 @@ int bmkt_get_enrolled_fingers(bmkt_sensor_t *sensor, const char *user_id, uint32
 	return BMKT_SUCCESS;
 }
 
-int bmkt_get_version(bmkt_sensor_t *sensor, bmkt_resp_cb_t resp_cb, void *cb_ctx)
+
+int bmkt_verify(bmkt_sensor_t *sensor, bmkt_user_id_t *user, 
+	bmkt_resp_cb_t resp_cb, void *cb_ctx)
 {
 	int ret;
+	uint8_t payload[BMKT_MAX_USER_ID_LEN + 1];
+	uint8_t payload_len;
 
-	if (sensor == NULL)
+	if (sensor == NULL || user == NULL || user->user_id == NULL)
 	{
 		return BMKT_INVALID_PARAM;
 	}
 
-	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_GET_VERSION, 0, NULL, resp_cb,
-							cb_ctx);
+	if (user->user_id_len == 0 || user->user_id_len > BMKT_MAX_USER_ID_LEN)
+	{
+		return BMKT_INVALID_PARAM;
+	}
+
+	payload_len = user->user_id_len;
+	memset(payload, 0, sizeof(payload));
+	memcpy(&payload[0], user->user_id, user->user_id_len);
+
+	ret = bmkt_sensor_send_message(sensor, BMKT_CMD_VERIFY_USER, payload_len, payload, resp_cb,
+				cb_ctx);
 	if (ret != BMKT_SUCCESS)
 	{
 		return ret;
@@ -326,12 +209,52 @@ int bmkt_get_version(bmkt_sensor_t *sensor, bmkt_resp_cb_t resp_cb, void *cb_ctx
 	return BMKT_SUCCESS;
 }
 
-int bmkt_process_pending_interrupts(bmkt_sensor_t *sensor)
+void bmkt_op_set_state(bmkt_sensor_t* sensor, bmkt_op_state_t state)
 {
-	if (sensor == NULL)
-	{
-		return BMKT_INVALID_PARAM;
-	}
-
-	return bmkt_sensor_process_pending_interrupts(sensor);
+	sensor->op_state = state;
 }
+
+void bmkt_op_sm(bmkt_sensor_t *sensor)
+{
+	int ret;
+	int len = 0;
+	bmkt_dbg_log("bmkt_op_sm state = %d", sensor->op_state);
+	switch(sensor->op_state)
+	{
+		case BMKT_OP_STATE_GET_RESP:
+			ret = usb_receive_resp_async(&sensor->usb_xport, &len);
+			if (ret != BMKT_SUCCESS)
+			{
+				bmkt_dbg_log("bmkt_op_sm: usb_receive_resp_async failed %d", ret);
+			}
+			break;
+		case BMKT_OP_STATE_WAIT_INTERRUPT:
+			ret = usb_check_interrupt(&sensor->usb_xport);
+			if (ret != BMKT_SUCCESS)
+			{
+				bmkt_dbg_log("bmkt_op_sm: check_interrupt failed %d", ret);
+			}
+			break;
+		case BMKT_OP_STATE_SEND_ASYNC:
+			ret = bmkt_sensor_send_async_read_command(sensor);
+			if (ret != BMKT_SUCCESS)
+			{
+				bmkt_dbg_log("bmkt_op_sm: bmkt_sensor_send_async_read_command failed %d", ret);
+			}
+			break;
+		case BMKT_OP_STATE_COMPLETE:
+			break;
+		default:
+			break;
+	}
+}
+
+void bmkt_op_next_state(bmkt_sensor_t* sensor)
+{
+	if(sensor->op_state != BMKT_OP_STATE_COMPLETE)
+		sensor->op_state = (sensor->op_state + 1) % BMKT_OP_STATE_COMPLETE;
+	bmkt_op_sm(sensor);
+}
+
+
+
