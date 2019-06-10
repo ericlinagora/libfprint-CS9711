@@ -127,6 +127,9 @@ foreach driver: drivers
     if driver == 'virtual_imgdev'
         drivers_sources += [ 'drivers/virtual_imgdev.c' ]
     endif
+    if driver == 'virtual_misdev'
+        drivers_sources += [ 'drivers/virtual_misdev.c' ]
+    endif
 endforeach
 
 if aeslib
