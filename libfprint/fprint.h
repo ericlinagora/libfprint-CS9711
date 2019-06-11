@@ -267,6 +267,8 @@ int fp_verify_finger(struct fp_dev *dev,
 	struct fp_print_data *enrolled_print);
 
 int fp_dev_supports_identification(struct fp_dev *dev);
+int fp_dev_supports_data_in_sensor(struct fp_dev *dev);
+
 int fp_identify_finger_img(struct fp_dev *dev,
 	struct fp_print_data **print_gallery, size_t *match_offset,
 	struct fp_img **img);

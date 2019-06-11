@@ -758,6 +758,23 @@ API_EXPORTED int fp_dev_supports_identification(struct fp_dev *dev)
 }
 
 /**
+ * fp_dev_supports_data_in_sensor:
+ * @dev: the struct #fp_dev device
+ *
+ * Determines if a device is capable of storing print data in sensor.
+ * Not all devices support this functionality.
+ *
+ * Returns: 1 if the device is capable of storing data in sensor, 0 otherwise.
+ */
+API_EXPORTED int fp_dev_supports_data_in_sensor(struct fp_dev *dev)
+{
+	g_return_val_if_fail(dev, 0);
+	g_return_val_if_fail(dev->drv, 0);
+
+	return dev->drv->delete_finger != NULL;
+}
+
+/**
  * fp_dev_get_img_width:
  * @dev: the struct #fp_dev device
  *
