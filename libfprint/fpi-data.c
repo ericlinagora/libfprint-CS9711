@@ -56,12 +56,15 @@ struct fpi_print_data_item_fp2 {
  *
  * This page documents the various operations you can do with a stored print.
  * Note that by default, "stored prints" are not actually stored anywhere
- * except in RAM. For the simple scenarios, libfprint provides a simple API
- * for you to save and load the stored prints referring to a single user in
- * their home directory. For more advanced users, libfprint provides APIs for
- * you to convert print data to a byte string, and to reconstruct stored prints
+ * except in RAM. Storage needs to be handled by the API user by using the
+ * fp_print_data_get_data() and fp_print_data_from_data(). This API allows
+ * to convert print data into byte strings, and to reconstruct stored prints
  * from such data at a later point. You are welcome to store these byte strings
  * in any fashion that suits you.
+ *
+ * The provided API to store data on disk is deprecated and should not be
+ * used anymore. This API stored the prints in the current user's home
+ * directory.
  */
 
 /*
@@ -366,6 +369,10 @@ static char *get_path_to_print(struct fp_dev *dev, enum fp_finger finger)
  * directory beneath the current user's home directory.
  *
  * Returns: 0 on success, non-zero on error.
+ *
+ * Deprecated: Data storage should be handled outside of libfprint.
+ * See <link linkend="libfprint-Stored-prints.description">stored prints description</link>
+ * for more information.
  */
 API_EXPORTED int fp_print_data_save(struct fp_print_data *data,
 	enum fp_finger finger)
@@ -478,6 +485,10 @@ static int load_from_file(char *path, struct fp_print_data **data)
  * obscure error conditions (e.g. corruption).
  *
  * Returns: 0 on success, non-zero on error
+ *
+ * Deprecated: Data storage should be handled outside of libfprint.
+ * See <link linkend="libfprint-Stored-prints.description">stored prints description</link>
+ * for more information.
  */
 API_EXPORTED int fp_print_data_load(struct fp_dev *dev,
 	enum fp_finger finger, struct fp_print_data **data)
@@ -513,6 +524,10 @@ API_EXPORTED int fp_print_data_load(struct fp_dev *dev,
  * Removes a stored print from disk previously saved with fp_print_data_save().
  *
  * Returns: 0 on success, negative on error
+ *
+ * Deprecated: Data storage should be handled outside of libfprint.
+ * See <link linkend="libfprint-Stored-prints.description">stored prints description</link>
+ * for more information.
  */
 API_EXPORTED int fp_print_data_delete(struct fp_dev *dev,
 	enum fp_finger finger)

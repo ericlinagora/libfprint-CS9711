@@ -117,7 +117,10 @@ int main(void)
 	printf("Opened device. Loading previously enrolled right index finger "
 		"data...\n");
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	r = fp_print_data_load(dev, RIGHT_INDEX, &data);
+#pragma GCC diagnostic pop
 	if (r != 0) {
 		fprintf(stderr, "Failed to load fingerprint, error %d\n", r);
 		fprintf(stderr, "Did you remember to enroll your right index finger "

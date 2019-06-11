@@ -142,7 +142,10 @@ int main(void)
 	if (!data)
 		goto out_close;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	r = fp_print_data_save(data, RIGHT_INDEX);
+#pragma GCC diagnostic pop
 	if (r < 0)
 		fprintf(stderr, "Data save failed, code %d\n", r);
 

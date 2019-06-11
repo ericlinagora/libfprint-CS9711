@@ -275,11 +275,13 @@ int fp_identify_finger(struct fp_dev *dev,
 
 /* Data handling */
 int fp_print_data_load(struct fp_dev *dev, enum fp_finger finger,
-	struct fp_print_data **data);
+	struct fp_print_data **data) LIBFPRINT_DEPRECATED;
 int fp_print_data_from_dscv_print(struct fp_dscv_print *print,
 	struct fp_print_data **data) LIBFPRINT_DEPRECATED;
-int fp_print_data_save(struct fp_print_data *data, enum fp_finger finger);
-int fp_print_data_delete(struct fp_dev *dev, enum fp_finger finger);
+int fp_print_data_save(struct fp_print_data *data, enum fp_finger finger)
+	LIBFPRINT_DEPRECATED;
+int fp_print_data_delete(struct fp_dev *dev, enum fp_finger finger)
+	LIBFPRINT_DEPRECATED;
 void fp_print_data_free(struct fp_print_data *data);
 size_t fp_print_data_get_data(struct fp_print_data *data, unsigned char **ret);
 struct fp_print_data *fp_print_data_from_data(unsigned char *buf,
