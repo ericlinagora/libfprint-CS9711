@@ -55,6 +55,7 @@ enum virtdev_state {
 	STATE_IDLE = 0,
 	STATE_VERIFY,
 	STATE_ENROLL,
+	STATE_DELETE,
 };
 
 struct virt_dev {
@@ -71,6 +72,8 @@ struct virt_dev {
 	gssize recv_len;
 	guchar *recv_buf;
 };
+
+static void send_status(struct fp_dev *dev);
 
 static void
 handle_response (struct fp_dev *dev, guchar *buf, gssize len)
@@ -105,6 +108,17 @@ handle_response (struct fp_dev *dev, guchar *buf, gssize len)
 		fpi_drvcb_enroll_stage_completed (dev, result, fdata, NULL);
 		break;
 	}
+	case STATE_DELETE:
+		fp_info ("Reporting delete results back %i\n", result);
+
+		virt->state = STATE_IDLE;
+		g_free (virt->curr_uuid);
+		virt->curr_uuid = NULL;
+
+		fpi_drvcb_delete_complete (dev, result);
+
+		send_status(dev);
+		break;
 	default:
 		g_assert_not_reached();
 	}
@@ -128,6 +142,9 @@ send_status(struct fp_dev *dev)
 		break;
 	case STATE_VERIFY:
 		msg = g_strdup_printf ("VERIFY %s\n", virt->curr_uuid);
+		break;
+	case STATE_DELETE:
+		msg = g_strdup_printf ("DELETE %s\n", virt->curr_uuid);
 		break;
 	}
 
@@ -357,6 +374,38 @@ static int verify_stop(struct fp_dev *dev, gboolean iterating)
 	return 0;
 }
 
+static int delete_finger(struct fp_dev *dev)
+{
+	struct virt_dev *virt = FP_INSTANCE_DATA(dev);
+	struct fp_print_data *print;
+	struct fp_print_data_item *item;
+
+	G_DEBUG_HERE();
+
+	if (virt->state != STATE_IDLE)
+		return -1;
+
+	g_assert (virt->curr_uuid == NULL);
+
+	virt->state = STATE_DELETE;
+
+	print = fpi_dev_get_delete_data(dev);
+	item = fpi_print_data_get_item(print);
+
+	/* We expecte a UUID, that means 36 bytes. */
+	g_assert(item->length == 36);
+
+	virt->curr_uuid = g_malloc(37);
+	virt->curr_uuid[36] = '\0';
+	memcpy(virt->curr_uuid, item->data, 36);
+
+	g_assert(g_uuid_string_is_valid (virt->curr_uuid));
+
+	send_status(dev);
+
+	return 0;
+}
+
 struct fp_driver virtual_misdev_driver = {
 	.id = VIRTUAL_MIS_ID,
 	.name = FP_COMPONENT,
@@ -371,4 +420,5 @@ struct fp_driver virtual_misdev_driver = {
 	.enroll_stop = enroll_stop,
 	.verify_start = verify_start,
 	.verify_stop = verify_stop,
+	.delete_finger = delete_finger,
 };
