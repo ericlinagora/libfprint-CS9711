@@ -77,6 +77,9 @@ enum fp_dev_state {
 	DEV_STATE_CAPTURING,
 	DEV_STATE_CAPTURE_DONE,
 	DEV_STATE_CAPTURE_STOPPING,
+	DEV_STATE_DELETING,
+	DEV_STATE_DELETE_DONE,
+	DEV_STATE_DELETE_STOPPING,
 };
 
 struct fp_dev {
@@ -99,6 +102,7 @@ struct fp_dev {
 
 	/* read-only to drivers */
 	struct fp_print_data *verify_data;
+	struct fp_print_data *delete_data;
 
 	/* drivers should not mess with any of the below */
 	enum fp_dev_state state;
@@ -127,6 +131,8 @@ struct fp_dev {
 	void *capture_cb_data;
 	fp_operation_stop_cb capture_stop_cb;
 	void *capture_stop_cb_data;
+	fp_delete_cb delete_cb;
+	void *delete_cb_data;
 
 	/* FIXME: better place to put this? */
 	struct fp_print_data **identify_gallery;

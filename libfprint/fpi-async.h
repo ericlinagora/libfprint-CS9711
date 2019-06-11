@@ -36,4 +36,6 @@ void fpi_drvcb_report_verify_result(struct fp_dev *dev, int result,
 	struct fp_img *img);
 void fpi_drvcb_verify_stopped(struct fp_dev *dev);
 
+void fpi_drvcb_delete_complete(struct fp_dev *dev, int status);
+
 #endif

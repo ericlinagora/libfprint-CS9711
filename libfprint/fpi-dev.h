@@ -45,5 +45,6 @@ int fpi_dev_get_spi_dev(struct fp_dev *dev);
 void fpi_dev_set_nr_enroll_stages(struct fp_dev *dev,
 				  int nr_enroll_stages);
 struct fp_print_data *fpi_dev_get_verify_data(struct fp_dev *dev);
+struct fp_print_data *fpi_dev_get_delete_data(struct fp_dev *dev);
 
 #endif

@@ -441,6 +441,70 @@ API_EXPORTED int fp_verify_finger(struct fp_dev *dev,
 	return fp_verify_finger_img(dev, enrolled_print, NULL);
 }
 
+struct sync_delete_data {
+	gboolean populated;
+	int result;
+};
+
+static void sync_delete_cb(struct fp_dev *dev, int result, void *user_data)
+{
+	struct sync_delete_data *ddata = user_data;
+	ddata->result = result;
+	ddata->populated = TRUE;
+}
+
+/**
+ * fp_delete_finger:
+ * @dev: the struct #fp_dev device to perform the operation.
+ * @enrolled_data: the id need to delete on sensor. This id is
+ * returned in previously enrolled with a MIS device.
+ *
+ * Perform a delete data operation on sensor. When print data is stored on
+ * sensor, this function is needed when host deletes enrolled finger.
+ *
+ * Returns: negative code on error, otherwise a code from #fp_delete_result
+ */
+
+API_EXPORTED int fp_delete_finger(struct fp_dev *dev,
+	struct fp_print_data *enrolled_data)
+{
+	struct sync_delete_data *ddata;
+	gboolean stopped = FALSE;
+	int r;
+
+	if (!enrolled_data) {
+		fp_err("no print given");
+		return -EINVAL;
+	}
+
+	if (!fp_dev_supports_print_data(dev, enrolled_data)) {
+		fp_err("print is not compatible with device");
+		return -EINVAL;
+	}
+
+	fp_dbg("to be handled by %s", dev->drv->name);
+	ddata = g_malloc0(sizeof(struct sync_delete_data));
+	r = fp_async_delete_finger(dev, enrolled_data, sync_delete_cb, ddata);
+	if (r < 0) {
+		fp_dbg("delete_finger error %d", r);
+		g_free(ddata);
+		return r;
+	}
+
+	while (!ddata->populated) {
+		r = fp_handle_events();
+		if (r < 0)
+			goto out;
+	}
+
+	r = ddata->result;
+	fp_dbg("delete_finger result %d", r);
+
+out:
+	g_free(ddata);
+	return r;
+}
+
 struct sync_identify_data {
 	gboolean populated;
 	int result;
