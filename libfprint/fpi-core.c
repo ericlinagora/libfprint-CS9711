@@ -346,6 +346,8 @@ API_EXPORTED void fp_dscv_devs_free(struct fp_dscv_dev **devs)
  */
 API_EXPORTED struct fp_driver *fp_dscv_dev_get_driver(struct fp_dscv_dev *dev)
 {
+	g_return_val_if_fail(dev, NULL);
+
 	return dev->drv;
 }
 
@@ -360,6 +362,8 @@ API_EXPORTED struct fp_driver *fp_dscv_dev_get_driver(struct fp_dscv_dev *dev)
  */
 API_EXPORTED uint16_t fp_dscv_dev_get_driver_id(struct fp_dscv_dev *dev)
 {
+	g_return_val_if_fail(dev, 0);
+
 	return fp_driver_get_driver_id(fp_dscv_dev_get_driver(dev));
 }
 
@@ -373,6 +377,8 @@ API_EXPORTED uint16_t fp_dscv_dev_get_driver_id(struct fp_dscv_dev *dev)
  */
 API_EXPORTED uint32_t fp_dscv_dev_get_devtype(struct fp_dscv_dev *dev)
 {
+	g_return_val_if_fail(dev, 0);
+
 	return dev->devtype;
 }
 
@@ -402,6 +408,9 @@ enum fp_print_data_type fpi_driver_get_data_type(struct fp_driver *drv)
 API_EXPORTED int fp_dscv_dev_supports_print_data(struct fp_dscv_dev *dev,
 	struct fp_print_data *print)
 {
+	g_return_val_if_fail(dev, 0);
+	g_return_val_if_fail(print, 0);
+
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
 		fpi_driver_get_data_type(dev->drv), print->driver_id, print->devtype,
 		print->type);
@@ -422,6 +431,9 @@ API_EXPORTED int fp_dscv_dev_supports_print_data(struct fp_dscv_dev *dev,
 API_EXPORTED int fp_dscv_dev_supports_dscv_print(struct fp_dscv_dev *dev,
 	struct fp_dscv_print *print)
 {
+	g_return_val_if_fail(dev, 0);
+	g_return_val_if_fail(print, 0);
+
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype, 0,
 		print->driver_id, print->devtype, 0);
 }
@@ -444,6 +456,9 @@ API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_print_data(struct fp_dscv_dev *
 {
 	struct fp_dscv_dev *ddev;
 	int i;
+
+	g_return_val_if_fail(devs, NULL);
+	g_return_val_if_fail(print, NULL);
 
 	for (i = 0; (ddev = devs[i]); i++)
 		if (fp_dscv_dev_supports_print_data(ddev, print))
@@ -470,6 +485,9 @@ API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_dscv_print(struct fp_dscv_dev *
 	struct fp_dscv_dev *ddev;
 	int i;
 
+	g_return_val_if_fail(devs, NULL);
+	g_return_val_if_fail(print, NULL);
+
 	for (i = 0; (ddev = devs[i]); i++) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -490,6 +508,8 @@ API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_dscv_print(struct fp_dscv_dev *
  */
 API_EXPORTED struct fp_driver *fp_dev_get_driver(struct fp_dev *dev)
 {
+	g_return_val_if_fail(dev, NULL);
+
 	return dev->drv;
 }
 
@@ -504,6 +524,8 @@ API_EXPORTED struct fp_driver *fp_dev_get_driver(struct fp_dev *dev)
  */
 API_EXPORTED int fp_dev_get_nr_enroll_stages(struct fp_dev *dev)
 {
+	g_return_val_if_fail(dev, 0);
+
 	return dev->nr_enroll_stages;
 }
 
@@ -517,6 +539,8 @@ API_EXPORTED int fp_dev_get_nr_enroll_stages(struct fp_dev *dev)
  */
 API_EXPORTED uint32_t fp_dev_get_devtype(struct fp_dev *dev)
 {
+	g_return_val_if_fail(dev, 0);
+
 	return dev->devtype;
 }
 
@@ -532,6 +556,9 @@ API_EXPORTED uint32_t fp_dev_get_devtype(struct fp_dev *dev)
 API_EXPORTED int fp_dev_supports_print_data(struct fp_dev *dev,
 	struct fp_print_data *data)
 {
+	g_return_val_if_fail(dev, 0);
+	g_return_val_if_fail(data, 0);
+
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
 		fpi_driver_get_data_type(dev->drv), data->driver_id, data->devtype,
 		data->type);
@@ -552,6 +579,9 @@ API_EXPORTED int fp_dev_supports_print_data(struct fp_dev *dev,
 API_EXPORTED int fp_dev_supports_dscv_print(struct fp_dev *dev,
 	struct fp_dscv_print *print)
 {
+	g_return_val_if_fail(dev, 0);
+	g_return_val_if_fail(print, 0);
+
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
 		0, print->driver_id, print->devtype, 0);
 }
@@ -566,6 +596,8 @@ API_EXPORTED int fp_dev_supports_dscv_print(struct fp_dev *dev,
  */
 API_EXPORTED const char *fp_driver_get_name(struct fp_driver *drv)
 {
+	g_return_val_if_fail(drv, NULL);
+
 	return drv->name;
 }
 
@@ -579,6 +611,8 @@ API_EXPORTED const char *fp_driver_get_name(struct fp_driver *drv)
  */
 API_EXPORTED const char *fp_driver_get_full_name(struct fp_driver *drv)
 {
+	g_return_val_if_fail(drv, NULL);
+
 	return drv->full_name;
 }
 
@@ -592,6 +626,8 @@ API_EXPORTED const char *fp_driver_get_full_name(struct fp_driver *drv)
  */
 API_EXPORTED uint16_t fp_driver_get_driver_id(struct fp_driver *drv)
 {
+	g_return_val_if_fail(drv, 0);
+
 	return drv->id;
 }
 
@@ -605,6 +641,8 @@ API_EXPORTED uint16_t fp_driver_get_driver_id(struct fp_driver *drv)
  */
 API_EXPORTED enum fp_scan_type fp_driver_get_scan_type(struct fp_driver *drv)
 {
+	g_return_val_if_fail(drv, FP_SCAN_TYPE_PRESS);
+
 	return drv->scan_type;
 }
 
@@ -623,6 +661,8 @@ API_EXPORTED enum fp_scan_type fp_driver_get_scan_type(struct fp_driver *drv)
  */
 API_EXPORTED int fp_driver_supports_imaging(struct fp_driver *drv)
 {
+	g_return_val_if_fail(drv, 0);
+
 	return drv->capture_start != NULL;
 }
 
@@ -641,6 +681,8 @@ API_EXPORTED int fp_driver_supports_imaging(struct fp_driver *drv)
  */
 API_EXPORTED int fp_dev_supports_imaging(struct fp_dev *dev)
 {
+	g_return_val_if_fail(dev, 0);
+
 	return dev->drv->capture_start != NULL;
 }
 
@@ -656,6 +698,8 @@ API_EXPORTED int fp_dev_supports_imaging(struct fp_dev *dev)
  */
 API_EXPORTED int fp_dev_supports_identification(struct fp_dev *dev)
 {
+	g_return_val_if_fail(dev, 0);
+
 	return dev->drv->identify_start != NULL;
 }
 
@@ -673,6 +717,8 @@ API_EXPORTED int fp_dev_supports_identification(struct fp_dev *dev)
  */
 API_EXPORTED int fp_dev_get_img_width(struct fp_dev *dev)
 {
+	g_return_val_if_fail(dev, -1);
+
 	if (!dev->img_dev) {
 		fp_dbg("get image width for non-imaging device");
 		return -1;
@@ -695,6 +741,8 @@ API_EXPORTED int fp_dev_get_img_width(struct fp_dev *dev)
  */
 API_EXPORTED int fp_dev_get_img_height(struct fp_dev *dev)
 {
+	g_return_val_if_fail(dev, -1);
+
 	if (!dev->img_dev) {
 		fp_dbg("get image height for non-imaging device");
 		return -1;
