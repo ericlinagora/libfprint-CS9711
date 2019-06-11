@@ -45,6 +45,8 @@ parser.add_argument('-e', dest='enroll', type=str,
                     help='Enroll a print using the string as identifier')
 parser.add_argument('-v', dest='verify', type=str,
                     help='Verify print if the stored identifier matches the given identifier')
+parser.add_argument('-d', dest='delete', action='store_const', const=True,
+                    help='Delete print as requested by driver')
 
 args = parser.parse_args()
 
@@ -52,6 +54,8 @@ cnt = 0
 if args.enroll:
     cnt += 1
 if args.verify:
+    cnt += 1
+if args.delete:
     cnt += 1
 
 assert cnt == 1, 'You need to give exactly one command argument, -e or -v'
@@ -118,6 +122,21 @@ elif args.verify:
         sys.stderr.write('Slot ID is unknown, returning error\n')
         sock.sendall(b'-1') # error, need way to report that print is unkown
 
+elif args.delete:
+    if not msg.startswith(b'DELETE '):
+        sys.stderr.write('Expected to delete, but driver is not ready for deleting (%s)\n' % str(msg.split(b' ', 1)[0]))
+        sys.exit(1)
+    uuid = msg[7:-1].decode('utf-8')
+
+    for i, slot in enumerate(prints):
+        if slot is not None and slot[0] == uuid:
+            if slot[0] == uuid:
+                prints[i] = None
+                sock.sendall(b'0\n') # DELETE_COMPLETE
+                break
+    else:
+        sys.stderr.write('Slot ID is unknown, just report back complete\n')
+        sock.sendall(b'0') # DELETE_COMPLETE
 
 prints_str = '\n'.join('' if p is None else '%s %s' % (p[0], p[1]) for p in prints)
 prints_human_str = '\n'.join('empty slot' if p is None else '%s %s' % (p[0], p[1]) for p in prints)
