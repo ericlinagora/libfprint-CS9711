@@ -76,13 +76,13 @@ drivers_sources = []
 drivers_cflags = []
 foreach driver: drivers
     if driver == 'upekts'
-        drivers_sources += [ 'drivers/upekts.c', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
+        drivers_sources += [ 'drivers/upekts.c', 'drivers/upek_proto.c' ]
     endif
     if driver == 'upektc'
-        drivers_sources += [ 'drivers/upektc.c', 'drivers/upektc.h' ]
+        drivers_sources += [ 'drivers/upektc.c' ]
     endif
     if driver == 'upeksonly'
-        drivers_sources += [ 'drivers/upeksonly.c', 'drivers/upeksonly.h' ]
+        drivers_sources += [ 'drivers/upeksonly.c' ]
     endif
     if driver == 'uru4000'
         drivers_sources += [ 'drivers/uru4000.c' ]
@@ -92,20 +92,20 @@ foreach driver: drivers
         aeslib = true
     endif
     if driver == 'aes1660'
-        drivers_sources += [ 'drivers/aes1660.c', 'drivers/aes1660.h' ]
+        drivers_sources += [ 'drivers/aes1660.c' ]
         aeslib = true
         aesx660 = true
     endif
     if driver == 'aes2501'
-        drivers_sources += [ 'drivers/aes2501.c', 'drivers/aes2501.h' ]
+        drivers_sources += [ 'drivers/aes2501.c' ]
         aeslib = true
     endif
     if driver == 'aes2550'
-        drivers_sources += [ 'drivers/aes2550.c', 'drivers/aes2550.h' ]
+        drivers_sources += [ 'drivers/aes2550.c' ]
         aeslib = true
     endif
     if driver == 'aes2660'
-        drivers_sources += [ 'drivers/aes2660.c', 'drivers/aes2660.h' ]
+        drivers_sources += [ 'drivers/aes2660.c' ]
         aeslib = true
         aesx660 = true
     endif
@@ -129,33 +129,33 @@ foreach driver: drivers
         drivers_sources += [ 'drivers/vfs101.c' ]
     endif
     if driver == 'vfs301'
-        drivers_sources += [ 'drivers/vfs301.c', 'drivers/vfs301_proto.c',  'drivers/vfs301_proto.h', 'drivers/vfs301_proto_fragments.h' ]
+        drivers_sources += [ 'drivers/vfs301.c', 'drivers/vfs301_proto.c' ]
     endif
     if driver == 'vfs5011'
-        drivers_sources += [ 'drivers/vfs5011.c', 'drivers/vfs5011_proto.h' ]
+        drivers_sources += [ 'drivers/vfs5011.c' ]
     endif
     if driver == 'upektc_img'
-        drivers_sources += [ 'drivers/upektc_img.c', 'drivers/upektc_img.h', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
+        drivers_sources += [ 'drivers/upektc_img.c',  'drivers/upek_proto.c' ]
     endif
     if driver == 'etes603'
         drivers_sources += [ 'drivers/etes603.c' ]
     endif
     if driver == 'vfs0050'
-        drivers_sources += [ 'drivers/vfs0050.c', 'drivers/vfs0050.h' ]
+        drivers_sources += [ 'drivers/vfs0050.c' ]
     endif
     if driver == 'elan'
-        drivers_sources += [ 'drivers/elan.c', 'drivers/elan.h' ]
+        drivers_sources += [ 'drivers/elan.c' ]
     endif
 endforeach
 
 if aeslib
-    drivers_sources += [ 'drivers/aeslib.c', 'drivers/aeslib.h' ]
+    drivers_sources += [ 'drivers/aeslib.c' ]
 endif
 if aesx660
-    drivers_sources += ['drivers/aesx660.c', 'drivers/aesx660.h' ]
+    drivers_sources += ['drivers/aesx660.c' ]
 endif
 if aes3k
-    drivers_sources += ['drivers/aes3k.c', 'drivers/aes3k.h' ]
+    drivers_sources += ['drivers/aes3k.c' ]
 endif
 
 other_sources = []
