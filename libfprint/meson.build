@@ -76,10 +76,10 @@ drivers_sources = []
 drivers_cflags = []
 foreach driver: drivers
     if driver == 'upekts'
-        drivers_sources += [ 'drivers/upekts.c' ]
+        drivers_sources += [ 'drivers/upekts.c', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
     endif
     if driver == 'upektc'
-        drivers_sources += [ 'drivers/upektc.c', 'drivers/upektc.h', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
+        drivers_sources += [ 'drivers/upektc.c', 'drivers/upektc.h' ]
     endif
     if driver == 'upeksonly'
         drivers_sources += [ 'drivers/upeksonly.c', 'drivers/upeksonly.h' ]
