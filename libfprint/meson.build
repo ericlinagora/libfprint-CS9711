@@ -74,14 +74,6 @@ aesx660 = false
 aes3k = false
 drivers_sources = []
 drivers_cflags = []
-synaptics_drivers_sources = [
-    'drivers/synaptics/src/synaptics.c',
-    'drivers/synaptics/src/bmkt.c', 
-    'drivers/synaptics/src/util.c',
-    'drivers/synaptics/src/bmkt_message.c',
-    'drivers/synaptics/src/sensor.c',
-    'drivers/synaptics/src/usb_transport.c',
-]
 
 foreach driver: drivers
     if driver == 'upekts'
@@ -156,7 +148,14 @@ foreach driver: drivers
         drivers_sources += [ 'drivers/elan.c', 'drivers/elan.h' ]
     endif
     if driver == 'synaptics'
-        drivers_sources += synaptics_drivers_sources
+        drivers_sources += [
+            'drivers/synaptics/synaptics.c',
+            'drivers/synaptics/bmkt.c',
+            'drivers/synaptics/util.c',
+            'drivers/synaptics/bmkt_message.c',
+            'drivers/synaptics/sensor.c',
+            'drivers/synaptics/usb_transport.c',
+        ]
     endif
 endforeach
 
@@ -193,12 +192,6 @@ libfprint_sources += configure_file(input: 'empty_file',
 
 deps = [ mathlib_dep, glib_dep, libusb_dep, nss_dep, imaging_dep ]
 
-if driver == 'synaptics'
-    synaptics_include_directories = [
-        'drivers/synaptics/include',
-    ]
-endif
-
 libfprint = library('fprint',
                     libfprint_sources + drivers_sources + nbis_sources + other_sources,
                     soversion: soversion,
@@ -207,7 +200,6 @@ libfprint = library('fprint',
                     include_directories: [
                       root_inc,
                       include_directories('nbis/include'),
-                      include_directories(synaptics_include_directories),
                     ],
                     dependencies: deps,
                     install: true)
