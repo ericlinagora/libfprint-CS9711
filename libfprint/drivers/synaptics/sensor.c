@@ -225,38 +225,35 @@ int bmkt_sensor_send_message(bmkt_sensor_t *sensor, uint8_t msg_id, uint8_t payl
 	bmkt_dbg_log("session_ctx->seq_num=%d, sensor->seq_num=%d", session_ctx->seq_num, sensor->seq_num);
 
 	bmkt_op_set_state(sensor, BMKT_OP_STATE_START);
-	for (;;)
+
+	ret = usb_get_command_buffer(&sensor->usb_xport, &cmd, &cmd_buf_len);
+	if (ret != BMKT_SUCCESS)
 	{
-		ret = usb_get_command_buffer(&sensor->usb_xport, &cmd, &cmd_buf_len);
-		if (ret != BMKT_SUCCESS)
-		{
-			return BMKT_OUT_OF_MEMORY;
-		}
+		return BMKT_OUT_OF_MEMORY;
+	}
 
-		/* MIS sensors send ACE commands encapsulated in FW commands*/
-		cmd[0] = SENSOR_CMD_ACE_COMMAND;
-		msg_len = cmd_buf_len - SENSOR_FW_CMD_HEADER_LEN;
+	/* MIS sensors send ACE commands encapsulated in FW commands*/
+	cmd[0] = SENSOR_CMD_ACE_COMMAND;
+	msg_len = cmd_buf_len - SENSOR_FW_CMD_HEADER_LEN;
 
-		if (session_ctx != NULL)
-		{
-			seq_num = session_ctx->seq_num;
-		}
+	if (session_ctx != NULL)
+	{
+		seq_num = session_ctx->seq_num;
+	}
 
-		ret = bmkt_compose_message(&cmd[1], &msg_len, msg_id, seq_num, payload_size, payload);
-		if (ret != BMKT_SUCCESS)
-		{
-			bmkt_dbg_log("Failed to compose ace message: %d", ret);
-			goto cleanup;
-		}
+	ret = bmkt_compose_message(&cmd[1], &msg_len, msg_id, seq_num, payload_size, payload);
+	if (ret != BMKT_SUCCESS)
+	{
+		bmkt_dbg_log("Failed to compose ace message: %d", ret);
+		goto cleanup;
+	}
 
-		ret = usb_send_command(&sensor->usb_xport, msg_len + SENSOR_FW_CMD_HEADER_LEN);
+	ret = usb_send_command(&sensor->usb_xport, msg_len + SENSOR_FW_CMD_HEADER_LEN);
 
-		if (ret != BMKT_SUCCESS)
-		{
-			bmkt_dbg_log("%s: failed to send ACE command: %d", __func__, ret);
-			goto cleanup;
-		}
-		break;
+	if (ret != BMKT_SUCCESS)
+	{
+		bmkt_dbg_log("%s: failed to send ACE command: %d", __func__, ret);
+		goto cleanup;
 	}
 
 cleanup:
