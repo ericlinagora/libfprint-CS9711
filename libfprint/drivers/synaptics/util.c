@@ -19,6 +19,8 @@
 #include "bmkt_internal.h"
 #include "sensor.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 void print_buffer(uint8_t *buf, int len)
 {
 	int i;
@@ -33,6 +35,7 @@ void print_buffer(uint8_t *buf, int len)
 	}
 	bmkt_dbg_log("");
 }
+#pragma GCC diagnostic pop
 
 uint32_t extract32(const uint8_t *buf, int *offset)
 {
