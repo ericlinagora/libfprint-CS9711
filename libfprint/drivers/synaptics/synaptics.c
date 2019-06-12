@@ -67,23 +67,6 @@ static int finger_event_callback(bmkt_finger_event_t *event, void *ctx)
 	return BMKT_SUCCESS;
 }
 
-static int cancel_resp(bmkt_response_t *resp, void *ctx)
-{
-
-	switch (resp->response_id)
-	{
-		case BMKT_RSP_CANCEL_OP_OK:
-			fp_info("Successfully canceled operation");
-			break;
-		case BMKT_RSP_CANCEL_OP_FAIL:
-			fp_info("Failed to cancel current operation: %d", resp->result);
-			break;
-	}
-
-	return 0;
-}
-
-
 struct syna_mis_print_data
 {
 	uint8_t finger_id;
