@@ -164,7 +164,6 @@ static int dev_init(struct fp_dev *dev, unsigned long driver_data)
 {
 	synaptics_dev *sdev = NULL;
 	int result = 0, ret = 0;
-	libusb_device *udev = libusb_get_device(fpi_dev_get_usb_dev(dev));
 
 	fp_info("%s ", __func__);
 
@@ -338,7 +337,7 @@ static int enroll_start(struct fp_dev *dev)
 static int enroll_stop(struct fp_dev *dev)
 {
 	fp_info("syna enroll stop");
-	int ret;
+
 	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
 	sdev->state = SYNA_STATE_IDLE;
 	fpi_drvcb_enroll_stopped(dev);
@@ -479,7 +478,7 @@ cleanup:
 static int verify_stop(struct fp_dev *dev, gboolean iterating)
 {
 	fp_info("syna verify_stop");
-	int ret;
+
 	synaptics_dev *sdev = FP_INSTANCE_DATA(dev);
 	sdev->state = SYNA_STATE_IDLE;
 	fpi_drvcb_verify_stopped(dev);
