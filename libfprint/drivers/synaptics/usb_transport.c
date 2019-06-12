@@ -68,7 +68,8 @@ int usb_check_interrupt(bmkt_usb_transport_t *usb_xport)
 			return (void *)BMKT_GENERAL_ERROR;
 		}
 	}
-	return;
+
+	return BMKT_SUCCESS;
 }
 
 int usb_open(bmkt_usb_transport_t *usb_xport)
