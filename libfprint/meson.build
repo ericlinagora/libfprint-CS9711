@@ -13,13 +13,6 @@ libfprint_sources = [
 ]
 
 nbis_sources = [
-    'nbis/include/bozorth.h',
-    'nbis/include/bz_array.h',
-    'nbis/include/defs.h',
-    'nbis/include/lfs.h',
-    'nbis/include/log.h',
-    'nbis/include/morph.h',
-    'nbis/include/sunrast.h',
     'nbis/bozorth3/bozorth3.c',
     'nbis/bozorth3/bz_alloc.c',
     'nbis/bozorth3/bz_drvrs.c',
