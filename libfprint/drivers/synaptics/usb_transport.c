@@ -49,7 +49,7 @@ int usb_check_interrupt(bmkt_usb_transport_t *usb_xport)
 	interrupt_xfer = libusb_alloc_transfer(0);
 	if (interrupt_xfer == NULL)
 	{
-		return (void *)BMKT_GENERAL_ERROR;
+		return BMKT_GENERAL_ERROR;
 	}
 
 	libusb_fill_interrupt_transfer(interrupt_xfer, usb_xport->handle, USB_EP_INTERRUPT,
@@ -61,11 +61,11 @@ int usb_check_interrupt(bmkt_usb_transport_t *usb_xport)
 		libusb_free_transfer(interrupt_xfer);
 		if (ret == LIBUSB_ERROR_NO_DEVICE)
 		{
-			return (void *)BMKT_SENSOR_MALFUNCTION;
+			return BMKT_SENSOR_MALFUNCTION;
 		}
 		else
 		{
-			return (void *)BMKT_GENERAL_ERROR;
+			return BMKT_GENERAL_ERROR;
 		}
 	}
 
