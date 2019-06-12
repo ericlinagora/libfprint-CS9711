@@ -162,14 +162,6 @@ struct fp_dscv_dev {
 	uint32_t devtype;
 };
 
-/* fp_dscv_print structure definition */
-struct fp_dscv_print {
-	uint16_t driver_id;
-	uint32_t devtype;
-	enum fp_finger finger;
-	char *path;
-};
-
 /* fp_minutia structure definition */
 struct fp_minutia {
 	int x;
@@ -206,7 +198,6 @@ struct fp_driver **fprint_get_drivers (void);
 enum fp_print_data_type fpi_driver_get_data_type(struct fp_driver *drv);
 
 /* Defined in fpi-data.c */
-void fpi_data_exit(void);
 gboolean fpi_print_data_compatible(uint16_t driver_id1, uint32_t devtype1,
 	enum fp_print_data_type type1, uint16_t driver_id2, uint32_t devtype2,
 	enum fp_print_data_type type2);

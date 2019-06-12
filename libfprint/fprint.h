@@ -47,14 +47,6 @@ extern "C" {
 struct fp_dscv_dev;
 
 /**
- * fp_dscv_print:
- *
- * #fp_dscv_print is an opaque structure type.  You must access it using the
- * functions in this section.
- */
-struct fp_dscv_print;
-
-/**
  * fp_dev:
  *
  * #fp_dev is an opaque structure type.  You must access it using the
@@ -147,20 +139,6 @@ uint16_t fp_dscv_dev_get_driver_id(struct fp_dscv_dev *dev);
 uint32_t fp_dscv_dev_get_devtype(struct fp_dscv_dev *dev);
 int fp_dscv_dev_supports_print_data(struct fp_dscv_dev *dev,
 	struct fp_print_data *print);
-int fp_dscv_dev_supports_dscv_print(struct fp_dscv_dev *dev,
-	struct fp_dscv_print *print) LIBFPRINT_DEPRECATED;
-struct fp_dscv_dev *fp_dscv_dev_for_print_data(struct fp_dscv_dev **devs,
-	struct fp_print_data *print) LIBFPRINT_DEPRECATED;
-struct fp_dscv_dev *fp_dscv_dev_for_dscv_print(struct fp_dscv_dev **devs,
-	struct fp_dscv_print *print) LIBFPRINT_DEPRECATED;
-
-/* Print discovery */
-struct fp_dscv_print **fp_discover_prints(void) LIBFPRINT_DEPRECATED;
-void fp_dscv_prints_free(struct fp_dscv_print **prints) LIBFPRINT_DEPRECATED;
-uint16_t fp_dscv_print_get_driver_id(struct fp_dscv_print *print) LIBFPRINT_DEPRECATED;
-uint32_t fp_dscv_print_get_devtype(struct fp_dscv_print *print) LIBFPRINT_DEPRECATED;
-enum fp_finger fp_dscv_print_get_finger(struct fp_dscv_print *print) LIBFPRINT_DEPRECATED;
-int fp_dscv_print_delete(struct fp_dscv_print *print) LIBFPRINT_DEPRECATED;
 
 /* Device handling */
 struct fp_dev *fp_dev_open(struct fp_dscv_dev *ddev);
@@ -169,7 +147,6 @@ struct fp_driver *fp_dev_get_driver(struct fp_dev *dev);
 int fp_dev_get_nr_enroll_stages(struct fp_dev *dev);
 uint32_t fp_dev_get_devtype(struct fp_dev *dev);
 int fp_dev_supports_print_data(struct fp_dev *dev, struct fp_print_data *data);
-int fp_dev_supports_dscv_print(struct fp_dev *dev, struct fp_dscv_print *print) LIBFPRINT_DEPRECATED;
 
 /**
  * fp_capture_result:
@@ -274,14 +251,6 @@ int fp_identify_finger(struct fp_dev *dev,
 	struct fp_print_data **print_gallery, size_t *match_offset);
 
 /* Data handling */
-int fp_print_data_load(struct fp_dev *dev, enum fp_finger finger,
-	struct fp_print_data **data) LIBFPRINT_DEPRECATED;
-int fp_print_data_from_dscv_print(struct fp_dscv_print *print,
-	struct fp_print_data **data) LIBFPRINT_DEPRECATED;
-int fp_print_data_save(struct fp_print_data *data, enum fp_finger finger)
-	LIBFPRINT_DEPRECATED;
-int fp_print_data_delete(struct fp_dev *dev, enum fp_finger finger)
-	LIBFPRINT_DEPRECATED;
 void fp_print_data_free(struct fp_print_data *data);
 size_t fp_print_data_get_data(struct fp_print_data *data, unsigned char **ret);
 struct fp_print_data *fp_print_data_from_data(unsigned char *buf,
@@ -354,7 +323,6 @@ void fp_set_pollfd_notifiers(fp_pollfd_added_cb added_cb,
 /* Library */
 int fp_init(void);
 void fp_exit(void);
-void fp_set_debug(int level) LIBFPRINT_DEPRECATED;
 
 /* Asynchronous I/O */
 

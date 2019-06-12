@@ -417,88 +417,6 @@ API_EXPORTED int fp_dscv_dev_supports_print_data(struct fp_dscv_dev *dev,
 }
 
 /**
- * fp_dscv_dev_supports_dscv_print:
- * @dev: the discovered device
- * @print: the discovered print for compatibility checking
- *
- * Determines if a specific #fp_dscv_print discovered print appears to be
- * compatible with a discovered device.
- *
- * Returns: 1 if the print is compatible with the device, 0 otherwise
- *
- * Deprecated: Do not use.
- */
-API_EXPORTED int fp_dscv_dev_supports_dscv_print(struct fp_dscv_dev *dev,
-	struct fp_dscv_print *print)
-{
-	g_return_val_if_fail(dev, 0);
-	g_return_val_if_fail(print, 0);
-
-	return fpi_print_data_compatible(dev->drv->id, dev->devtype, 0,
-		print->driver_id, print->devtype, 0);
-}
-
-/**
- * fp_dscv_dev_for_print_data:
- * @devs: a list of discovered devices
- * @print: the print under inspection
- *
- * Searches a list of discovered devices for a device that appears to be
- * compatible with a #fp_print_data stored print.
- *
- * Returns: the first discovered device that appears to support the print, or
- * %NULL if no apparently compatible devices could be found
- *
- * Deprecated: Do not use.
- */
-API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_print_data(struct fp_dscv_dev **devs,
-	struct fp_print_data *print)
-{
-	struct fp_dscv_dev *ddev;
-	int i;
-
-	g_return_val_if_fail(devs, NULL);
-	g_return_val_if_fail(print, NULL);
-
-	for (i = 0; (ddev = devs[i]); i++)
-		if (fp_dscv_dev_supports_print_data(ddev, print))
-			return ddev;
-	return NULL;
-}
-
-/**
- * fp_dscv_dev_for_dscv_print:
- * @devs: a list of discovered devices
- * @print: the print under inspection
- *
- * Searches a list of discovered devices for a device that appears to be
- * compatible with a #fp_dscv_print discovered print.
- *
- * Returns: the first discovered device that appears to support the print, or
- * %NULL if no apparently compatible devices could be found
- *
- * Deprecated: Do not use.
- */
-API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_dscv_print(struct fp_dscv_dev **devs,
-	struct fp_dscv_print *print)
-{
-	struct fp_dscv_dev *ddev;
-	int i;
-
-	g_return_val_if_fail(devs, NULL);
-	g_return_val_if_fail(print, NULL);
-
-	for (i = 0; (ddev = devs[i]); i++) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-		if (fp_dscv_dev_supports_dscv_print(ddev, print))
-			return ddev;
-#pragma GCC diagnostic pop
-	}
-	return NULL;
-}
-
-/**
  * fp_dev_get_driver:
  * @dev: the struct #fp_dev device
  *
@@ -562,28 +480,6 @@ API_EXPORTED int fp_dev_supports_print_data(struct fp_dev *dev,
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
 		fpi_driver_get_data_type(dev->drv), data->driver_id, data->devtype,
 		data->type);
-}
-
-/**
- * fp_dev_supports_dscv_print:
- * @dev: the struct #fp_dev device
- * @print: the discovered print
- *
- * Determines if a #fp_dscv_print discovered print appears to be compatible
- * with a certain device.
- *
- * Returns: 1 if the print is compatible with the device, 0 if not
- *
- * Deprecated: Do not use.
- */
-API_EXPORTED int fp_dev_supports_dscv_print(struct fp_dev *dev,
-	struct fp_dscv_print *print)
-{
-	g_return_val_if_fail(dev, 0);
-	g_return_val_if_fail(print, 0);
-
-	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
-		0, print->driver_id, print->devtype, 0);
 }
 
 /**
@@ -826,7 +722,6 @@ API_EXPORTED void fp_exit(void)
 		opened_devices = NULL;
 	}
 
-	fpi_data_exit();
 	fpi_poll_exit();
 	g_slist_free(registered_drivers);
 	registered_drivers = NULL;

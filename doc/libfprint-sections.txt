@@ -4,7 +4,6 @@
 <FILE>events</FILE>
 <TITLE>Initialisation and events handling</TITLE>
 LIBFPRINT_DEPRECATED
-fp_set_debug
 fp_init
 fp_exit
 fp_pollfd
@@ -28,9 +27,6 @@ fp_dscv_dev_get_driver
 fp_dscv_dev_get_devtype
 fp_dscv_dev_get_driver_id
 fp_dscv_dev_supports_print_data
-fp_dscv_dev_supports_dscv_print
-fp_dscv_dev_for_print_data
-fp_dscv_dev_for_dscv_print
 </SECTION>
 
 <SECTION>
@@ -59,7 +55,6 @@ fp_dev_get_devtype
 fp_dev_supports_print_data
 fp_dev_supports_imaging
 fp_dev_supports_identification
-fp_dev_supports_dscv_print
 fp_dev_get_img_width
 fp_dev_get_img_height
 
@@ -102,25 +97,9 @@ fp_finger
 fp_print_data
 fp_print_data_get_data
 fp_print_data_from_data
-fp_print_data_save
-fp_print_data_load
-fp_print_data_delete
-fp_print_data_from_dscv_print
 fp_print_data_free
 fp_print_data_get_driver_id
 fp_print_data_get_devtype
-</SECTION>
-
-<SECTION>
-<INCLUDE>fprint.h</INCLUDE>
-<FILE>dscv_print</FILE>
-fp_dscv_print
-fp_discover_prints
-fp_dscv_prints_free
-fp_dscv_print_get_driver_id
-fp_dscv_print_get_devtype
-fp_dscv_print_get_finger
-fp_dscv_print_delete
 </SECTION>
 
 <SECTION>
