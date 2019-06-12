@@ -161,7 +161,6 @@ int usb_close(bmkt_usb_transport_t *usb_xport)
 
 void usb_in_cb(struct libusb_transfer *transfer)
 {
-	int ret;
 	uint8_t *resp_buf;
 	int resp_len;
 	bmkt_msg_resp_t msg_resp;
@@ -174,7 +173,7 @@ void usb_in_cb(struct libusb_transfer *transfer)
 
 	resp_buf = transfer->buffer;
 	resp_len = transfer->actual_length;
-	ret = bmkt_sensor_handle_response(usb_xport->sensor, resp_buf, resp_len, &msg_resp);
+	bmkt_sensor_handle_response(usb_xport->sensor, resp_buf, resp_len, &msg_resp);
 	libusb_free_transfer(transfer);
 
 	bmkt_op_next_state(usb_xport->sensor);
