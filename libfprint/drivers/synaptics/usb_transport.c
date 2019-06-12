@@ -151,7 +151,6 @@ free_config:
 
 int usb_close(bmkt_usb_transport_t *usb_xport)
 {
-	int ret;
 	if (usb_xport->handle)
 	{
 		libusb_release_interface(usb_xport->handle, USB_DEFAULT_INTERFACE);
@@ -163,7 +162,6 @@ int usb_close(bmkt_usb_transport_t *usb_xport)
 void usb_in_cb(struct libusb_transfer *transfer)
 {
 	int ret;
-	int len = 0;
 	uint8_t *resp_buf;
 	int resp_len;
 	bmkt_msg_resp_t msg_resp;
