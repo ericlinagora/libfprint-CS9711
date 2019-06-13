@@ -2,8 +2,8 @@
 examples = [ 'verify_live', 'enroll', 'verify', 'img_capture' ]
 foreach example: examples
     executable(example,
-               example + '.c',
-               dependencies: libfprint_dep,
+               [example + '.c', 'storage.c'],
+               dependencies: [libfprint_dep, glib_dep],
                include_directories: [
                  root_inc,
                ],
