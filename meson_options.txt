@@ -1,7 +1,7 @@
 option('drivers',
-       description: 'Drivers to integrate',
+       description: 'Drivers to integrate, "default" selects the default set, "all" selects all drivers',
        type: 'string',
-       value: 'all')
+       value: 'default')
 option('udev_rules',
        description: 'Whether to create a udev rules file',
        type: 'boolean',
