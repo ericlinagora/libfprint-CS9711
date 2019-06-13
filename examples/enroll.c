@@ -24,6 +24,8 @@
 
 #include <libfprint/fprint.h>
 
+#include "storage.h"
+
 struct fp_dscv_dev *discover_device(struct fp_dscv_dev **discovered_devs)
 {
 	struct fp_dscv_dev *ddev = discovered_devs[0];
@@ -142,10 +144,7 @@ int main(void)
 	if (!data)
 		goto out_close;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-	r = fp_print_data_save(data, RIGHT_INDEX);
-#pragma GCC diagnostic pop
+	r = print_data_save(data, RIGHT_INDEX);
 	if (r < 0)
 		fprintf(stderr, "Data save failed, code %d\n", r);
 
