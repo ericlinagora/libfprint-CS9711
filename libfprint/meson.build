@@ -154,7 +154,7 @@ libfprint_sources += configure_file(input: 'empty_file',
                                       drivers_primitive_array + '\n\n' + drivers_img_array
                                     ])
 
-deps = [ mathlib_dep, glib_dep, libusb_dep, nss_dep, imaging_dep ]
+deps = [ mathlib_dep, glib_dep, gusb_dep, nss_dep, imaging_dep ]
 libfprint = library('fprint',
                     libfprint_sources + drivers_sources + nbis_sources + other_sources,
                     soversion: soversion,

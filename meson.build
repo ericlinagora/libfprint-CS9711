@@ -42,7 +42,7 @@ libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
 
 # Dependencies
 glib_dep = dependency('glib-2.0', version: '>= 2.50')
-libusb_dep = dependency('libusb-1.0', version: '>= 0.9.1')
+gusb_dep = dependency('gusb', version: '>= 0.3.0')
 mathlib_dep = cc.find_library('m', required: false)
 
 # Drivers
