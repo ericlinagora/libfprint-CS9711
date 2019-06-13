@@ -27,7 +27,9 @@ common_cflags = cc.get_supported_arguments([
     '-Wstrict-prototypes',
     '-Werror-implicit-function-declaration',
     '-Wno-pointer-sign',
-    '-Wshadow'
+    '-Wshadow',
+    '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_50',
+    '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_50',
 ])
 
 # maintaining compatibility with the previous libtool versioning
@@ -39,7 +41,7 @@ revision = 0
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
 
 # Dependencies
-glib_dep = dependency('glib-2.0', version: '>= 2.28')
+glib_dep = dependency('glib-2.0', version: '>= 2.50')
 libusb_dep = dependency('libusb-1.0', version: '>= 0.9.1')
 mathlib_dep = cc.find_library('m', required: false)
 
