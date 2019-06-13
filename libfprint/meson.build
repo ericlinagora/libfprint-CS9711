@@ -168,7 +168,8 @@ libfprint = library('fprint',
                     install: true)
 
 libfprint_dep = declare_dependency(link_with: libfprint,
-                                   include_directories: root_inc)
+                                   include_directories: root_inc,
+                                   dependencies: glib_dep)
 
 install_headers(['fprint.h'], subdir: 'libfprint')
 

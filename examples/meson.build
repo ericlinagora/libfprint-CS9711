@@ -3,7 +3,7 @@ examples = [ 'verify_live', 'enroll', 'verify', 'img_capture' ]
 foreach example: examples
     executable(example,
                [example + '.c', 'storage.c'],
-               dependencies: [libfprint_dep, glib_dep],
+               dependencies: [libfprint_dep],
                include_directories: [
                  root_inc,
                ],
