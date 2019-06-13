@@ -22,8 +22,6 @@
 #include <gtk/gtk.h>
 #include <libfprint/fprint.h>
 
-#include "loop.h"
-
 typedef GtkApplication LibfprintDemo;
 typedef GtkApplicationClass LibfprintDemoClass;
 
@@ -45,10 +43,10 @@ typedef struct {
 	GtkWidget *spinner;
 	GtkWidget *instructions;
 
-	struct fp_dscv_dev *ddev;
-	struct fp_dev *dev;
+	gboolean opened;
+	FpDevice *dev;
 
-	struct fp_img *img;
+	FpImage *img;
 	ImageDisplayFlags img_flags;
 } LibfprintDemoWindow;
 
@@ -67,27 +65,18 @@ typedef enum {
 static void libfprint_demo_set_mode (LibfprintDemoWindow *win,
 				     LibfprintDemoMode    mode);
 
-static void
-pixbuf_destroy (guchar *pixels, gpointer data)
-{
-	if (pixels == NULL)
-		return;
-	g_free (pixels);
-}
-
 static unsigned char *
-img_to_rgbdata (struct fp_img *img,
+img_to_rgbdata (const guint8 *imgdata,
 		int            width,
 		int            height)
 {
 	int size = width * height;
-	unsigned char *imgdata = fp_img_get_data (img);
-	unsigned char *rgbdata = g_malloc (size * 3);
+	guint8 *rgbdata = g_malloc (size * 3);
 	size_t i;
 	size_t rgb_offset = 0;
 
 	for (i = 0; i < size; i++) {
-		unsigned char pixel = imgdata[i];
+		guint8 pixel = imgdata[i];
 
 		rgbdata[rgb_offset++] = pixel;
 		rgbdata[rgb_offset++] = pixel;
@@ -101,8 +90,7 @@ static void
 plot_minutiae (unsigned char      *rgbdata,
 	       int                 width,
 	       int                 height,
-	       struct fp_minutia **minlist,
-	       int                 nr_minutiae)
+	       GPtrArray          *minutiae)
 {
 	int i;
 #define write_pixel(num) do { \
@@ -111,8 +99,8 @@ plot_minutiae (unsigned char      *rgbdata,
 		rgbdata[((num) * 3) + 2] = 0; \
 	} while(0)
 
-	for (i = 0; i < nr_minutiae; i++) {
-		struct fp_minutia *min = minlist[i];
+	for (i = 0; i < minutiae->len; i++) {
+		struct fp_minutia *min = g_ptr_array_index (minutiae, i);
 		int x, y;
 		size_t pixel_offset;
 
@@ -136,36 +124,37 @@ plot_minutiae (unsigned char      *rgbdata,
 }
 
 static GdkPixbuf *
-img_to_pixbuf (struct fp_img     *img,
+img_to_pixbuf (FpImage     *img,
 	       ImageDisplayFlags  flags)
 {
 	int width;
 	int height;
+	const guint8 *data;
 	unsigned char *rgbdata;
 
-	width = fp_img_get_width (img);
-	height = fp_img_get_height (img);
+	width = fp_image_get_width (img);
+	height = fp_image_get_height (img);
 
-	if (flags & IMAGE_DISPLAY_BINARY) {
-		struct fp_img *binary;
-		binary = fp_img_binarize (img);
-		rgbdata = img_to_rgbdata (binary, width, height);
-		fp_img_free (binary);
-	} else {
-		rgbdata = img_to_rgbdata (img, width, height);
-	}
+	if (flags & IMAGE_DISPLAY_BINARY)
+		data = fp_image_get_binarized (img, NULL);
+	else
+		data = fp_image_get_data (img, NULL);
+
+	if (!data)
+		return NULL;
+
+	rgbdata = img_to_rgbdata (data, width, height);
 
 	if (flags & IMAGE_DISPLAY_MINUTIAE) {
-		struct fp_minutia **minlist;
-		int nr_minutiae;
+		GPtrArray *minutiae;
 
-		minlist = fp_img_get_minutiae (img, &nr_minutiae);
-		plot_minutiae (rgbdata, width, height, minlist, nr_minutiae);
+		minutiae = fp_image_get_minutiae (img);
+		plot_minutiae (rgbdata, width, height, minutiae);
 	}
 
 	return gdk_pixbuf_new_from_data (rgbdata, GDK_COLORSPACE_RGB,
 					 FALSE, 8, width, height,
-					 width * 3, pixbuf_destroy,
+					 width * 3, (GdkPixbufDestroyNotify) g_free,
 					 NULL);
 }
 
@@ -201,12 +190,10 @@ libfprint_demo_set_spinner_label (LibfprintDemoWindow *win,
 static void
 libfprint_demo_set_capture_label (LibfprintDemoWindow *win)
 {
-	struct fp_driver *drv;
-	enum fp_scan_type scan_type;
+	FpScanType scan_type;
 	const char *message;
 
-	drv = fp_dscv_dev_get_driver (win->ddev);
-	scan_type = fp_driver_get_scan_type(drv);
+	scan_type = fp_device_get_scan_type(win->dev);
 
 	switch (scan_type) {
 	case FP_SCAN_TYPE_PRESS:
@@ -223,46 +210,49 @@ libfprint_demo_set_capture_label (LibfprintDemoWindow *win)
 }
 
 static void
-dev_capture_start_cb (struct fp_dev *dev,
-		      int            result,
-		      struct fp_img *img,
+dev_capture_start_cb (FpDevice *dev,
+		      GAsyncResult *res,
 		      void          *user_data)
 {
+	g_autoptr(GError) error = NULL;
 	LibfprintDemoWindow *win = user_data;
+	FpImage *image = NULL;
 
-	if (result < 0) {
+	image = fp_device_capture_finish (dev, res, &error);
+	if (!image) {
+		g_warning ("Error capturing data: %s", error->message);
 		libfprint_demo_set_mode (win, ERROR_MODE);
 		return;
 	}
 
-	fp_async_capture_stop (dev, NULL, NULL);
-
-	win->img = img;
+	g_clear_object (&win->img);
+	win->img = image;
 	update_image (win);
 
 	libfprint_demo_set_mode (win, CAPTURE_MODE);
 }
 
 static void
-dev_open_cb (struct fp_dev *dev, int status, void *user_data)
+dev_start_capture (LibfprintDemoWindow *win)
 {
-	LibfprintDemoWindow *win = user_data;
-	int r;
-
-	if (status < 0) {
-		libfprint_demo_set_mode (win, ERROR_MODE);
-		return;
-	}
-
 	libfprint_demo_set_capture_label (win);
 
-	win->dev = dev;
-	r = fp_async_capture_start (win->dev, FALSE, dev_capture_start_cb, user_data);
-	if (r < 0) {
-		g_warning ("fp_async_capture_start failed: %d", r);
+	fp_device_capture (win->dev, TRUE, NULL, (GAsyncReadyCallback) dev_capture_start_cb, win);
+}
+
+static void
+dev_open_cb (FpDevice *dev, GAsyncResult *res, void *user_data)
+{
+	LibfprintDemoWindow *win = user_data;
+	g_autoptr(GError) error = NULL;
+
+	if (!fp_device_open_finish (dev, res, &error)) {
+		g_warning ("Failed to open device: %s", error->message);
 		libfprint_demo_set_mode (win, ERROR_MODE);
 		return;
 	}
+
+	dev_start_capture(win);
 }
 
 static void
@@ -271,24 +261,19 @@ activate_capture (GSimpleAction *action,
 		  gpointer       user_data)
 {
 	LibfprintDemoWindow *win = user_data;
-	int r;
 
 	libfprint_demo_set_mode (win, SPINNER_MODE);
-	g_clear_pointer (&win->img, fp_img_free);
+	g_clear_pointer (&win->img, g_object_unref);
 
-	if (win->dev != NULL) {
-		dev_open_cb (win->dev, 0, user_data);
+	if (win->opened) {
+		dev_start_capture (win);
 		return;
 	}
 
 	libfprint_demo_set_spinner_label (win, "Opening fingerprint reader");
 
-	r = fp_async_dev_open (win->ddev, dev_open_cb, user_data);
-	if (r < 0) {
-		g_warning ("fp_async_dev_open failed: %d", r);
-		libfprint_demo_set_mode (win, ERROR_MODE);
-		return;
-	}
+	win->opened = TRUE;
+	fp_device_open (win->dev, NULL, (GAsyncReadyCallback) dev_open_cb, user_data);
 }
 
 static void
@@ -397,7 +382,6 @@ static void
 libfprint_demo_set_mode (LibfprintDemoWindow *win,
 			 LibfprintDemoMode    mode)
 {
-	struct fp_driver *drv;
 	char *title;
 
 	switch (mode) {
@@ -415,8 +399,7 @@ libfprint_demo_set_mode (LibfprintDemoWindow *win,
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "capture-mode");
 		gtk_widget_set_sensitive (win->capture_button, TRUE);
 
-		drv = fp_dscv_dev_get_driver (win->ddev);
-		title = g_strdup_printf ("%s Test", fp_driver_get_full_name (drv));
+		title = g_strdup_printf ("%s Test", fp_device_get_name (win->dev));
 		gtk_header_bar_set_title (GTK_HEADER_BAR (win->header_bar), title);
 		g_free (title);
 
@@ -456,7 +439,8 @@ libfprint_demo_class_init (LibfprintDemoClass *class)
 static void
 libfprint_demo_window_init (LibfprintDemoWindow *window)
 {
-	struct fp_dscv_dev **discovered_devs;
+	FpContext *ctx;
+	GPtrArray *devices;
 
 	gtk_widget_init_template (GTK_WIDGET (window));
 	gtk_window_set_default_size (GTK_WINDOW (window), 700, 500);
@@ -465,32 +449,26 @@ libfprint_demo_window_init (LibfprintDemoWindow *window)
 					 win_entries, G_N_ELEMENTS (win_entries),
 					 window);
 
-	if (fp_init () < 0) {
-		libfprint_demo_set_mode (window, ERROR_MODE);
-		return;
-	}
+	ctx = fp_context_new ();
 
-	setup_pollfds ();
-
-	discovered_devs = fp_discover_devs();
-	if (!discovered_devs) {
+	devices = fp_context_get_devices(ctx);
+	if (!devices) {
 		libfprint_demo_set_mode (window, ERROR_MODE);
 		return;
 	}
 
 	/* Empty list? */
-	if (discovered_devs[0] == NULL) {
-		fp_dscv_devs_free (discovered_devs);
+	if (devices->len == 0) {
 		libfprint_demo_set_mode (window, EMPTY_MODE);
 		return;
 	}
 
-	if (!fp_driver_supports_imaging(fp_dscv_dev_get_driver(discovered_devs[0]))) {
+	if (!fp_device_supports_capture(g_ptr_array_index (devices, 0))) {
 		libfprint_demo_set_mode (window, NOIMAGING_MODE);
 		return;
 	}
 
-	window->ddev = discovered_devs[0];
+	window->dev = g_object_ref (g_ptr_array_index (devices, 0));
 	libfprint_demo_set_mode (window, CAPTURE_MODE);
 }
 

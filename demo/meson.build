@@ -7,7 +7,7 @@ bindir = join_paths(prefix, get_option('bindir'))
 datadir = join_paths(prefix, get_option('datadir'))
 
 executable('gtk-libfprint-test',
-           [ 'gtk-libfprint-test.c', 'loop.c', 'loop.h', gtk_test_resources ],
+           [ 'gtk-libfprint-test.c', gtk_test_resources ],
            dependencies: [ libfprint_dep, gtk_dep ],
            include_directories: [
              root_inc,
