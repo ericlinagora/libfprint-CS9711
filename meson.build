@@ -1,5 +1,5 @@
 project('libfprint', [ 'c', 'cpp' ],
-        version: '1.0',
+        version: '1.90.0',
         license: 'LGPLv2.1+',
         default_options: [
           'buildtype=debugoptimized',
@@ -35,7 +35,7 @@ common_cflags = cc.get_supported_arguments([
 # maintaining compatibility with the previous libtool versioning
 # current = binary - interface
 # revision = interface
-soversion = 0
+soversion = 2
 current = 0
 revision = 0
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
@@ -142,6 +142,6 @@ pkgconfig.generate(
   version: meson.project_version(),
   libraries: libfprint,
   subdirs: 'libfprint',
-  filebase: 'libfprint',
+  filebase: 'libfprint2',
   install_dir: join_paths(get_option('libdir'), 'pkgconfig'),
 )
