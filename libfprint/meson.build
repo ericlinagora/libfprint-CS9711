@@ -97,9 +97,6 @@ foreach driver: drivers
         aeslib = true
         aes3k = true
     endif
-    if driver == 'fdu2000'
-        drivers_sources += [ 'drivers/fdu2000.c' ]
-    endif
     if driver == 'vcom5s'
         drivers_sources += [ 'drivers/vcom5s.c' ]
     endif

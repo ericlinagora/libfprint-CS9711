@@ -27,7 +27,7 @@ enum {
 	AES2501_ID	= 4,
 	UPEKTC_ID	= 5,
 	AES1610_ID	= 6,
-	FDU2000_ID	= 7,
+	/* FDU2000_ID	= 7, */
 	VCOM5S_ID	= 8,
 	UPEKSONLY_ID	= 9,
 	VFS101_ID	= 10,
