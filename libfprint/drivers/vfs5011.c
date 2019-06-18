@@ -846,7 +846,7 @@ static void start_scan(struct fp_img_dev *dev)
 	fp_dbg("ssm done, getting out");
 }
 
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	struct vfs5011_data *data;
 

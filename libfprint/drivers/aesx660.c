@@ -589,7 +589,7 @@ static void activate_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 		start_finger_detection(dev);
 }
 
-int aesX660_dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+int aesX660_dev_activate(struct fp_img_dev *dev)
 {
 	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), activate_run_state,
 		ACTIVATE_NUM_STATES, dev);

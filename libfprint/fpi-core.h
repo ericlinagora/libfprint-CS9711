@@ -110,7 +110,7 @@ struct fp_img_driver {
 	/* Device operations */
 	int (*open)(struct fp_img_dev *dev, unsigned long driver_data);
 	void (*close)(struct fp_img_dev *dev);
-	int (*activate)(struct fp_img_dev *dev, enum fp_imgdev_state state);
+	int (*activate)(struct fp_img_dev *dev);
 	int (*change_state)(struct fp_img_dev *dev, enum fp_imgdev_state state);
 	void (*deactivate)(struct fp_img_dev *dev);
 };

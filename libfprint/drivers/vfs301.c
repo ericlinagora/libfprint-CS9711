@@ -191,7 +191,7 @@ static void m_init_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 }
 
 /* Activate device */
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	fpi_ssm *ssm;
 

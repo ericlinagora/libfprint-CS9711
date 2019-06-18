@@ -1390,18 +1390,12 @@ static void m_init_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 	fpi_ssm_free(ssm);
 }
 
-static int dev_activate(struct fp_img_dev *idev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *idev)
 {
 	struct etes603_dev *dev = FP_INSTANCE_DATA(FP_DEV(idev));
 	fpi_ssm *ssm;
 
 	g_assert(dev);
-
-	if (state != IMGDEV_STATE_AWAIT_FINGER_ON) {
-		fp_err("The driver is in an unexpected state: %d.", state);
-		fpi_imgdev_activate_complete(idev, 1);
-		return -1;
-	}
 
 	/* Reset info and data */
 	dev->is_active = TRUE;

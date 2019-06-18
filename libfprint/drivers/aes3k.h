@@ -52,7 +52,7 @@ struct aes3k_dev {
 };
 
 
-int aes3k_dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state);
+int aes3k_dev_activate(struct fp_img_dev *dev);
 void aes3k_dev_deactivate(struct fp_img_dev *dev);
 
 #endif

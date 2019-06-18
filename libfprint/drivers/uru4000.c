@@ -1161,20 +1161,10 @@ static void activate_initsm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *us
 	int r = fpi_ssm_get_error(ssm);
 	fpi_ssm_free(ssm);
 
-	if (r) {
-		fpi_imgdev_activate_complete(dev, r);
-		return;
-	}
-
-	r = execute_state_change(dev);
 	fpi_imgdev_activate_complete(dev, r);
 }
 
-/* FIXME: having state parameter here is kinda useless, will we ever
- * see a scenario where the parameter is useful so early on in the activation
- * process? asynchronity means that it'll only be used in a later function
- * call. */
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	struct uru4k_dev *urudev = FP_INSTANCE_DATA(FP_DEV(dev));
 	fpi_ssm *ssm;
@@ -1185,7 +1175,6 @@ static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
 		return r;
 
 	urudev->scanpwr_irq_timeouts = 0;
-	urudev->activate_state = state;
 	ssm = fpi_ssm_new(FP_DEV(dev), init_run_state, INIT_NUM_STATES, dev);
 	fpi_ssm_start(ssm, activate_initsm_complete);
 	return 0;

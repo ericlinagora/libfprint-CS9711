@@ -533,14 +533,14 @@ int fpi_imgdev_get_img_height(struct fp_img_dev *imgdev)
 	return height;
 }
 
-static int dev_activate(struct fp_img_dev *imgdev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *imgdev)
 {
 	struct fp_driver *drv = FP_DEV(imgdev)->drv;
 	struct fp_img_driver *imgdrv = fpi_driver_to_img_driver(drv);
 
 	if (!imgdrv->activate)
 		return 0;
-	return imgdrv->activate(imgdev, state);
+	return imgdrv->activate(imgdev);
 }
 
 static void dev_deactivate(struct fp_img_dev *imgdev)
@@ -562,7 +562,7 @@ static int generic_acquire_start(struct fp_dev *dev, int action)
 	imgdev->action_state = IMG_ACQUIRE_STATE_ACTIVATING;
 	imgdev->enroll_stage = 0;
 
-	r = dev_activate(imgdev, IMGDEV_STATE_AWAIT_FINGER_ON);
+	r = dev_activate(imgdev);
 	if (r < 0)
 		fp_err("activation failed with error %d", r);
 

@@ -137,7 +137,7 @@ static void init_reqs_cb(struct fp_img_dev *dev, int result, void *user_data)
 		do_capture(dev);
 }
 
-int aes3k_dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+int aes3k_dev_activate(struct fp_img_dev *dev)
 {
 	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	aes_write_regv(dev, aesdev->init_reqs, aesdev->init_reqs_len, init_reqs_cb, NULL);

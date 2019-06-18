@@ -302,7 +302,7 @@ static void loopsm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 		fpi_imgdev_deactivate_complete(dev);
 }
 
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	struct v5s_dev *vdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), loop_run_state,

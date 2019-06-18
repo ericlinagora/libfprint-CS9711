@@ -116,7 +116,7 @@ static const unsigned char calibrate_cmd[] = {
 	0x06,
 };
 
-int aesX660_dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state);
+int aesX660_dev_activate(struct fp_img_dev *dev);
 void aesX660_dev_deactivate(struct fp_img_dev *dev);
 
 #endif

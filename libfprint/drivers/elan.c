@@ -874,7 +874,7 @@ static void dev_deinit(struct fp_img_dev *dev)
 	fpi_imgdev_close_complete(dev);
 }
 
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	G_DEBUG_HERE();
 	elan_activate(dev);

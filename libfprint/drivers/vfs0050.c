@@ -684,7 +684,7 @@ static void dev_activate_callback(fpi_ssm *ssm, struct fp_dev *_dev, void *user_
 }
 
 /* Activate device */
-static int dev_activate(struct fp_img_dev *idev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *idev)
 {
 	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
