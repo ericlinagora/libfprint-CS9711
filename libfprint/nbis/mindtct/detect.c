@@ -207,15 +207,7 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
    }
    else{
       /* If padding is unnecessary, then copy the input image. */
-      pdata = (unsigned char *)malloc(iw*ih);
-      if(pdata == (unsigned char *)NULL){
-         /* Free memory allocated to this point. */
-         free_dir2rad(dir2rad);
-         free_dftwaves(dftwaves);
-         free_rotgrids(dftgrids);
-         fprintf(stderr, "ERROR : lfs_detect_minutiae_V2 : malloc : pdata\n");
-         return(-580);
-      }
+      pdata = (unsigned char *)g_malloc(iw * ih);
       memcpy(pdata, idata, iw*ih);
       pw = iw;
       ph = ih;
@@ -244,7 +236,7 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
       free_dir2rad(dir2rad);
       free_dftwaves(dftwaves);
       free_rotgrids(dftgrids);
-      free(pdata);
+      g_free(pdata);
       return(ret);
    }
    /* Deallocate working memories. */
@@ -268,11 +260,11 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
                         lfsparms->dirbin_grid_w, lfsparms->dirbin_grid_h,
                         RELATIVE2CENTER))){
       /* Free memory allocated to this point. */
-      free(pdata);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
+      g_free(pdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
       return(ret);
    }
 
@@ -281,11 +273,11 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
                       pdata, pw, ph, direction_map, mw, mh,
                       dirbingrids, lfsparms))){
       /* Free memory allocated to this point. */
-      free(pdata);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
+      g_free(pdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
       free_rotgrids(dirbingrids);
       return(ret);
    }
@@ -297,12 +289,12 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
    /* the input image, then ERROR.                                 */
    if((iw != bw) || (ih != bh)){
       /* Free memory allocated to this point. */
-      free(pdata);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
-      free(bdata);
+      g_free(pdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
+      g_free(bdata);
       fprintf(stderr, "ERROR : lfs_detect_minutiae_V2 :");
       fprintf(stderr,"binary image has bad dimensions : %d, %d\n",
               bw, bh);
@@ -332,12 +324,12 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
                              direction_map, low_flow_map, high_curve_map,
                              mw, mh, lfsparms))){
       /* Free memory allocated to this point. */
-      free(pdata);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
-      free(bdata);
+      g_free(pdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
+      g_free(bdata);
       return(ret);
    }
 
@@ -349,12 +341,12 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
                        direction_map, low_flow_map, high_curve_map, mw, mh,
                        lfsparms))){
       /* Free memory allocated to this point. */
-      free(pdata);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
-      free(bdata);
+      g_free(pdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
+      g_free(bdata);
       free_minutiae(minutiae);
       return(ret);
    }
@@ -370,11 +362,11 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
 
    if((ret = count_minutiae_ridges(minutiae, bdata, iw, ih, lfsparms))){
       /* Free memory allocated to this point. */
-      free(pdata);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
+      g_free(pdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
       free_minutiae(minutiae);
       return(ret);
    }
@@ -393,7 +385,7 @@ int lfs_detect_minutiae_V2(MINUTIAE **ominutiae,
    gray2bin(1, 255, 0, bdata, iw, ih);
 
    /* Deallocate working memory. */
-   free(pdata);
+   g_free(pdata);
 
    /* Assign results to output pointers. */
    *odmap = direction_map;

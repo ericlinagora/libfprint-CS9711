@@ -91,33 +91,16 @@ int init_dir2rad(DIR2RAD **optr, const int ndirs)
    double cs, sn;
 
    /* Allocate structure */
-   dir2rad = (DIR2RAD *)malloc(sizeof(DIR2RAD));
-   if(dir2rad == (DIR2RAD *)NULL){
-      fprintf(stderr, "ERROR : init_dir2rad : malloc : dir2rad\n");
-      return(-10);
-   }
+   dir2rad = (DIR2RAD *)g_malloc(sizeof(DIR2RAD));
 
    /* Assign number of directions */
    dir2rad->ndirs = ndirs;
 
    /* Allocate cosine vector */
-   dir2rad->cos = (double *)malloc(ndirs * sizeof(double));
-   if(dir2rad->cos == (double *)NULL){
-      /* Free memory allocated to this point. */
-      free(dir2rad);
-      fprintf(stderr, "ERROR : init_dir2rad : malloc : dir2rad->cos\n");
-      return(-11);
-   }
+   dir2rad->cos = (double *)g_malloc(ndirs * sizeof(double));
 
    /* Allocate sine vector */
-   dir2rad->sin = (double *)malloc(ndirs * sizeof(double));
-   if(dir2rad->sin == (double *)NULL){
-      /* Free memory allocated to this point. */
-      free(dir2rad->cos);
-      free(dir2rad);
-      fprintf(stderr, "ERROR : init_dir2rad : malloc : dir2rad->sin\n");
-      return(-12);
-   }
+   dir2rad->sin = (double *)g_malloc(ndirs * sizeof(double));
 
    /* Pi_factor sets the period of the trig functions to NDIRS units in x. */
    /* For example, if NDIRS==16, then pi_factor = 2(PI/16) = .3926...      */
@@ -166,11 +149,7 @@ int init_dftwaves(DFTWAVES **optr, const double *dft_coefs,
    double *cptr, *sptr;
 
    /* Allocate structure */
-   dftwaves = (DFTWAVES *)malloc(sizeof(DFTWAVES));
-   if(dftwaves == (DFTWAVES *)NULL){
-      fprintf(stderr, "ERROR : init_dftwaves : malloc : dftwaves\n");
-      return(-20);
-   }
+   dftwaves = (DFTWAVES *)g_malloc(sizeof(DFTWAVES));
 
    /* Set number of DFT waves */
    dftwaves->nwaves = nwaves;
@@ -178,10 +157,10 @@ int init_dftwaves(DFTWAVES **optr, const double *dft_coefs,
    dftwaves->wavelen = blocksize;
 
    /* Allocate list of wave pointers */
-   dftwaves->waves = (DFTWAVE **)malloc(nwaves * sizeof(DFTWAVE *));
+   dftwaves->waves = (DFTWAVE **)g_malloc(nwaves * sizeof(DFTWAVE *));
    if(dftwaves == (DFTWAVES *)NULL){
       /* Free memory allocated to this point. */
-      free(dftwaves);
+      g_free(dftwaves);
       fprintf(stderr, "ERROR : init_dftwaves : malloc : dftwaves->waves\n");
       return(-21);
    }
@@ -194,53 +173,11 @@ int init_dftwaves(DFTWAVES **optr, const double *dft_coefs,
    /* Foreach of 4 DFT frequency coef ... */
    for (i = 0; i < nwaves; ++i) {
       /* Allocate wave structure */
-      dftwaves->waves[i] = (DFTWAVE *)malloc(sizeof(DFTWAVE));
-      if(dftwaves->waves[i] == (DFTWAVE *)NULL){
-         /* Free memory allocated to this point. */
-         { int _j; for(_j = 0; _j < i; _j++){
-            free(dftwaves->waves[_j]->cos);
-            free(dftwaves->waves[_j]->sin);
-            free(dftwaves->waves[_j]);
-         }}
-         free(dftwaves->waves);
-         free(dftwaves);
-         fprintf(stderr,
-                 "ERROR : init_dftwaves : malloc : dftwaves->waves[i]\n");
-         return(-22);
-      }
+      dftwaves->waves[i] = (DFTWAVE *)g_malloc(sizeof(DFTWAVE));
       /* Allocate cosine vector */
-      dftwaves->waves[i]->cos = (double *)malloc(blocksize * sizeof(double));
-      if(dftwaves->waves[i]->cos == (double *)NULL){
-         /* Free memory allocated to this point. */
-         { int _j; for(_j = 0; _j < i; _j++){
-            free(dftwaves->waves[_j]->cos);
-            free(dftwaves->waves[_j]->sin);
-            free(dftwaves->waves[_j]);
-         }}
-         free(dftwaves->waves[i]);
-         free(dftwaves->waves);
-         free(dftwaves);
-         fprintf(stderr,
-                 "ERROR : init_dftwaves : malloc : dftwaves->waves[i]->cos\n");
-         return(-23);
-      }
+      dftwaves->waves[i]->cos = (double *)g_malloc(blocksize * sizeof(double));
       /* Allocate sine vector */
-      dftwaves->waves[i]->sin = (double *)malloc(blocksize * sizeof(double));
-      if(dftwaves->waves[i]->sin == (double *)NULL){
-         /* Free memory allocated to this point. */
-         { int _j; for(_j = 0; _j < i; _j++){
-            free(dftwaves->waves[_j]->cos);
-            free(dftwaves->waves[_j]->sin);
-            free(dftwaves->waves[_j]);
-         }}
-         free(dftwaves->waves[i]->cos);
-         free(dftwaves->waves[i]);
-         free(dftwaves->waves);
-         free(dftwaves);
-         fprintf(stderr,
-                 "ERROR : init_dftwaves : malloc : dftwaves->waves[i]->sin\n");
-         return(-24);
-      }
+      dftwaves->waves[i]->sin = (double *)g_malloc(blocksize * sizeof(double));
 
       /* Assign pointer nicknames */
       cptr = dftwaves->waves[i]->cos;
@@ -435,11 +372,7 @@ int init_rotgrids(ROTGRIDS **optr, const int iw, const int ih, const int ipad,
    double pad;
 
    /* Allocate structure */
-   rotgrids = (ROTGRIDS *)malloc(sizeof(ROTGRIDS));
-   if(rotgrids == (ROTGRIDS *)NULL){
-      fprintf(stderr, "ERROR : init_rotgrids : malloc : rotgrids\n");
-      return(-30);
-   }
+   rotgrids = (ROTGRIDS *)g_malloc(sizeof(ROTGRIDS));
 
    /* Set rotgrid attributes */
    rotgrids->ngrids = ndirs;
@@ -474,7 +407,7 @@ int init_rotgrids(ROTGRIDS **optr, const int iw, const int ih, const int ipad,
          fprintf(stderr,
                  "ERROR : init_rotgrids : Illegal relative flag : %d\n",
                  relative2);
-         free(rotgrids);
+         g_free(rotgrids);
          return(-31);
    }
 
@@ -488,7 +421,7 @@ int init_rotgrids(ROTGRIDS **optr, const int iw, const int ih, const int ipad,
       if(ipad < grid_pad){
          /* If input pad is NOT large enough, then ERROR. */
          fprintf(stderr, "ERROR : init_rotgrids : Pad passed is too small\n");
-         free(rotgrids);
+         g_free(rotgrids);
          return(-32);
       }
       /* Otherwise, use the specified input pad in computing grid offsets. */
@@ -506,13 +439,7 @@ int init_rotgrids(ROTGRIDS **optr, const int iw, const int ih, const int ipad,
    cy = (grid_h-1)/(double)2.0;
 
    /* Allocate list of rotgrid pointers */
-   rotgrids->grids = (int **)malloc(ndirs * sizeof(int *));
-   if(rotgrids->grids == (int **)NULL){
-      /* Free memory allocated to this point. */
-      free(rotgrids);
-      fprintf(stderr, "ERROR : init_rotgrids : malloc : rotgrids->grids\n");
-      return(-33);
-   }
+   rotgrids->grids = (int **)g_malloc(ndirs * sizeof(int *));
 
    /* Pi_offset is the offset in radians from which angles are to begin. */
    pi_offset = start_dir_angle;
@@ -523,17 +450,7 @@ int init_rotgrids(ROTGRIDS **optr, const int iw, const int ih, const int ipad,
         dir < ndirs; dir++, theta += pi_incr) {
 
       /* Allocate a rotgrid */
-      rotgrids->grids[dir] = (int *)malloc(grid_size * sizeof(int));
-      if(rotgrids->grids[dir] == (int *)NULL){
-         /* Free memory allocated to this point. */
-         { int _j; for(_j = 0; _j < dir; _j++){
-            free(rotgrids->grids[_j]);
-         }}
-         free(rotgrids);
-         fprintf(stderr,
-                 "ERROR : init_rotgrids : malloc : rotgrids->grids[dir]\n");
-         return(-34);
-      }
+      rotgrids->grids[dir] = (int *)g_malloc(grid_size * sizeof(int));
 
       /* Set pointer to current grid */
       grid = rotgrids->grids[dir];
@@ -635,24 +552,11 @@ int alloc_dir_powers(double ***opowers, const int nwaves, const int ndirs)
    double **powers;
 
    /* Allocate list of double pointers to hold power vectors */
-   powers = (double **)malloc(nwaves * sizeof(double*));
-   if(powers == (double **)NULL){
-      fprintf(stderr, "ERROR : alloc_dir_powers : malloc : powers\n");
-      return(-40);
-   }
+   powers = (double **)g_malloc(nwaves * sizeof(double *));
    /* Foreach DFT wave ... */
    for(w = 0; w < nwaves; w++){
       /* Allocate power vector for all directions */
-      powers[w] = (double *)malloc(ndirs * sizeof(double));
-      if(powers[w] == (double *)NULL){
-         /* Free memory allocated to this point. */
-         { int _j; for(_j = 0; _j < w; _j++){
-            free(powers[_j]);
-         }}
-         free(powers);
-         fprintf(stderr, "ERROR : alloc_dir_powers : malloc : powers[w]\n");
-         return(-41);
-      }
+      powers[w] = (double *)g_malloc(ndirs * sizeof(double));
    }
 
    *opowers = powers;
@@ -697,41 +601,16 @@ int alloc_power_stats(int **owis, double **opowmaxs, int **opowmax_dirs,
    ASSERT_SIZE_MUL(nstats, sizeof(double));
 
    /* Allocate DFT wave index vector */
-   wis = (int *)malloc(nstats * sizeof(int));
-   if(wis == (int *)NULL){
-      fprintf(stderr, "ERROR : alloc_power_stats : malloc : wis\n");
-      return(-50);
-   }
+   wis = (int *)g_malloc(nstats * sizeof(int));
 
    /* Allocate max power vector */
-   powmaxs = (double *)malloc(nstats * sizeof(double));
-   if(powmaxs == (double *)NULL){
-      /* Free memory allocated to this point. */
-      free(wis);
-      fprintf(stderr, "ERROR : alloc_power_stats : malloc : powmaxs\n");
-      return(-51);
-   }
+   powmaxs = (double *)g_malloc(nstats * sizeof(double));
 
    /* Allocate max power direction vector */
-   powmax_dirs = (int *)malloc(nstats * sizeof(int));
-   if(powmax_dirs == (int *)NULL){
-      /* Free memory allocated to this point. */
-      free(wis);
-      free(powmaxs);
-      fprintf(stderr, "ERROR : alloc_power_stats : malloc : powmax_dirs\n");
-      return(-52);
-   }
+   powmax_dirs = (int *)g_malloc(nstats * sizeof(int));
 
    /* Allocate normalized power vector */
-   pownorms = (double *)malloc(nstats * sizeof(double));
-   if(pownorms == (double *)NULL){
-      /* Free memory allocated to this point. */
-      free(wis);
-      free(powmaxs);
-      free(powmax_dirs);
-      fprintf(stderr, "ERROR : alloc_power_stats : malloc : pownorms\n");
-      return(-53);
-   }
+   pownorms = (double *)g_malloc(nstats * sizeof(double));
 
    *owis = wis;
    *opowmaxs = powmaxs;

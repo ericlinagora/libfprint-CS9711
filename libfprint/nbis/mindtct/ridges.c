@@ -152,7 +152,7 @@ int count_minutia_ridges(const int first, MINUTIAE *minutiae,
    if((ret = find_neighbors(&nbr_list, &nnbrs, lfsparms->max_nbrs,
                            first, minutiae))){
       if (nbr_list != NULL)
-         free(nbr_list);
+         g_free(nbr_list);
       return(ret);
    }
 
@@ -167,18 +167,13 @@ int count_minutia_ridges(const int first, MINUTIAE *minutiae,
 
    /* Sort neighbors on delta dirs. */
    if((ret = sort_neighbors(nbr_list, nnbrs, first, minutiae))){
-      free(nbr_list);
+      g_free(nbr_list);
       return(ret);
    }
 
    /* Count ridges between first and neighbors. */
    /* List of ridge counts, one for each neighbor stored. */
-   nbr_nridges = (int *)malloc(nnbrs * sizeof(int));
-   if(nbr_nridges == (int *)NULL){
-      free(nbr_list);
-      fprintf(stderr, "ERROR : count_minutia_ridges : malloc : nbr_nridges\n");
-      return(-450);
-   }
+   nbr_nridges = (int *)g_malloc(nnbrs * sizeof(int));
 
    /* Foreach neighbor found and sorted in list ... */
    for(i = 0; i < nnbrs; i++){
@@ -187,8 +182,8 @@ int count_minutia_ridges(const int first, MINUTIAE *minutiae,
       /* If system error ... */
       if(ret < 0){
          /* Deallocate working memories. */
-         free(nbr_list);
-         free(nbr_nridges);
+         g_free(nbr_list);
+         g_free(nbr_nridges);
          /* Return error code. */
          return(ret);
       }
@@ -235,21 +230,11 @@ int find_neighbors(int **onbr_list, int *onnbrs, const int max_nbrs,
    double *nbr_sqr_dists, xdist, xdist2;
 
    /* Allocate list of neighbor minutiae indices. */
-   nbr_list = (int *)malloc(max_nbrs * sizeof(int));
-   if(nbr_list == (int *)NULL){
-      fprintf(stderr, "ERROR : find_neighbors : malloc : nbr_list\n");
-      return(-460);
-   }
+   nbr_list = (int *)g_malloc(max_nbrs * sizeof(int));
 
    /* Allocate list of squared euclidean distances between neighbors */
    /* and current primary minutia point.                             */
-   nbr_sqr_dists = (double *)malloc(max_nbrs * sizeof(double));
-   if(nbr_sqr_dists == (double *)NULL){
-      free(nbr_list);
-      fprintf(stderr,
-              "ERROR : find_neighbors : malloc : nbr_sqr_dists\n");
-      return(-461);
-   }
+   nbr_sqr_dists = (double *)g_malloc(max_nbrs * sizeof(double));
 
    /* Initialize number of stored neighbors to 0. */
    nnbrs = 0;
@@ -280,8 +265,8 @@ int find_neighbors(int **onbr_list, int *onnbrs, const int max_nbrs,
          /* Append or insert the new neighbor into the neighbor lists. */
          if((ret = update_nbr_dists(nbr_list, nbr_sqr_dists, &nnbrs, max_nbrs,
                           first, second, minutiae))){
-            free(nbr_sqr_dists);
-            free(nbr_list);
+            g_free(nbr_sqr_dists);
+            g_free(nbr_list);
             return(ret);
          }
       }
@@ -297,12 +282,12 @@ int find_neighbors(int **onbr_list, int *onnbrs, const int max_nbrs,
    }
 
    /* Deallocate working memory. */
-   free(nbr_sqr_dists);
+   g_free(nbr_sqr_dists);
 
    /* If no neighbors found ... */
    if(nnbrs == 0){
       /* Deallocate the neighbor list. */
-      free(nbr_list);
+      g_free(nbr_list);
       *onnbrs = 0;
    }
    /* Otherwise, assign neighbors to output pointer. */
@@ -497,11 +482,7 @@ int sort_neighbors(int *nbr_list, const int nnbrs, const int first,
 
    /* List of angles of lines joining the current primary to each */
    /* of the secondary neighbors.                                 */
-   join_thetas = (double *)malloc(nnbrs * sizeof(double));
-   if(join_thetas == (double *)NULL){
-      fprintf(stderr, "ERROR : sort_neighbors : malloc : join_thetas\n");
-      return(-490);
-   }
+   join_thetas = (double *)g_malloc(nnbrs * sizeof(double));
 
    for(i = 0; i < nnbrs; i++){
       /* Compute angle to line connecting the 2 points.             */
@@ -523,7 +504,7 @@ int sort_neighbors(int *nbr_list, const int nnbrs, const int first,
    bubble_sort_double_inc_2(join_thetas, nbr_list, nnbrs);
 
    /* Deallocate the list of angles. */
-   free(join_thetas);
+   g_free(join_thetas);
 
    /* Return normally. */
    return(0);
@@ -576,8 +557,8 @@ int ridge_count(const int first, const int second, MINUTIAE *minutiae,
    /* It there are no points on the line trajectory, then no ridges */
    /* to count (this should not happen, but just in case) ...       */
    if(num == 0){
-      free(xlist);
-      free(ylist);
+      g_free(xlist);
+      g_free(ylist);
       return(0);
    }
 
@@ -597,8 +578,8 @@ int ridge_count(const int first, const int second, MINUTIAE *minutiae,
 
    /* If opposite pixel not found ... then no ridges to count */
    if(!found){
-      free(xlist);
-      free(ylist);
+      g_free(xlist);
+      g_free(ylist);
       return(0);
    }
 
@@ -613,8 +594,8 @@ int ridge_count(const int first, const int second, MINUTIAE *minutiae,
       /* If 0-to-1 transition not found ... */
       if(!find_transition(&i, 0, 1, xlist, ylist, num, bdata, iw, ih)){
          /* Then we are done looking for ridges. */
-         free(xlist);
-         free(ylist);
+         g_free(xlist);
+         g_free(ylist);
 
          print2log("\n");
 
@@ -630,8 +611,8 @@ int ridge_count(const int first, const int second, MINUTIAE *minutiae,
       /* If 1-to-0 transition not found ... */
       if(!find_transition(&i, 1, 0, xlist, ylist, num, bdata, iw, ih)){
          /* Then we are done looking for ridges. */
-         free(xlist);
-         free(ylist);
+         g_free(xlist);
+         g_free(ylist);
 
          print2log("\n");
 
@@ -657,8 +638,8 @@ int ridge_count(const int first, const int second, MINUTIAE *minutiae,
 
       /* If system error ... */
       if(ret < 0){
-         free(xlist);
-         free(ylist);
+         g_free(xlist);
+         g_free(ylist);
          /* Return the error code. */
          return(ret);
       }
@@ -677,8 +658,8 @@ int ridge_count(const int first, const int second, MINUTIAE *minutiae,
    }
 
    /* Deallocate working memories. */
-   free(xlist);
-   free(ylist);
+   g_free(xlist);
+   g_free(ylist);
 
    print2log("\n");
 

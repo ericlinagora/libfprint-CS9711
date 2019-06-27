@@ -214,11 +214,7 @@ int binarize_image_V2(unsigned char **odata, int *ow, int *oh,
    bw = pw - (dirbingrids->pad<<1);
    bh = ph - (dirbingrids->pad<<1);
 
-   bdata = (unsigned char *)malloc(bw*bh*sizeof(unsigned char));
-   if(bdata == (unsigned char *)NULL){
-      fprintf(stderr, "ERROR : binarize_image_V2 : malloc : bdata\n");
-      return(-600);
-   }
+   bdata = (unsigned char *)g_malloc(bw * bh * sizeof(unsigned char));
 
    bptr = bdata;
    spptr = pdata + (dirbingrids->pad * pw) + dirbingrids->pad;

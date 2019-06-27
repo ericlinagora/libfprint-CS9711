@@ -89,11 +89,7 @@ int sort_indices_int_inc(int **optr, int *ranks, const int num)
    int i;
 
    /* Allocate list of sequential indices. */
-   order = (int *)malloc(num * sizeof(int));
-   if(order == (int *)NULL){
-      fprintf(stderr, "ERROR : sort_indices_int_inc : malloc : order\n");
-      return(-390);
-   }
+   order = (int *)g_malloc(num * sizeof(int));
    /* Initialize list of sequential indices. */
    for(i = 0; i < num; i++)
       order[i] = i;

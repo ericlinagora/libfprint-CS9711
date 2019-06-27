@@ -100,12 +100,7 @@ int chain_code_loop(int **ochain, int *onchain,
    /* number of points in the contour.  There will be one chain code */
    /* between each point on the contour including a code between the */
    /* last to the first point on the contour (completing the loop).  */
-   chain = (int *)malloc(ncontour * sizeof(int));
-   /* If the allocation fails ... */
-   if(chain == (int *)NULL){
-      fprintf(stderr, "ERROR : chain_code_loop : malloc : chain\n");
-      return(-170);
-   }
+   chain = (int *)g_malloc(ncontour * sizeof(int));
 
    /* For each neighboring point in the list (with "i" pointing to the */
    /* previous neighbor and "j" pointing to the next neighbor...       */

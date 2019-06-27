@@ -98,23 +98,11 @@ int alloc_shape(SHAPE **oshape, const int xmin, const int ymin,
    alloc_pts = xmax - xmin + 1;
 
    /* Allocate the shape structure. */
-   shape = (SHAPE *)malloc(sizeof(SHAPE));
-   /* If there is an allocation error... */
-   if(shape == (SHAPE *)NULL){
-      fprintf(stderr, "ERROR : alloc_shape : malloc : shape\n");
-      return(-250);
-   }
+   shape = (SHAPE *)g_malloc(sizeof(SHAPE));
 
    /* Allocate the list of row pointers.  We now this number will fit */
    /* the shape exactly.                                              */
-   shape->rows = (ROW **)malloc(alloc_rows * sizeof(ROW *));
-   /* If there is an allocation error... */
-   if(shape->rows == (ROW **)NULL){
-      /* Deallocate memory alloated by this routine to this point. */
-      free(shape);
-      fprintf(stderr, "ERROR : alloc_shape : malloc : shape->rows\n");
-      return(-251);
-   }
+   shape->rows = (ROW **)g_malloc(alloc_rows * sizeof(ROW *));
 
    /* Initialize the shape structure's attributes. */
    shape->ymin = ymin;
@@ -128,36 +116,10 @@ int alloc_shape(SHAPE **oshape, const int xmin, const int ymin,
    for(i = 0, y = ymin; i < alloc_rows; i++, y++){
       /* Allocate a row structure and store it in its respective position */
       /* in the shape structure's list of row pointers.                   */
-      shape->rows[i] = (ROW *)malloc(sizeof(ROW));
-      /* If there is an allocation error... */
-      if(shape->rows[i] == (ROW *)NULL){
-         /* Deallocate memory alloated by this routine to this point. */
-         for(j = 0; j < i; j++){
-            free(shape->rows[j]->xs);
-            free(shape->rows[j]);
-         }
-         free(shape->rows);
-         free(shape);
-         fprintf(stderr, "ERROR : alloc_shape : malloc : shape->rows[i]\n");
-         return(-252);
-      }
+      shape->rows[i] = (ROW *)g_malloc(sizeof(ROW));
 
       /* Allocate the current rows list of x-coords. */
-      shape->rows[i]->xs = (int *)malloc(alloc_pts * sizeof(int));
-      /* If there is an allocation error... */
-      if(shape->rows[i]->xs == (int *)NULL){
-         /* Deallocate memory alloated by this routine to this point. */
-         for(j = 0; j < i; j++){
-            free(shape->rows[j]->xs);
-            free(shape->rows[j]);
-         }
-         free(shape->rows[i]);
-         free(shape->rows);
-         free(shape);
-         fprintf(stderr,
-                 "ERROR : alloc_shape : malloc : shape->rows[i]->xs\n");
-         return(-253);
-      }
+      shape->rows[i]->xs = (int *)g_malloc(alloc_pts * sizeof(int));
 
       /* Initialize the current row structure's attributes. */
       shape->rows[i]->y = y;
@@ -188,15 +150,15 @@ void free_shape(SHAPE *shape)
    /* Foreach allocated row in the shape ... */
    for(i = 0; i < shape->alloc; i++){
       /* Deallocate the current row's list of x-coords. */
-      free(shape->rows[i]->xs);
+      g_free(shape->rows[i]->xs);
       /* Deallocate the current row structure. */
-      free(shape->rows[i]);
+      g_free(shape->rows[i]);
    }
 
    /* Deallocate the list of row pointers. */
-   free(shape->rows);
+   g_free(shape->rows);
    /* Deallocate the shape structure. */
-   free(shape);
+   g_free(shape);
 }
 
 /*************************************************************************
@@ -260,7 +222,7 @@ int shape_from_contour(SHAPE **oshape, const int *contour_x,
          if(row->npts >= row->alloc){
             /* This should never happen becuase we have allocated */
             /* based on shape bounding limits.                    */
-            free(shape);
+            g_free(shape);
             fprintf(stderr,
                     "ERROR : shape_from_contour : row overflow\n");
             return(-260);

@@ -118,11 +118,7 @@ int gen_quality_map(int **oqmap, int *direction_map, int *low_contrast_map,
    ASSERT_SIZE_MUL(map_w, map_h);
    ASSERT_SIZE_MUL(map_w * map_h, sizeof(int));
 
-   QualMap = (int *)malloc(map_w * map_h * sizeof(int));
-   if(QualMap == (int *)NULL){
-      fprintf(stderr, "ERROR : gen_quality_map : malloc : QualMap\n");
-      return(-2);
-   }
+   QualMap = (int *)g_malloc(map_w * map_h * sizeof(int));
 
    /* Foreach row of blocks in maps ... */
    for(thisY=0; thisY<map_h; thisY++){
@@ -287,14 +283,14 @@ int combined_minutia_quality(MINUTIAE *minutiae,
             fprintf(stderr, "ERROR : combined_miutia_quality : ");
             fprintf(stderr, "unexpected quality map value %d ", qmap_value);
             fprintf(stderr, "not in range [0..4]\n");
-            free(pquality_map);
+            g_free(pquality_map);
             return(-3);
       }
       minutia->reliability = reliability;
    }
 
    /* NEW 05-08-2002 */
-   free(pquality_map);
+   g_free(pquality_map);
 
    /* Return normally. */
    return(0);

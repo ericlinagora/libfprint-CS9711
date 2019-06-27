@@ -178,24 +178,9 @@ int minmaxs(int **ominmax_val, int **ominmax_type, int **ominmax_i,
    /* min or max.                                                */
    minmax_alloc = num - 2;
    /* Allocate the buffers. */
-   minmax_val = (int *)malloc(minmax_alloc * sizeof(int));
-   if(minmax_val == (int *)NULL){
-      fprintf(stderr, "ERROR : minmaxs : malloc : minmax_val\n");
-      return(-290);
-   }
-   minmax_type = (int *)malloc(minmax_alloc * sizeof(int));
-   if(minmax_type == (int *)NULL){
-      free(minmax_val);
-      fprintf(stderr, "ERROR : minmaxs : malloc : minmax_type\n");
-      return(-291);
-   }
-   minmax_i = (int *)malloc(minmax_alloc * sizeof(int));
-   if(minmax_i == (int *)NULL){
-      free(minmax_val);
-      free(minmax_type);
-      fprintf(stderr, "ERROR : minmaxs : malloc : minmax_i\n");
-      return(-292);
-   }
+   minmax_val = (int *)g_malloc(minmax_alloc * sizeof(int));
+   minmax_type = (int *)g_malloc(minmax_alloc * sizeof(int));
+   minmax_i = (int *)g_malloc(minmax_alloc * sizeof(int));
 
    /* Initialize number of min/max to 0. */
    minmax_num = 0;

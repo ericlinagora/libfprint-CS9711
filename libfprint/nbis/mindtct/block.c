@@ -134,11 +134,7 @@ int block_offsets(int **optr, int *ow, int *oh,
    lastbh = bh - 1;
 
    /* Allocate list of block offsets */
-   blkoffs = (int *)malloc(bsize * sizeof(int));
-   if(blkoffs == (int *)NULL){
-      fprintf(stderr, "ERROR : block_offsets : malloc : blkoffs\n");
-      return(-81);
-   }
+   blkoffs = (int *)g_malloc(bsize * sizeof(int));
 
    /* Current block index */
    bi = 0;

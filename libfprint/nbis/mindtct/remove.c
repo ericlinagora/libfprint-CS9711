@@ -380,7 +380,7 @@ int remove_hooks(MINUTIAE *minutiae,
                      if((deltadir = closest_dir_dist(minutia1->direction,
                                     minutia2->direction, full_ndirs)) ==
                                     INVALID_DIR){
-                        free(to_remove);
+                        g_free(to_remove);
                         fprintf(stderr,
                                 "ERROR : remove_hooks : INVALID direction\n");
                         return(-641);
@@ -424,7 +424,7 @@ int remove_hooks(MINUTIAE *minutiae,
                            }
                            /* If system error occurred during hook test ... */
                            else if (ret < 0){
-                              free(to_remove);
+                              g_free(to_remove);
                               return(ret);
                            }
                            /* Otherwise, no hook found, so skip to next */
@@ -474,14 +474,14 @@ int remove_hooks(MINUTIAE *minutiae,
       if(to_remove[i]){
          /* Remove the minutia from the minutiae list. */
          if((ret = remove_minutia(i, minutiae))){
-            free(to_remove);
+            g_free(to_remove);
             return(ret);
          }
       }
    }
 
    /* Deallocate flag list. */
-   free(to_remove);
+   g_free(to_remove);
 
    /* Return normally. */
    return(0);
@@ -641,7 +641,7 @@ int remove_islands_and_lakes(MINUTIAE *minutiae,
                         if((deltadir = closest_dir_dist(minutia1->direction,
                                        minutia2->direction, full_ndirs)) ==
                                        INVALID_DIR){
-                           free(to_remove);
+                           g_free(to_remove);
                            fprintf(stderr,
                      "ERROR : remove_islands_and_lakes : INVALID direction\n");
                            return(-611);
@@ -673,7 +673,7 @@ int remove_islands_and_lakes(MINUTIAE *minutiae,
                                                  bdata, iw, ih))){
                                  free_contour(loop_x, loop_y,
                                               loop_ex, loop_ey);
-                                 free(to_remove);
+                                 g_free(to_remove);
                                  return(ret);
                               }
                               /* Set to remove first minutia. */
@@ -696,7 +696,7 @@ int remove_islands_and_lakes(MINUTIAE *minutiae,
                            }
                            /* If ERROR while looking for island/lake ... */
                            else if (ret < 0){
-                              free(to_remove);
+                              g_free(to_remove);
                               return(ret);
                            }
                            else
@@ -741,14 +741,14 @@ int remove_islands_and_lakes(MINUTIAE *minutiae,
       if(to_remove[i]){
          /* Remove the minutia from the minutiae list. */
          if((ret = remove_minutia(i, minutiae))){
-            free(to_remove);
+            g_free(to_remove);
             return(ret);
          }
       }
    }
 
    /* Deallocate flag list. */
-   free(to_remove);
+   g_free(to_remove);
 
    /* Return normally. */
    return(0);
@@ -950,8 +950,8 @@ int remove_malformations(MINUTIAE *minutiae,
                         print2log("%d,%d RMMAL3 (%f)\n",
                                   minutia->x, minutia->y, ratio);
                         if((ret = remove_minutia(i, minutiae))){
-                           free(x_list);
-                           free(y_list);
+                           g_free(x_list);
+                           g_free(y_list);
                            /* If system error, return error code. */
                            return(ret);
                         }
@@ -961,8 +961,8 @@ int remove_malformations(MINUTIAE *minutiae,
                   }
                }
 
-               free(x_list);
-               free(y_list);
+               g_free(x_list);
+               g_free(y_list);
 
             }
          }
@@ -1447,7 +1447,7 @@ int remove_overlaps(MINUTIAE *minutiae,
                      if((deltadir = closest_dir_dist(minutia1->direction,
                                     minutia2->direction, full_ndirs)) ==
                                     INVALID_DIR){
-                        free(to_remove);
+                        g_free(to_remove);
                         fprintf(stderr,
                            "ERROR : remove_overlaps : INVALID direction\n");
                         return(-651);
@@ -1546,14 +1546,14 @@ int remove_overlaps(MINUTIAE *minutiae,
       if(to_remove[i]){
          /* Remove the minutia from the minutiae list. */
          if((ret = remove_minutia(i, minutiae))){
-            free(to_remove);
+            g_free(to_remove);
             return(ret);
          }
       }
    }
 
    /* Deallocate flag list. */
-   free(to_remove);
+   g_free(to_remove);
 
    /* Return normally. */
    return(0);
@@ -2034,12 +2034,7 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
 
    /* Allocate working memory for holding rotated y-coord of a */
    /* minutia's contour.                                       */
-   rot_y = (int *)malloc(((lfsparms->side_half_contour<<1)+1) * sizeof(int));
-   if(rot_y == (int *)NULL){
-      fprintf(stderr,
-              "ERROR : remove_or_adjust_side_minutiae_V2 : malloc : rot_y\n");
-      return(-630);
-   }
+   rot_y = (int *)g_malloc(((lfsparms->side_half_contour << 1) + 1) * sizeof(int));
 
    /* Compute factor for converting integer directions to radians. */
    pi_factor = M_PI / (double)lfsparms->num_directions;
@@ -2061,7 +2056,7 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
       /* If system error occurred ... */
       if(ret < 0){
          /* Deallocate working memory. */
-         free(rot_y);
+         g_free(rot_y);
          /* Return error code. */
          return(ret);
       }
@@ -2077,7 +2072,7 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
          /* Remove minutia from list. */
          if((ret = remove_minutia(i, minutiae))){
             /* Deallocate working memory. */
-            free(rot_y);
+            g_free(rot_y);
             /* Return error code. */
             return(ret);
          }
@@ -2130,7 +2125,7 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
                           &minmax_alloc, &minmax_num,
                           rot_y, ncontour))){
             /* If system error, then deallocate working memories. */
-            free(rot_y);
+            g_free(rot_y);
             free_contour(contour_x, contour_y, contour_ex, contour_ey);
             /* Return error code. */
             return(ret);
@@ -2156,12 +2151,12 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
                /* Remove minutia from list. */
                if((ret = remove_minutia(i, minutiae))){
                   /* Deallocate working memory. */
-                  free(rot_y);
+                  g_free(rot_y);
                   free_contour(contour_x, contour_y, contour_ex, contour_ey);
                   if(minmax_alloc > 0){
-                     free(minmax_val);
-                     free(minmax_type);
-                     free(minmax_i);
+                     g_free(minmax_val);
+                     g_free(minmax_type);
+                     g_free(minmax_i);
                   }
                   /* Return error code. */
                   return(ret);
@@ -2202,12 +2197,12 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
                /* Remove minutia from list. */
                if((ret = remove_minutia(i, minutiae))){
                   /* Deallocate working memory. */
-                  free(rot_y);
+                  g_free(rot_y);
                   free_contour(contour_x, contour_y, contour_ex, contour_ey);
                   if(minmax_alloc > 0){
-                     free(minmax_val);
-                     free(minmax_type);
-                     free(minmax_i);
+                     g_free(minmax_val);
+                     g_free(minmax_type);
+                     g_free(minmax_i);
                   }
                   /* Return error code. */
                   return(ret);
@@ -2231,12 +2226,12 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
             /* Remove minutia from list. */
             if((ret = remove_minutia(i, minutiae))){
                /* If system error, then deallocate working memories. */
-               free(rot_y);
+               g_free(rot_y);
                free_contour(contour_x, contour_y, contour_ex, contour_ey);
                if(minmax_alloc > 0){
-                  free(minmax_val);
-                  free(minmax_type);
-                  free(minmax_i);
+                  g_free(minmax_val);
+                  g_free(minmax_type);
+                  g_free(minmax_i);
                }
                /* Return error code. */
                return(ret);
@@ -2248,15 +2243,15 @@ int remove_or_adjust_side_minutiae_V2(MINUTIAE *minutiae,
          /* Deallocate contour and min/max buffers. */
          free_contour(contour_x, contour_y, contour_ex, contour_ey);
          if(minmax_alloc > 0){
-            free(minmax_val);
-            free(minmax_type);
-            free(minmax_i);
+            g_free(minmax_val);
+            g_free(minmax_type);
+            g_free(minmax_i);
          }
       } /* End else contour extracted. */
    } /* End while not end of minutiae list. */
 
    /* Deallocate working memory. */
-   free(rot_y);
+   g_free(rot_y);
 
    /* Return normally. */
    return(0);

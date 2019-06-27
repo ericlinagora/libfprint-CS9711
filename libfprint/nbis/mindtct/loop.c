@@ -443,7 +443,7 @@ int is_loop_clockwise(const int *contour_x, const int *contour_y,
    ret = is_chain_clockwise(chain, nchain, default_ret);
 
    /* Free the chain code and return result. */
-   free(chain);
+   g_free(chain);
    return(ret);
 }
 

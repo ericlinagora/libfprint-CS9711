@@ -134,11 +134,11 @@ int get_minutiae(MINUTIAE **ominutiae, int **oquality_map,
                             direction_map, low_contrast_map,
                             low_flow_map, high_curve_map, map_w, map_h))){
       free_minutiae(minutiae);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
-      free(bdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
+      g_free(bdata);
       return(ret);
    }
 
@@ -147,12 +147,12 @@ int get_minutiae(MINUTIAE **ominutiae, int **oquality_map,
                                      lfsparms->blocksize,
                                      idata, iw, ih, id, ppmm))){
       free_minutiae(minutiae);
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
-      free(high_curve_map);
-      free(quality_map);
-      free(bdata);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
+      g_free(high_curve_map);
+      g_free(quality_map);
+      g_free(bdata);
       return(ret);
    }
 

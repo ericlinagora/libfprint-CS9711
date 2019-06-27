@@ -154,14 +154,14 @@ int gen_image_maps(int **odmap, int **olcmap, int **olfmap, int **ohcmap,
                               &low_flow_map, blkoffs, mw, mh,
                               pdata, pw, ph, dftwaves, dftgrids, lfsparms))){
       /* Free memory allocated to this point. */
-      free(blkoffs);
+      g_free(blkoffs);
       return(ret);
    }
 
    if((ret = morph_TF_map(low_flow_map, mw, mh, lfsparms))){
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
       return(ret);
    }
 
@@ -176,9 +176,9 @@ int gen_image_maps(int **odmap, int **olcmap, int **olfmap, int **ohcmap,
    /* 5. Interpolate INVALID direction blocks with their valid neighbors. */
    if((ret = interpolate_direction_map(direction_map, low_contrast_map,
                                        mw, mh, lfsparms))){
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
       return(ret);
    }
 
@@ -198,14 +198,14 @@ int gen_image_maps(int **odmap, int **olcmap, int **olfmap, int **ohcmap,
    /* 9. Generate High Curvature Map from interpolated Direction Map. */
    if((ret = gen_high_curve_map(&high_curve_map, direction_map, mw, mh,
                                 lfsparms))){
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
       return(ret);
    }
 
    /* Deallocate working memory. */
-   free(blkoffs);
+   g_free(blkoffs);
 
    *odmap = direction_map;
    *olcmap = low_contrast_map;
@@ -276,44 +276,26 @@ int gen_initial_maps(int **odmap, int **olcmap, int **olfmap,
    bsize = mw * mh;
 
    /* Allocate Direction Map memory */
-   direction_map = (int *)malloc(bsize * sizeof(int));
-   if(direction_map == (int *)NULL){
-      fprintf(stderr,
-              "ERROR : gen_initial_maps : malloc : direction_map\n");
-      return(-550);
-   }
+   direction_map = (int *)g_malloc(bsize * sizeof(int));
    /* Initialize the Direction Map to INVALID (-1). */
    memset(direction_map, INVALID_DIR, bsize * sizeof(int));
 
    /* Allocate Low Contrast Map memory */
-   low_contrast_map = (int *)malloc(bsize * sizeof(int));
-   if(low_contrast_map == (int *)NULL){
-      free(direction_map);
-      fprintf(stderr,
-              "ERROR : gen_initial_maps : malloc : low_contrast_map\n");
-      return(-551);
-   }
+   low_contrast_map = (int *)g_malloc(bsize * sizeof(int));
    /* Initialize the Low Contrast Map to FALSE (0). */
    memset(low_contrast_map, 0, bsize * sizeof(int));
 
    /* Allocate Low Ridge Flow Map memory */
-   low_flow_map = (int *)malloc(bsize * sizeof(int));
-   if(low_flow_map == (int *)NULL){
-      free(direction_map);
-      free(low_contrast_map);
-      fprintf(stderr,
-              "ERROR : gen_initial_maps : malloc : low_flow_map\n");
-      return(-552);
-   }
+   low_flow_map = (int *)g_malloc(bsize * sizeof(int));
    /* Initialize the Low Flow Map to FALSE (0). */
    memset(low_flow_map, 0, bsize * sizeof(int));
 
    /* Allocate DFT directional power vectors */
    if((ret = alloc_dir_powers(&powers, dftwaves->nwaves, dftgrids->ngrids))){
       /* Free memory allocated to this point. */
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
       return(ret);
    }
 
@@ -324,9 +306,9 @@ int gen_initial_maps(int **odmap, int **olcmap, int **olfmap,
    if((ret = alloc_power_stats(&wis, &powmaxs, &powmax_dirs,
                             &pownorms, nstats))){
       /* Free memory allocated to this point. */
-      free(direction_map);
-      free(low_contrast_map);
-      free(low_flow_map);
+      g_free(direction_map);
+      g_free(low_contrast_map);
+      g_free(low_flow_map);
       free_dir_powers(powers, dftwaves->nwaves);
       return(ret);
    }
@@ -364,14 +346,14 @@ int gen_initial_maps(int **odmap, int **olcmap, int **olfmap,
                                   pdata, pw, ph, lfsparms))){
          /* If system error ... */
          if(ret < 0){
-            free(direction_map);
-            free(low_contrast_map);
-            free(low_flow_map);
+            g_free(direction_map);
+            g_free(low_contrast_map);
+            g_free(low_flow_map);
             free_dir_powers(powers, dftwaves->nwaves);
-            free(wis);
-            free(powmaxs);
-            free(powmax_dirs);
-            free(pownorms);
+            g_free(wis);
+            g_free(powmaxs);
+            g_free(powmax_dirs);
+            g_free(pownorms);
             return(ret);
          }
 
@@ -388,14 +370,14 @@ int gen_initial_maps(int **odmap, int **olcmap, int **olfmap,
          if((ret = dft_dir_powers(powers, pdata, low_contrast_offset, pw, ph,
                                dftwaves, dftgrids))){
             /* Free memory allocated to this point. */
-            free(direction_map);
-            free(low_contrast_map);
-            free(low_flow_map);
+            g_free(direction_map);
+            g_free(low_contrast_map);
+            g_free(low_flow_map);
             free_dir_powers(powers, dftwaves->nwaves);
-            free(wis);
-            free(powmaxs);
-            free(powmax_dirs);
-            free(pownorms);
+            g_free(wis);
+            g_free(powmaxs);
+            g_free(powmax_dirs);
+            g_free(pownorms);
             return(ret);
          }
 
@@ -405,14 +387,14 @@ int gen_initial_maps(int **odmap, int **olcmap, int **olfmap,
          if((ret = dft_power_stats(wis, powmaxs, powmax_dirs, pownorms, powers,
                                 1, dftwaves->nwaves, dftgrids->ngrids))){
             /* Free memory allocated to this point. */
-            free(direction_map);
-            free(low_contrast_map);
-            free(low_flow_map);
+            g_free(direction_map);
+            g_free(low_contrast_map);
+            g_free(low_flow_map);
             free_dir_powers(powers, dftwaves->nwaves);
-            free(wis);
-            free(powmaxs);
-            free(powmax_dirs);
-            free(pownorms);
+            g_free(wis);
+            g_free(powmaxs);
+            g_free(powmax_dirs);
+            g_free(pownorms);
             return(ret);
          }
 
@@ -452,10 +434,10 @@ int gen_initial_maps(int **odmap, int **olcmap, int **olfmap,
 
    /* Deallocate working memory */
    free_dir_powers(powers, dftwaves->nwaves);
-   free(wis);
-   free(powmaxs);
-   free(powmax_dirs);
-   free(pownorms);
+   g_free(wis);
+   g_free(powmaxs);
+   g_free(powmax_dirs);
+   g_free(pownorms);
 
    *odmap = direction_map;
    *olcmap = low_contrast_map;
@@ -505,12 +487,7 @@ int interpolate_direction_map(int *direction_map, int *low_contrast_map,
    /* Allocate output (interpolated) Direction Map. */
    ASSERT_SIZE_MUL(mw, mh);
    ASSERT_SIZE_MUL(mw * mh, sizeof(int));
-   omap = (int *)malloc(mw*mh*sizeof(int));
-   if(omap == (int *)NULL){
-      fprintf(stderr,
-              "ERROR : interpolate_direction_map : malloc : omap\n");
-      return(-520);
-   }
+   omap = (int *)g_malloc(mw * mh * sizeof(int));
 
    /* Set pointers to the first block in the maps. */
    dptr = direction_map;
@@ -650,7 +627,7 @@ int interpolate_direction_map(int *direction_map, int *low_contrast_map,
    /* Copy the interpolated directions into the input map. */
    memcpy(direction_map, omap, mw*mh*sizeof(int));
    /* Deallocate the working memory. */
-   free(omap);
+   g_free(omap);
 
    /* Return normally. */
    return(0);
@@ -680,18 +657,9 @@ int morph_TF_map(int *tfmap, const int mw, const int mh,
    ASSERT_INT_MUL(mw, mh);
 
    /* Convert TRUE/FALSE map into a binary byte image. */
-   cimage = (unsigned char *)malloc(mw*mh);
-   if(cimage == (unsigned char *)NULL){
-      fprintf(stderr, "ERROR : morph_TF_map : malloc : cimage\n");
-      return(-660);
-   }
+   cimage = (unsigned char *)g_malloc(mw * mh);
 
-   mimage = (unsigned char *)malloc(mw*mh);
-   if(mimage == (unsigned char *)NULL){
-      free(cimage);
-      fprintf(stderr, "ERROR : morph_TF_map : malloc : mimage\n");
-      return(-661);
-   }
+   mimage = (unsigned char *)g_malloc(mw * mh);
 
    cptr = cimage;
    mptr = tfmap;
@@ -710,8 +678,8 @@ int morph_TF_map(int *tfmap, const int mw, const int mh,
       *mptr++ = *cptr++;
    }
 
-   free(cimage);
-   free(mimage);
+   g_free(cimage);
+   g_free(mimage);
 
    return(0);
 }
@@ -746,20 +714,16 @@ int pixelize_map(int **omap, const int iw, const int ih,
    ASSERT_SIZE_MUL(iw, ih);
    ASSERT_SIZE_MUL(iw * ih, sizeof(int));
 
-   pmap = (int *)malloc(iw*ih*sizeof(int));
-   if(pmap == (int *)NULL){
-      fprintf(stderr, "ERROR : pixelize_map : malloc : pmap\n");
-      return(-590);
-   }
+   pmap = (int *)g_malloc(iw * ih * sizeof(int));
 
    if((ret = block_offsets(&blkoffs, &bw, &bh, iw, ih, 0, blocksize))){
-      free(pmap);
+      g_free(pmap);
       return(ret);
    }
 
    if((bw != mw) || (bh != mh)){
-      free(blkoffs);
-      free(pmap);
+      g_free(blkoffs);
+      g_free(pmap);
       fprintf(stderr,
          "ERROR : pixelize_map : block dimensions do not match\n");
       return(-591);
@@ -777,7 +741,7 @@ int pixelize_map(int **omap, const int iw, const int ih,
    }
 
    /* Deallocate working memory. */
-   free(blkoffs);
+   g_free(blkoffs);
    /* Assign pixelized map to output pointer. */
    *omap = pmap;
 
@@ -910,12 +874,7 @@ int gen_high_curve_map(int **ohcmap, int *direction_map,
 
    /* Allocate High Curvature Map. */
    ASSERT_SIZE_MUL(mapsize, sizeof(int));
-   high_curve_map = (int *)malloc(mapsize * sizeof(int));
-   if(high_curve_map == (int *)NULL){
-      fprintf(stderr,
-              "ERROR: gen_high_curve_map : malloc : high_curve_map\n");
-      return(-530);
-   }
+   high_curve_map = (int *)g_malloc(mapsize * sizeof(int));
    /* Initialize High Curvature Map to FALSE (0). */
    memset(high_curve_map, 0, mapsize*sizeof(int));
 

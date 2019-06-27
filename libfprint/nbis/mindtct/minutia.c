@@ -118,16 +118,8 @@ int alloc_minutiae(MINUTIAE **ominutiae, const int DEFAULT_BOZORTH_MINUTIAE)
 {
    MINUTIAE *minutiae;
 
-   minutiae = (MINUTIAE *)malloc(sizeof(MINUTIAE));
-   if(minutiae == (MINUTIAE *)NULL){
-      fprintf(stderr, "ERROR : alloc_minutiae : malloc : minutiae\n");
-      exit(-430);
-   }
-   minutiae->list = (MINUTIA **)malloc(DEFAULT_BOZORTH_MINUTIAE * sizeof(MINUTIA *));
-   if(minutiae->list == (MINUTIA **)NULL){
-      fprintf(stderr, "ERROR : alloc_minutiae : malloc : minutiae->list\n");
-      exit(-431);
-   }
+   minutiae = (MINUTIAE *)g_malloc(sizeof(MINUTIAE));
+   minutiae->list = (MINUTIA **)g_malloc(DEFAULT_BOZORTH_MINUTIAE * sizeof(MINUTIA *));
 
    minutiae->alloc = DEFAULT_BOZORTH_MINUTIAE;
    minutiae->num = 0;
@@ -154,12 +146,8 @@ int alloc_minutiae(MINUTIAE **ominutiae, const int DEFAULT_BOZORTH_MINUTIAE)
 int realloc_minutiae(MINUTIAE *minutiae, const int incr_minutiae)
 {
    minutiae->alloc += incr_minutiae;
-   minutiae->list = (MINUTIA **)realloc(minutiae->list,
-                                     minutiae->alloc * sizeof(MINUTIA *));
-   if(minutiae->list == (MINUTIA **)NULL){
-      fprintf(stderr, "ERROR : realloc_minutiae : realloc : minutiae->list\n");
-      exit(-432);
-   }
+   minutiae->list = (MINUTIA **)g_realloc(minutiae->list,
+                                          minutiae->alloc * sizeof(MINUTIA *));
 
    return(0);
 }
@@ -227,37 +215,37 @@ int detect_minutiae_V2(MINUTIAE *minutiae,
 
    if((ret = pixelize_map(&plow_flow_map, iw, ih, low_flow_map, mw, mh,
                          lfsparms->blocksize))){
-      free(pdirection_map);
+      g_free(pdirection_map);
       return(ret);
    }
 
    if((ret = pixelize_map(&phigh_curve_map, iw, ih, high_curve_map, mw, mh,
                          lfsparms->blocksize))){
-      free(pdirection_map);
-      free(plow_flow_map);
+      g_free(pdirection_map);
+      g_free(plow_flow_map);
       return(ret);
    }
 
    if((ret = scan4minutiae_horizontally_V2(minutiae, bdata, iw, ih,
                  pdirection_map, plow_flow_map, phigh_curve_map, lfsparms))){
-      free(pdirection_map);
-      free(plow_flow_map);
-      free(phigh_curve_map);
+      g_free(pdirection_map);
+      g_free(plow_flow_map);
+      g_free(phigh_curve_map);
       return(ret);
    }
 
    if((ret = scan4minutiae_vertically_V2(minutiae, bdata, iw, ih,
                  pdirection_map, plow_flow_map, phigh_curve_map, lfsparms))){
-      free(pdirection_map);
-      free(plow_flow_map);
-      free(phigh_curve_map);
+      g_free(pdirection_map);
+      g_free(plow_flow_map);
+      g_free(phigh_curve_map);
       return(ret);
    }
 
    /* Deallocate working memories. */
-   free(pdirection_map);
-   free(plow_flow_map);
-   free(phigh_curve_map);
+   g_free(pdirection_map);
+   g_free(plow_flow_map);
+   g_free(phigh_curve_map);
 
    /* Return normally. */
    return(0);
@@ -550,11 +538,7 @@ int sort_minutiae_y_x(MINUTIAE *minutiae, const int iw, const int ih)
 
    /* Allocate a list of integers to hold 1-D image pixel offsets */
    /* for each of the 2-D minutia coordinate points.               */
-   ranks = (int *)malloc(minutiae->num * sizeof(int));
-   if(ranks == (int *)NULL){
-      fprintf(stderr, "ERROR : sort_minutiae_y_x : malloc : ranks\n");
-      return(-310);
-   }
+   ranks = (int *)g_malloc(minutiae->num * sizeof(int));
 
    /* Compute 1-D image pixel offsets form 2-D minutia coordinate points. */
    for(i = 0; i < minutiae->num; i++)
@@ -562,31 +546,25 @@ int sort_minutiae_y_x(MINUTIAE *minutiae, const int iw, const int ih)
 
    /* Get sorted order of minutiae. */
    if((ret = sort_indices_int_inc(&order, ranks, minutiae->num))){
-      free(ranks);
+      g_free(ranks);
       return(ret);
    }
 
    /* Allocate new MINUTIA list to hold sorted minutiae. */
-   newlist = (MINUTIA **)malloc(minutiae->num * sizeof(MINUTIA *));
-   if(newlist == (MINUTIA **)NULL){
-      free(ranks);
-      free(order);
-      fprintf(stderr, "ERROR : sort_minutiae_y_x : malloc : newlist\n");
-      return(-311);
-   }
+   newlist = (MINUTIA **)g_malloc(minutiae->num * sizeof(MINUTIA *));
 
    /* Put minutia into sorted order in new list. */
    for(i = 0; i < minutiae->num; i++)
       newlist[i] = minutiae->list[order[i]];
 
    /* Deallocate non-sorted list of minutia pointers. */
-   free(minutiae->list);
+   g_free(minutiae->list);
    /* Assign new sorted list of minutia to minutiae list. */
    minutiae->list = newlist;
 
    /* Free the working memories supporting the sort. */
-   free(order);
-   free(ranks);
+   g_free(order);
+   g_free(ranks);
 
    /* Return normally. */
    return(0);
@@ -615,11 +593,7 @@ int sort_minutiae_x_y(MINUTIAE *minutiae, const int iw, const int ih)
 
    /* Allocate a list of integers to hold 1-D image pixel offsets */
    /* for each of the 2-D minutia coordinate points.               */
-   ranks = (int *)malloc(minutiae->num * sizeof(int));
-   if(ranks == (int *)NULL){
-      fprintf(stderr, "ERROR : sort_minutiae_x_y : malloc : ranks\n");
-      return(-440);
-   }
+   ranks = (int *)g_malloc(minutiae->num * sizeof(int));
 
    /* Compute 1-D image pixel offsets form 2-D minutia coordinate points. */
    for(i = 0; i < minutiae->num; i++)
@@ -627,31 +601,25 @@ int sort_minutiae_x_y(MINUTIAE *minutiae, const int iw, const int ih)
 
    /* Get sorted order of minutiae. */
    if((ret = sort_indices_int_inc(&order, ranks, minutiae->num))){
-      free(ranks);
+      g_free(ranks);
       return(ret);
    }
 
    /* Allocate new MINUTIA list to hold sorted minutiae. */
-   newlist = (MINUTIA **)malloc(minutiae->num * sizeof(MINUTIA *));
-   if(newlist == (MINUTIA **)NULL){
-      free(ranks);
-      free(order);
-      fprintf(stderr, "ERROR : sort_minutiae_x_y : malloc : newlist\n");
-      return(-441);
-   }
+   newlist = (MINUTIA **)g_malloc(minutiae->num * sizeof(MINUTIA *));
 
    /* Put minutia into sorted order in new list. */
    for(i = 0; i < minutiae->num; i++)
       newlist[i] = minutiae->list[order[i]];
 
    /* Deallocate non-sorted list of minutia pointers. */
-   free(minutiae->list);
+   g_free(minutiae->list);
    /* Assign new sorted list of minutia to minutiae list. */
    minutiae->list = newlist;
 
    /* Free the working memories supporting the sort. */
-   free(order);
-   free(ranks);
+   g_free(order);
+   g_free(ranks);
 
    /* Return normally. */
    return(0);
@@ -764,12 +732,7 @@ int create_minutia(MINUTIA **ominutia, const int x_loc, const int y_loc,
    MINUTIA *minutia;
 
    /* Allocate a minutia structure. */
-   minutia = (MINUTIA *)malloc(sizeof(MINUTIA));
-   /* If allocation error... */
-   if(minutia == (MINUTIA *)NULL){
-      fprintf(stderr, "ERROR : create_minutia : malloc : minutia\n");
-      return(-230);
-   }
+   minutia = (MINUTIA *)g_malloc(sizeof(MINUTIA));
 
    /* Assign minutia structure attributes. */
    minutia->x = x_loc;
@@ -807,10 +770,10 @@ void free_minutiae(MINUTIAE *minutiae)
    for(i = 0; i < minutiae->num; i++)
       free_minutia(minutiae->list[i]);
    /* Deallocate list of minutia pointers. */
-   free(minutiae->list);
+   g_free(minutiae->list);
 
    /* Deallocate the list structure. */
-   free(minutiae);
+   g_free(minutiae);
 }
 
 /*************************************************************************
@@ -825,12 +788,12 @@ void free_minutia(MINUTIA *minutia)
 {
    /* Deallocate sublists. */
    if(minutia->nbrs != (int *)NULL)
-      free(minutia->nbrs);
+      g_free(minutia->nbrs);
    if(minutia->ridge_counts != (int *)NULL)
-      free(minutia->ridge_counts);
+      g_free(minutia->ridge_counts);
 
    /* Deallocate the minutia structure. */
-   free(minutia);
+   g_free(minutia);
 }
 
 /*************************************************************************

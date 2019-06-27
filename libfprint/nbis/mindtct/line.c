@@ -95,17 +95,8 @@ int line_points(int **ox_list, int **oy_list, int *onum,
    asize = max(abs(x2-x1)+2, abs(y2-y1)+2);
 
    /* Allocate x and y-pixel coordinate lists to length 'asize'. */
-   x_list = (int *)malloc(asize*sizeof(int));
-   if(x_list == (int *)NULL){
-      fprintf(stderr, "ERROR : line_points : malloc : x_list\n");
-      return(-410);
-   }
-   y_list = (int *)malloc(asize*sizeof(int));
-   if(y_list == (int *)NULL){
-      free(x_list);
-      fprintf(stderr, "ERROR : line_points : malloc : y_list\n");
-      return(-411);
-   }
+   x_list = (int *)g_malloc(asize * sizeof(int));
+   y_list = (int *)g_malloc(asize * sizeof(int));
 
    /* Compute delta x and y. */
    dx = x2 - x1;
@@ -190,8 +181,8 @@ int line_points(int **ox_list, int **oy_list, int *onum,
 
       if(i >= asize){
          fprintf(stderr, "ERROR : line_points : coord list overflow\n");
-         free(x_list);
-         free(y_list);
+         g_free(x_list);
+         g_free(y_list);
          return(-412);
       }
 

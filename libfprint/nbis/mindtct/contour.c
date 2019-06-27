@@ -110,45 +110,16 @@ int allocate_contour(int **ocontour_x, int **ocontour_y,
    ASSERT_SIZE_MUL(ncontour, sizeof(int));
 
    /* Allocate contour's x-coord list. */
-   contour_x = (int *)malloc(ncontour*sizeof(int));
-   /* If allocation error... */
-   if(contour_x == (int *)NULL){
-      fprintf(stderr, "ERROR : allocate_contour : malloc : contour_x\n");
-      return(-180);
-   }
+   contour_x = (int *)g_malloc(ncontour * sizeof(int));
 
    /* Allocate contour's y-coord list. */
-   contour_y = (int *)malloc(ncontour*sizeof(int));
-   /* If allocation error... */
-   if(contour_y == (int *)NULL){
-      /* Deallocate memory allocated to this point in this routine. */
-      free(contour_x);
-      fprintf(stderr, "ERROR : allocate_contour : malloc : contour_y\n");
-      return(-181);
-   }
+   contour_y = (int *)g_malloc(ncontour * sizeof(int));
 
    /* Allocate contour's edge x-coord list. */
-   contour_ex = (int *)malloc(ncontour*sizeof(int));
-   /* If allocation error... */
-   if(contour_ex == (int *)NULL){
-      /* Deallocate memory allocated to this point in this routine. */
-      free(contour_x);
-      free(contour_y);
-      fprintf(stderr, "ERROR : allocate_contour : malloc : contour_ex\n");
-      return(-182);
-   }
+   contour_ex = (int *)g_malloc(ncontour * sizeof(int));
 
    /* Allocate contour's edge y-coord list. */
-   contour_ey = (int *)malloc(ncontour*sizeof(int));
-   /* If allocation error... */
-   if(contour_ey == (int *)NULL){
-      /* Deallocate memory allocated to this point in this routine. */
-      free(contour_x);
-      free(contour_y);
-      free(contour_ex);
-      fprintf(stderr, "ERROR : allocate_contour : malloc : contour_ey\n");
-      return(-183);
-   }
+   contour_ey = (int *)g_malloc(ncontour * sizeof(int));
 
    /* Otherwise, allocations successful, so assign output pointers. */
    *ocontour_x = contour_x;
@@ -181,10 +152,10 @@ int allocate_contour(int **ocontour_x, int **ocontour_y,
 void free_contour(int *contour_x, int *contour_y,
                   int *contour_ex, int *contour_ey)
 {
-   free(contour_x);
-   free(contour_y);
-   free(contour_ex);
-   free(contour_ey);
+   g_free(contour_x);
+   g_free(contour_y);
+   g_free(contour_ex);
+   g_free(contour_ey);
 }
 
 /*************************************************************************

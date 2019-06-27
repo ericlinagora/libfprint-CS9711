@@ -113,11 +113,7 @@ int dft_dir_powers(double **powers, unsigned char *pdata,
       fprintf(stderr, "ERROR : dft_dir_powers : DFT grids must be square\n");
       return(-90);
    }
-   rowsums = (int *)malloc(dftgrids->grid_w * sizeof(int));
-   if(rowsums == (int *)NULL){
-      fprintf(stderr, "ERROR : dft_dir_powers : malloc : rowsums\n");
-      return(-91);
-   }
+   rowsums = (int *)g_malloc(dftgrids->grid_w * sizeof(int));
    memset(rowsums, 0, dftgrids->grid_w * sizeof(int));
 
    /* Foreach direction ... */
@@ -135,7 +131,7 @@ int dft_dir_powers(double **powers, unsigned char *pdata,
    }
 
    /* Deallocate working memory. */
-   free(rowsums);
+   g_free(rowsums);
 
    return(0);
 }
@@ -355,11 +351,7 @@ int sort_dft_waves(int *wis, const double *powmaxs, const double *pownorms,
    double *pownorms2;
 
    /* Allocate normalized power^2 array */
-   pownorms2 = (double *)malloc(nstats * sizeof(double));
-   if(pownorms2 == (double *)NULL){
-      fprintf(stderr, "ERROR : sort_dft_waves : malloc : pownorms2\n");
-      return(-100);
-   }
+   pownorms2 = (double *)g_malloc(nstats * sizeof(double));
 
    for(i = 0; i < nstats; i++){
       /* Wis will hold the sorted statistic indices when all is done. */
@@ -372,7 +364,7 @@ int sort_dft_waves(int *wis, const double *powmaxs, const double *pownorms,
    bubble_sort_double_dec_2(pownorms2, wis, nstats);
 
    /* Deallocate the working memory. */
-   free(pownorms2);
+   g_free(pownorms2);
 
    return(0);
 }

@@ -72,9 +72,9 @@ of the software.
 *************************************************************************/
 void free_dir2rad(DIR2RAD *dir2rad)
 {
-   free(dir2rad->cos);
-   free(dir2rad->sin);
-   free(dir2rad);
+   g_free(dir2rad->cos);
+   g_free(dir2rad->sin);
+   g_free(dir2rad);
 }
 
 /*************************************************************************
@@ -90,12 +90,12 @@ void free_dftwaves(DFTWAVES *dftwaves)
    int i;
 
    for(i = 0; i < dftwaves->nwaves; i++){
-       free(dftwaves->waves[i]->cos);
-       free(dftwaves->waves[i]->sin);
-       free(dftwaves->waves[i]);
+       g_free(dftwaves->waves[i]->cos);
+       g_free(dftwaves->waves[i]->sin);
+       g_free(dftwaves->waves[i]);
    }
-   free(dftwaves->waves);
-   free(dftwaves);
+   g_free(dftwaves->waves);
+   g_free(dftwaves);
 }
 
 /*************************************************************************
@@ -111,9 +111,9 @@ void free_rotgrids(ROTGRIDS *rotgrids)
    int i;
 
    for(i = 0; i < rotgrids->ngrids; i++)
-      free(rotgrids->grids[i]);
-   free(rotgrids->grids);
-   free(rotgrids);
+      g_free(rotgrids->grids[i]);
+   g_free(rotgrids->grids);
+   g_free(rotgrids);
 }
 
 /*************************************************************************
@@ -129,8 +129,8 @@ void free_dir_powers(double **powers, const int nwaves)
    int w;
 
    for(w = 0; w < nwaves; w++)
-      free(powers[w]);
+      g_free(powers[w]);
 
-   free(powers);
+   g_free(powers);
 }
 

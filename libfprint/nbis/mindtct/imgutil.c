@@ -191,11 +191,7 @@ int pad_uchar_image(unsigned char **optr, int *ow, int *oh,
    psize = pw * ph;
 
    /* Allocate padded image */
-   pdata = (unsigned char *)malloc(psize * sizeof(unsigned char));
-   if(pdata == (unsigned char *)NULL){
-      fprintf(stderr, "ERROR : pad_uchar_image : malloc : pdata\n");
-      return(-160);
-   }
+   pdata = (unsigned char *)g_malloc(psize * sizeof(unsigned char));
 
    /* Initialize values to a constant PAD value */
    memset(pdata, pad_value, psize);
@@ -355,8 +351,8 @@ int free_path(const int x1, const int y1, const int x2, const int y2,
          /* If number of transitions seen > than threshold (ex. 2) ... */
          if(trans > lfsparms->maxtrans){
             /* Deallocate the line segment's coordinate lists. */
-            free(x_list);
-            free(y_list);
+            g_free(x_list);
+            g_free(y_list);
             /* Return free path to be FALSE. */
             return(FALSE);
          }
@@ -370,8 +366,8 @@ int free_path(const int x1, const int y1, const int x2, const int y2,
 
    /* If we get here we did not exceed the maximum allowable number        */
    /* of transitions.  So, deallocate the line segment's coordinate lists. */
-   free(x_list);
-   free(y_list);
+   g_free(x_list);
+   g_free(y_list);
 
    /* Return free path to be TRUE. */
    return(TRUE);
