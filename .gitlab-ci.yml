@@ -2,10 +2,12 @@ image: fedora:rawhide
 stages:
   - build
   - test
+  - flatpack
 
 variables:
-  DEPENDENCIES: libusb1-devel glib2-devel nss-devel pixman-devel systemd meson gtk-doc
+  DEPENDENCIES: libgusb-devel glib2-devel nss-devel pixman-devel systemd meson gtk-doc
                 gcc gcc-c++ glibc-devel libX11-devel libXv-devel gtk3-devel flatpak-builder
+                gobject-introspection-devel python3-cairo python3-gobject
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
@@ -13,7 +15,7 @@ variables:
   script:
     - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
     # Build with a driver that doesn't need imaging, or nss
-    - meson -Ddrivers=elan . _build
+    - meson -Ddrivers=$driver . _build
     - ninja -C _build
     - rm -rf _build/
 
@@ -32,9 +34,19 @@ variables:
 
 build:
   stage: build
+  variables:
+    driver: virtual_image
   <<: *build_one_driver
   <<: *build
 #  <<: *check_abi
+
+test:
+  stage: test
+  script:
+    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
+    - meson -Ddrivers=virtual_image . _build
+    - ninja -C _build
+    - meson test -C _build --verbose --no-stdsplit
 
 .flatpak_script_template: &flatpak_script
     script:
@@ -61,7 +73,7 @@ build:
 
 flatpak master:
     image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:master
-    stage: test
+    stage: flatpack
     variables:
         MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
         # From demo/org.freedesktop.libfprint.Demo.json
