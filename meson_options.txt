@@ -2,6 +2,10 @@ option('drivers',
        description: 'Drivers to integrate, "default" selects the default set, "all" selects all drivers',
        type: 'string',
        value: 'default')
+option('introspection',
+       description: 'Build GObject Introspection repository',
+       type: 'boolean',
+       value: true)
 option('udev_rules',
        description: 'Whether to create a udev rules file',
        type: 'boolean',

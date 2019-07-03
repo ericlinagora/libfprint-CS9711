@@ -60,21 +60,18 @@
     <para>
     In summary, libfprint represents fingerprints in several internal structures
     and each representation will offer you a way of determining the
-    <ulink url="#driver_id">driver ID</ulink> and <ulink url="#device-types">devtype</ulink> of the print in
+    <ulink url="#driver">driver</ulink> and <ulink url="#device-id">device ID</ulink> of the print in
     question. Prints are only compatible if the driver ID <emphasis role="strong">and</emphasis> devtypes
     match. libfprint does offer you some "is this print compatible?" helper
     functions, so you don't have to worry about these details too much.
     </para>
   </refsect2>
 
-  <refsect2 id="driver_id">
-    <title>Driver IDs</title>
+  <refsect2 id="driver">
+    <title>Driver</title>
 
     <para>
-    Each driver is assigned a unique ID by the project maintainer. These
-    assignments are
-    <ulink url="https://gitlab.freedesktop.org/libfprint/libfprint/blob/master/libfprint/drivers/driver_ids.h">
-    documented in the sources</ulink> and will never change.
+    Each driver is assigned a unique string identifier by the project maintainer.
     </para>
 
     <para>
@@ -89,22 +86,23 @@
     </para>
   </refsect2>
 
-  <refsect2 id="device-types">
-    <title>Device types</title>
+  <refsect2 id="device-id">
+    <title>Device ID</title>
 
     <para>
-    Internally, the <ulink url="libfprint-Driver-operations.html#libfprint-Driver-operations.description">driver</ulink> behind a device assigns a 32-bit
-    <emphasis>devtype</emphasis> identifier to the device. This cannot be used as a unique
-    ID for a specific device as many devices under the same range may share
-    the same devtype. The devtype may even be 0 in all cases.
+    Internally, the behind a device assigns a string identifier to the device
+    This cannot be used as a unique ID for a specific device as many devices
+    under the same range may share the same devtype. The device ID may even
+    be the same string in all cases. It is guaranteed to have a non-zero length
+    and be a valid file name. It defaults to "0".
     </para>
 
     <para>
-    The only reason you may be interested in retrieving the devtype for a
+    The only reason you may be interested in retrieving the device ID for a
     device is for the purpose of checking if some print data is compatible
-    with a device. libfprint uses the devtype as one way of checking that the
+    with a device. libfprint uses the device ID as one way of checking that the
     print you are verifying is compatible with the device in question - the
-    devtypes must be equal. This effectively allows drivers to support more
+    device ID must be equal. This effectively allows drivers to support more
     than one type of device where the data from each one is not compatible with
     the other. Note that libfprint does provide you with helper functions to
     determine whether a print is compatible with a device, so under most

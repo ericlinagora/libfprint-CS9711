@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2007-2008 Daniel Drake <dsd@gentoo.org>
  * Copyright (C) 2018 Bastien Nocera <hadess@hadess.net>
+ * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,70 +18,79 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __FPI_SSM_H__
-#define __FPI_SSM_H__
+#pragma once
 
-#include <stdint.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <glib.h>
-#include <libusb.h>
+#include "fp-device.h"
+#include "fpi-usb-transfer.h"
 
 /* async drv <--> lib comms */
 
 /**
- * fpi_ssm:
+ * FpiSsm:
  *
  * Sequential state machine that iterates sequentially over
  * a predefined series of states. Can be terminated by either completion or
  * failure error conditions.
  */
-typedef struct fpi_ssm fpi_ssm;
+typedef struct _FpiSsm FpiSsm;
 
 /**
- * ssm_completed_fn:
- * @ssm: a #fpi_ssm state machine
+ * FpiSsmCompletedCallback:
+ * @ssm: a #FpiSsm state machine
  * @dev: the #fp_dev fingerprint device
  * @user_data: the user data passed to fpi_ssm_new()
+ * @error: The #GError or %NULL on successful completion
  *
  * The callback called when a state machine completes successfully,
  * as set when calling fpi_ssm_start().
  */
-typedef void (*ssm_completed_fn)(fpi_ssm *ssm,
-				 struct fp_dev *dev,
-				 void *user_data);
+typedef void (*FpiSsmCompletedCallback)(FpiSsm   *ssm,
+                                        FpDevice *dev,
+                                        void     *user_data,
+                                        GError   *error);
 
 /**
- * ssm_handler_fn:
- * @ssm: a #fpi_ssm state machine
+ * FpiSsmHandlerCallback:
+ * @ssm: a #FpiSsm state machine
  * @dev: the #fp_dev fingerprint device
  * @user_data: the user data passed to fpi_ssm_new()
  *
  * The callback called when a state machine transitions from one
  * state to the next, as set when calling fpi_ssm_new().
  */
-typedef void (*ssm_handler_fn)(fpi_ssm *ssm,
-			       struct fp_dev *dev,
-			       void *user_data);
+typedef void (*FpiSsmHandlerCallback)(FpiSsm   *ssm,
+                                      FpDevice *dev,
+                                      void     *user_data);
 
 /* for library and drivers */
-fpi_ssm *fpi_ssm_new(struct fp_dev *dev,
-		     ssm_handler_fn handler,
-		     int nr_states,
-		     void *user_data);
-void fpi_ssm_free(fpi_ssm *machine);
-void fpi_ssm_start(fpi_ssm *ssm, ssm_completed_fn callback);
-void fpi_ssm_start_subsm(fpi_ssm *parent, fpi_ssm *child);
+FpiSsm *fpi_ssm_new (FpDevice             *dev,
+                     FpiSsmHandlerCallback handler,
+                     int                   nr_states,
+                     void                 *user_data);
+void fpi_ssm_free (FpiSsm *machine);
+void fpi_ssm_start (FpiSsm                 *ssm,
+                    FpiSsmCompletedCallback callback);
+void fpi_ssm_start_subsm (FpiSsm *parent,
+                          FpiSsm *child);
 
 /* for drivers */
-void fpi_ssm_next_state(fpi_ssm *machine);
-void fpi_ssm_next_state_timeout_cb(struct fp_dev *dev, void *data);
-void fpi_ssm_jump_to_state(fpi_ssm *machine, int state);
-void fpi_ssm_mark_completed(fpi_ssm *machine);
-void fpi_ssm_mark_failed(fpi_ssm *machine, int error);
-void *fpi_ssm_get_user_data(fpi_ssm *machine);
-int fpi_ssm_get_error(fpi_ssm *machine);
-int fpi_ssm_get_cur_state(fpi_ssm *machine);
+void fpi_ssm_next_state (FpiSsm *machine);
+void fpi_ssm_jump_to_state (FpiSsm *machine,
+                            int     state);
+void fpi_ssm_mark_completed (FpiSsm *machine);
+void fpi_ssm_mark_failed (FpiSsm *machine,
+                          GError *error);
+void *fpi_ssm_get_user_data (FpiSsm *machine);
+GError * fpi_ssm_get_error (FpiSsm *machine);
+GError * fpi_ssm_dup_error (FpiSsm *machine);
+int fpi_ssm_get_cur_state (FpiSsm *machine);
 
-#endif
+/* Callbacks to be used by the driver instead of implementing their own
+ * logic.
+ */
+void fpi_ssm_next_state_timeout_cb (FpDevice *dev,
+                                    void     *data);
+void fpi_ssm_usb_transfer_cb (FpiUsbTransfer *transfer,
+                              FpDevice       *device,
+                              gpointer        user_data,
+                              GError         *error);

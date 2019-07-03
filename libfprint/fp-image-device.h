@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2007-2008 Daniel Drake <dsd@gentoo.org>
- * Copyright (C) 2018 Bastien Nocera <hadess@hadess.net>
+ * FpImageDevice - An image based fingerprint reader device
+ * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,18 +17,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __FPI_DATA_H__
-#define __FPI_DATA_H__
+#pragma once
 
-struct fp_print_data;
-struct fp_print_data_item {
-	size_t length;
-	unsigned char data[0];
-};
+#include <fp-device.h>
 
-struct fp_print_data *fpi_print_data_new(struct fp_dev *dev);
-struct fp_print_data_item *fpi_print_data_item_new(size_t length);
-struct fp_print_data_item *fpi_print_data_get_item(struct fp_print_data *data);
-void fpi_print_data_add_item(struct fp_print_data *data, struct fp_print_data_item *item);
+G_BEGIN_DECLS
 
-#endif
+#define FP_TYPE_IMAGE_DEVICE (fp_image_device_get_type ())
+G_DECLARE_DERIVABLE_TYPE (FpImageDevice, fp_image_device, FP, IMAGE_DEVICE, FpDevice)
+
+G_END_DECLS

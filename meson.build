@@ -8,6 +8,8 @@ project('libfprint', [ 'c', 'cpp' ],
         ],
         meson_version: '>= 0.45.0')
 
+gnome = import('gnome')
+
 add_project_arguments([ '-D_GNU_SOURCE' ], language: 'c')
 add_project_arguments([ '-DG_LOG_DOMAIN="libfprint"' ], language: 'c')
 
@@ -19,7 +21,6 @@ host_system = host_machine.system()
 
 common_cflags = cc.get_supported_arguments([
     '-fgnu89-inline',
-    '-fvisibility=hidden',
     '-std=gnu99',
     '-Wall',
     '-Wundef',
@@ -42,6 +43,7 @@ libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
 
 # Dependencies
 glib_dep = dependency('glib-2.0', version: '>= 2.50')
+gio_dep = dependency('gio-unix-2.0', version: '>= 2.44.0')
 gusb_dep = dependency('gusb', version: '>= 0.3.0')
 mathlib_dep = cc.find_library('m', required: false)
 
@@ -67,6 +69,7 @@ endif
 
 nss_dep = dependency('', required: false)
 imaging_dep = dependency('', required: false)
+libfprint_conf.set10('HAVE_PIXMAN', false)
 foreach driver: drivers
     if driver == 'uru4000'
         nss_dep = dependency('nss', required: false)
@@ -79,27 +82,23 @@ foreach driver: drivers
         if not imaging_dep.found()
             error('pixman is required for imaging support')
         endif
+
+        libfprint_conf.set10('HAVE_PIXMAN', true)
     endif
     if not all_drivers.contains(driver)
         error('Invalid driver \'' + driver + '\'')
     endif
 endforeach
 
-# Export the drivers' structures to the core code
-drivers_struct_list = ''
-drivers_img_array = 'static struct fp_img_driver * const img_drivers[] = {\n'
-drivers_primitive_array = 'static struct fp_driver * const primitive_drivers[] = {\n'
+# Export the drivers' types to the core code
+drivers_type_list = '#include <glib-object.h>\n'
+drivers_type_func = 'void fpi_get_driver_types(GArray *drivers)\n{\n\tGType t;\n'
 foreach driver: drivers
-    if primitive_drivers.contains(driver)
-        drivers_struct_list += 'extern struct fp_driver ' + driver + '_driver;\n'
-        drivers_primitive_array += '	&' + driver + '_driver,\n'
-    else
-        drivers_struct_list += 'extern struct fp_img_driver ' + driver + '_driver;\n'
-        drivers_img_array += '	&' + driver + '_driver,\n'
-    endif
+    drivers_type_list += 'extern GType (fpi_device_' + driver + '_get_type) (void);\n'
+    drivers_type_func += '	t = fpi_device_' + driver + '_get_type(); g_array_append_val (drivers, t);\n'
 endforeach
-drivers_img_array += '};'
-drivers_primitive_array += '};'
+drivers_type_list += ''
+drivers_type_func += '};'
 
 root_inc = include_directories('.')
 
@@ -129,7 +128,6 @@ if get_option('gtk-examples')
     endif
 endif
 
-libfprint_conf.set('API_EXPORTED', '__attribute__((visibility("default")))')
 configure_file(output: 'config.h', configuration: libfprint_conf)
 
 subdir('libfprint')

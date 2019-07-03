@@ -25,39 +25,43 @@
 
   <part>
     <title>Library API Documentation</title>
-    <xi:include href="xml/events.xml"/>
-    <xi:include href="xml/discovery.xml"/>
-
-    <xi:include href="xml/drv.xml"/>
-    <xi:include href="xml/dev.xml"/>
-    <xi:include href="xml/print_data.xml"/>
-    <xi:include href="xml/img.xml"/>
+    <xi:include href="xml/fp-context.xml"/>
+    <xi:include href="xml/fp-device.xml"/>
+    <xi:include href="xml/fp-image-device.xml"/>
+    <xi:include href="xml/fp-print.xml"/>
+    <xi:include href="xml/fp-image.xml"/>
   </part>
 
   <part>
     <title>Writing Drivers</title>
-    <chapter id="driver-helpers">
-      <title>Logging, and async machinery</title>
-      <xi:include href="xml/fpi-log.xml"/>
-      <xi:include href="xml/fpi-ssm.xml"/>
-      <xi:include href="xml/fpi-poll.xml"/>
+    <chapter id="driver-dev">
+      <title>Device methods for drivers</title>
+      <xi:include href="xml/fpi-device.xml"/>
+      <xi:include href="xml/fpi-image-device.xml"/>
     </chapter>
 
-    <chapter id="driver-dev">
-      <title>Device and driver structures</title>
-      <xi:include href="xml/fpi-dev.xml"/>
-      <xi:include href="xml/fpi-dev-img.xml"/>
-      <xi:include href="xml/fpi-core.xml"/>
-      <xi:include href="xml/fpi-core-img.xml"/>
+    <chapter id="driver-helpers">
+      <title>USB and State Machine helpers</title>
+      <xi:include href="xml/fpi-usb-transfer.xml"/>
+      <xi:include href="xml/fpi-ssm.xml"/>
+      <xi:include href="xml/fpi-log.xml"/>
     </chapter>
 
     <chapter id="driver-img">
       <title>Image manipulation</title>
-      <xi:include href="xml/fpi-img.xml"/>
+      <xi:include href="xml/fpi-image.xml"/>
       <xi:include href="xml/fpi-assembling.xml"/>
     </chapter>
 
-    <xi:include href="xml/fpi-usb.xml"/>
+    <chapter id="driver-print">
+      <title>Print handling</title>
+      <xi:include href="xml/fpi-print.xml"/>
+    </chapter>
+
+    <chapter id="driver-misc">
+      <title>Listing drivers</title>
+      <xi:include href="xml/fpi-context.xml"/>
+    </chapter>
   </part>
 
   <index id="api-index">

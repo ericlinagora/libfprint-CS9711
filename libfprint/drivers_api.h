@@ -23,17 +23,12 @@
 
 #include <config.h>
 
-#include "fprint.h"
+#include "fp_internal.h"
+
 #include "fpi-log.h"
-#include "fpi-dev.h"
-#include "fpi-dev-img.h"
-#include "fpi-core.h"
+#include "fpi-usb-transfer.h"
 #include "fpi-ssm.h"
-#include "fpi-poll.h"
-#include "fpi-dev.h"
-#include "fpi-usb.h"
-#include "fpi-img.h"
 #include "fpi-assembling.h"
-#include "drivers/driver_ids.h"
+#include "fpi-image-device.h"
 
 #endif

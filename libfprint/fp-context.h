@@ -1,5 +1,5 @@
 /*
- * Main definitions for libfprint
+ * FpContext - A FPrint context
  * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -19,7 +19,34 @@
 
 #pragma once
 
-#include "fp-context.h"
 #include "fp-device.h"
-#include "fp-image.h"
 
+G_BEGIN_DECLS
+
+#define FP_TYPE_CONTEXT (fp_context_get_type ())
+G_DECLARE_DERIVABLE_TYPE (FpContext, fp_context, FP, CONTEXT, GObject)
+
+/**
+ * FpContextClass:
+ * @device_added: Called when a new device is added
+ * @device_removed: Called when a device is removed
+ *
+ * Class structure for #FpContext instances.
+ */
+struct _FpContextClass
+{
+  GObjectClass parent_class;
+
+  void         (*device_added)            (FpContext *context,
+                                           FpDevice  *device);
+  void         (*device_removed)          (FpContext *context,
+                                           FpDevice  *device);
+};
+
+FpContext *fp_context_new (void);
+
+void fp_context_enumerate (FpContext *context);
+
+GPtrArray *fp_context_get_devices (FpContext *context);
+
+G_END_DECLS

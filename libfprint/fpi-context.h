@@ -1,6 +1,6 @@
 /*
- * Internal/private definitions for libfprint
- * Copyright (C) 2007-2008 Daniel Drake <dsd@gentoo.org>
+ * FpContext - A FPrint context
+ * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,37 +16,18 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#pragma once
 
-#ifndef __FPRINT_INTERNAL_H__
-#define __FPRINT_INTERNAL_H__
+#include <gusb.h>
+#include "fp-context.h"
 
-#include "fpi-log.h"
-#include "nbis-helpers.h"
-#include "fpi-image.h"
-#include "fpi-image-device.h"
-
-/* fp_minutia structure definition */
-struct fp_minutia {
-	int x;
-	int y;
-	int ex;
-	int ey;
-	int direction;
-	double reliability;
-	int type;
-	int appearing;
-	int feature_id;
-	int *nbrs;
-	int *ridge_counts;
-	int num_nbrs;
-};
-
-/* fp_minutiae structure definition */
-struct fp_minutiae {
-	int alloc;
-	int num;
-	struct fp_minutia **list;
-};
-
-
-#endif
+/**
+ * fpi_get_driver_types:
+ * @drivers: #GArray to be filled with all driver types
+ *
+ * This function is purely for private used. It is solely part of the public
+ * API as it is useful during build time.
+ *
+ * Stability: private
+ */
+void fpi_get_driver_types (GArray *drivers);

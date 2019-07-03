@@ -32,10 +32,11 @@
  * populate delta_x and delta_y if the device supports hardware movement
  * estimation.
  */
-struct fpi_frame {
-	int delta_x;
-	int delta_y;
-	unsigned char data[0];
+struct fpi_frame
+{
+  int           delta_x;
+  int           delta_y;
+  unsigned char data[0];
 };
 
 /**
@@ -52,21 +53,24 @@ struct fpi_frame {
  * hardware parameters of scanner. @image_width is usually 25% wider than
  * @frame_width to take horizontal movement into account.
  */
-struct fpi_frame_asmbl_ctx {
-	unsigned int frame_width;
-	unsigned int frame_height;
-	unsigned int image_width;
-	unsigned char (*get_pixel)(struct fpi_frame_asmbl_ctx *ctx,
-				   struct fpi_frame *frame,
-				   unsigned int x,
-				   unsigned int y);
+struct fpi_frame_asmbl_ctx
+{
+  unsigned int  frame_width;
+  unsigned int  frame_height;
+  unsigned int  image_width;
+  unsigned char (*get_pixel)(struct fpi_frame_asmbl_ctx *ctx,
+                             struct fpi_frame           *frame,
+                             unsigned int                x,
+                             unsigned int                y);
 };
 
-void fpi_do_movement_estimation(struct fpi_frame_asmbl_ctx *ctx,
-			    GSList *stripes, size_t num_stripes);
+void fpi_do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
+                                 GSList                     *stripes,
+                                 size_t                      num_stripes);
 
-struct fp_img *fpi_assemble_frames(struct fpi_frame_asmbl_ctx *ctx,
-			    GSList *stripes, size_t num_stripes);
+FpImage *fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
+                              GSList                     *stripes,
+                              size_t                      num_stripes);
 
 /**
  * fpi_line_asmbl_ctx:
@@ -96,20 +100,23 @@ struct fp_img *fpi_assemble_frames(struct fpi_frame_asmbl_ctx *ctx,
  * returns two lines at a time, this function should be used to estimate the
  * difference between pairs of lines.
  */
-struct fpi_line_asmbl_ctx {
-	unsigned int line_width;
-	unsigned int max_height;
-	unsigned int resolution;
-	unsigned int median_filter_size;
-	unsigned int max_search_offset;
-	int (*get_deviation)(struct fpi_line_asmbl_ctx *ctx,
-			     GSList *line1, GSList *line2);
-	unsigned char (*get_pixel)(struct fpi_line_asmbl_ctx *ctx,
-				   GSList *line,
-				   unsigned int x);
+struct fpi_line_asmbl_ctx
+{
+  unsigned int line_width;
+  unsigned int max_height;
+  unsigned int resolution;
+  unsigned int median_filter_size;
+  unsigned int max_search_offset;
+  int          (*get_deviation)(struct fpi_line_asmbl_ctx *ctx,
+                                GSList                    *line1,
+                                GSList                    *line2);
+  unsigned char (*get_pixel)(struct fpi_line_asmbl_ctx *ctx,
+                             GSList                    *line,
+                             unsigned int               x);
 };
 
-struct fp_img *fpi_assemble_lines(struct fpi_line_asmbl_ctx *ctx,
-				  GSList *lines, size_t num_lines);
+FpImage *fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,
+                             GSList                    *lines,
+                             size_t                     num_lines);
 
 #endif

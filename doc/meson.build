@@ -2,41 +2,13 @@ subdir('xml')
 
 private_headers = [
   'config.h',
-
-  'aeslib.h',
-  'assembling.h',
-  'fp_internal.h',
   'nbis-helpers.h',
-  'fpi-async.h',
-  'fpi-data.h',
+  'fprint.h',
+  'fp_internal.h',
 
-  # Drivers
-  'aes1660.h',
-  'aes2501.h',
-  'aes2550.h',
-  'aes2660.h',
-  'aes3k.h',
-  'aesx660.h',
-  'driver_ids.h',
-  'elan.h',
-  'upek_proto.h',
-  'upeksonly.h',
-  'upektc.h',
-  'upektc_img.h',
-  'vfs0050.h',
-  'vfs301_proto_fragments.h',
-  'vfs301_proto.h',
-  'vfs5011_proto.h',
-
-  # NBIS
-  'morph.h',
-  'sunrast.h',
-  'bozorth.h',
-  'defs.h',
-  'log.h',
-  'bz_array.h',
-  'lfs.h',
-  'mytime.h',
+  # Subdirectories to ignore
+  'drivers',
+  'nbis',
 ]
 
 html_images = [
@@ -59,6 +31,7 @@ gnome.gtkdoc('libfprint',
              content_files: content_files,
              expand_content_files: expand_content_files,
              scan_args: [
+               #'--rebuild-sections',
                '--ignore-decorators=API_EXPORTED',
                '--ignore-headers=' + ' '.join(private_headers),
              ],
