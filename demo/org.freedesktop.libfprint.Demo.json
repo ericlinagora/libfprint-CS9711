@@ -32,18 +32,30 @@
                 }
             ],
             "post-install": [
-                "install -Dm644 COPYING /app/share/licenses/libusb/COPYING"
+                "install -Dm644 COPYING /app/share/licenses/libgusb/COPYING"
+            ]
+        },
+        {
+            "name": "libgusb",
+            "buildsystem": "meson",
+            "config-opts": [ "-Dtests=false", "-Dvapi=false", "-Ddocs=false", "-Dintrospection=false" ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/hughsie/libgusb/archive/0.3.0.tar.gz",
+                    "sha256": "b36310f8405d5fd68f6caf4a829f7ab4c627b38fd3d02a139d411fce0f3a49f1"
+                }
             ]
         },
         {
             "name": "libfprint",
             "buildsystem": "meson",
-            "config-opts": [ "-Dudev_rules=false", "-Dx11-examples=false", "-Dgtk-examples=true" ],
+            "config-opts": [ "-Dudev_rules=false", "-Dx11-examples=false", "-Dgtk-examples=true", "-Ddrivers=all" ],
             "sources": [
                 {
                     "type": "git",
                     "url": "https://gitlab.freedesktop.org/libfprint/libfprint.git",
-                    "branch": "wip/hadess/gtk-example"
+                    "branch": "wip/benzea/v2"
                 }
             ]
         }
