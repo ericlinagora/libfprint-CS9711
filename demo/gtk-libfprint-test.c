@@ -59,7 +59,8 @@ typedef enum {
 	NOIMAGING_MODE,
 	CAPTURE_MODE,
 	SPINNER_MODE,
-	ERROR_MODE
+	ERROR_MODE,
+	RETRY_MODE
 } LibfprintDemoMode;
 
 static void libfprint_demo_set_mode (LibfprintDemoWindow *win,
@@ -221,7 +222,10 @@ dev_capture_start_cb (FpDevice *dev,
 	image = fp_device_capture_finish (dev, res, &error);
 	if (!image) {
 		g_warning ("Error capturing data: %s", error->message);
-		libfprint_demo_set_mode (win, ERROR_MODE);
+		if (error->domain == FP_DEVICE_RETRY)
+			libfprint_demo_set_mode (win, RETRY_MODE);
+		else
+			libfprint_demo_set_mode (win, ERROR_MODE);
 		return;
 	}
 
@@ -413,6 +417,11 @@ libfprint_demo_set_mode (LibfprintDemoWindow *win,
 	case ERROR_MODE:
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "error-mode");
 		gtk_widget_set_sensitive (win->capture_button, FALSE);
+		gtk_spinner_stop (GTK_SPINNER (win->spinner));
+		break;
+	case RETRY_MODE:
+		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "retry-mode");
+		gtk_widget_set_sensitive (win->capture_button, TRUE);
 		gtk_spinner_stop (GTK_SPINNER (win->spinner));
 		break;
 	default:

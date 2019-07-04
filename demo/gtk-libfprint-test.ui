@@ -267,6 +267,52 @@
           </packing>
         </child>
         <child>
+          <object class="GtkGrid" id="retry-mode">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <property name="valign">center</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
+            <property name="orientation">vertical</property>
+            <property name="row_spacing">12</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="margin_bottom">9</property>
+                <property name="pixel_size">192</property>
+                <property name="icon_name">dialog-warning-symbolic</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="margin_top">9</property>
+                <property name="label" translatable="yes">&lt;b&gt;&lt;span size="large"&gt;Device reported a recoverable error. Please retry!&lt;/span&gt;&lt;/b&gt;</property>
+                <property name="use_markup">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <style>
+              <class name="dim-label"/>
+            </style>
+          </object>
+          <packing>
+            <property name="name">retry-mode</property>
+            <property name="title">retry-mode</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkGrid" id="noimaging-mode">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
