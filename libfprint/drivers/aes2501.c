@@ -27,12 +27,12 @@
 #include "aeslib.h"
 #include "aes2501.h"
 
-static void start_capture(struct fp_img_dev *dev);
-static void complete_deactivation(struct fp_img_dev *dev);
+static void start_capture(FpImageDevice *dev);
+static void complete_deactivation(FpImageDevice *dev);
 
 /* FIXME these need checking */
-#define EP_IN			(1 | LIBUSB_ENDPOINT_IN)
-#define EP_OUT			(2 | LIBUSB_ENDPOINT_OUT)
+#define EP_IN			(1 | FPI_USB_ENDPOINT_IN)
+#define EP_OUT			(2 | FPI_USB_ENDPOINT_OUT)
 
 #define BULK_TIMEOUT 4000
 
@@ -63,13 +63,18 @@ static void complete_deactivation(struct fp_img_dev *dev);
 
 /****** GENERAL FUNCTIONS ******/
 
-struct aes2501_dev {
-	uint8_t read_regs_retry_count;
+struct _FpiDeviceAes2501 {
+	FpImageDevice parent;
+
+	guint8 read_regs_retry_count;
 	GSList *strips;
 	size_t strips_len;
 	gboolean deactivating;
 	int no_finger_cnt;
 };
+G_DECLARE_FINAL_TYPE(FpiDeviceAes2501, fpi_device_aes2501, FPI, DEVICE_AES2501,
+		     FpImageDevice);
+G_DEFINE_TYPE(FpiDeviceAes2501, fpi_device_aes2501, FP_TYPE_IMAGE_DEVICE);
 
 static struct fpi_frame_asmbl_ctx assembling_ctx = {
 	.frame_width = FRAME_WIDTH,
@@ -78,73 +83,47 @@ static struct fpi_frame_asmbl_ctx assembling_ctx = {
 	.get_pixel = aes_get_pixel,
 };
 
-typedef void (*aes2501_read_regs_cb)(struct fp_img_dev *dev, int status,
-	unsigned char *regs, void *user_data);
+typedef void (*aes2501_read_regs_cb)(FpImageDevice *dev, GError *error,
+				     unsigned char *regs, void *user_data);
 
 struct aes2501_read_regs {
-	struct fp_img_dev *dev;
+	FpImageDevice *dev;
 	aes2501_read_regs_cb callback;
 	struct aes_regwrite *regwrite;
 	void *user_data;
 };
 
-static void read_regs_data_cb(struct libusb_transfer *transfer,
-			      struct fp_dev          *dev,
-			      fpi_ssm                *ssm,
-			      void                   *user_data)
+static void read_regs_data_cb(FpiUsbTransfer *transfer, FpDevice *dev,
+			      gpointer user_data, GError *error)
 {
 	struct aes2501_read_regs *rdata = user_data;
-	unsigned char *retdata = NULL;
-	int r;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		r = -EIO;
-	} else if (transfer->length != transfer->actual_length) {
-		r = -EPROTO;
-	} else {
-		r = 0;
-		retdata = transfer->buffer;
-	}
-
-	rdata->callback(rdata->dev, r, retdata, rdata->user_data);
+	rdata->callback(rdata->dev, error, transfer->buffer, rdata->user_data);
 	g_free(rdata);
 }
 
-static void read_regs_rq_cb(struct fp_img_dev *dev, int result, void *user_data)
+static void read_regs_rq_cb(FpImageDevice *dev, GError *error, void *user_data)
 {
 	struct aes2501_read_regs *rdata = user_data;
-	fpi_usb_transfer *transfer;
-	unsigned char *data;
-	int r;
+	FpiUsbTransfer *transfer;
 
 	g_free(rdata->regwrite);
-	if (result != 0)
-		goto err;
-
-	data = g_malloc(READ_REGS_LEN);
-	transfer = fpi_usb_fill_bulk_transfer(FP_DEV(dev),
-					      NULL,
-					      EP_IN,
-					      data,
-					      READ_REGS_LEN,
-					      read_regs_data_cb,
-					      rdata,
-					      BULK_TIMEOUT);
-
-	r = fpi_usb_submit_transfer(transfer);
-	if (r < 0) {
-		result = -EIO;
-		goto err;
+	if (error) {
+		rdata->callback(dev, error, NULL, rdata->user_data);
+		g_free (rdata);
+		return;
 	}
 
-	return;
-err:
-	rdata->callback(dev, result, NULL, rdata->user_data);
-	g_free(rdata);
+	transfer = fpi_usb_transfer_new(FP_DEVICE(dev));
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_fill_bulk(transfer, EP_IN, READ_REGS_LEN);
+	fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+			       read_regs_data_cb, rdata);
+	fpi_usb_transfer_unref(transfer);
 }
 
-static void read_regs(struct fp_img_dev *dev, aes2501_read_regs_cb callback,
-	void *user_data)
+static void read_regs(FpImageDevice *dev, aes2501_read_regs_cb callback,
+		      void *user_data)
 {
 	/* FIXME: regwrite is dynamic because of asynchronity. is this really
 	 * required? */
@@ -164,16 +143,16 @@ static void read_regs(struct fp_img_dev *dev, aes2501_read_regs_cb callback,
 }
 
 /* Read the value of a specific register from a register dump */
-static int regval_from_dump(unsigned char *data, uint8_t target)
+static int regval_from_dump(unsigned char *data, guint8 target)
 {
 	if (*data != FIRST_AES2501_REG) {
 		fp_err("not a register dump");
-		return -EILSEQ;
+		return -1;
 	}
 
 	if (!(FIRST_AES2501_REG <= target && target <= LAST_AES2501_REG)) {
 		fp_err("out of range");
-		return -EINVAL;
+		return -1;
 	}
 
 	target -= FIRST_AES2501_REG;
@@ -181,66 +160,56 @@ static int regval_from_dump(unsigned char *data, uint8_t target)
 	return data[target + 1];
 }
 
-static void generic_write_regv_cb(struct fp_img_dev *dev, int result,
-	void *user_data)
+static void generic_write_regv_cb(FpImageDevice *dev, GError *error,
+				  void *user_data)
 {
-	fpi_ssm *ssm = user_data;
-	if (result == 0)
+	FpiSsm *ssm = user_data;
+	if (!error)
 		fpi_ssm_next_state(ssm);
 	else
-		fpi_ssm_mark_failed(ssm, result);
+		fpi_ssm_mark_failed(ssm, error);
 }
 
 /* check that read succeeded but ignore all data */
-static void generic_ignore_data_cb(struct libusb_transfer *transfer,
-				   struct fp_dev          *dev,
-				   fpi_ssm                *ssm,
-				   void                   *user_data)
+static void generic_ignore_data_cb(FpiUsbTransfer *transfer, FpDevice *dev,
+				   gpointer user_data, GError *error)
 {
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
-		fpi_ssm_mark_failed(ssm, -EIO);
-	else if (transfer->length != transfer->actual_length)
-		fpi_ssm_mark_failed(ssm, -EPROTO);
+	FpiSsm *ssm = transfer->ssm;
+	if (error)
+		fpi_ssm_mark_failed(ssm, error);
 	else
 		fpi_ssm_next_state(ssm);
 }
 
 /* read the specified number of bytes from the IN endpoint but throw them
  * away, then increment the SSM */
-static void generic_read_ignore_data(fpi_ssm *ssm, struct fp_dev *dev, size_t bytes)
+static void generic_read_ignore_data(FpiSsm *ssm, FpDevice *dev,
+				     size_t bytes)
 {
-	fpi_usb_transfer *transfer;
-	unsigned char *data;
-	int r;
+	FpiUsbTransfer *transfer;
 
-	data = g_malloc(bytes);
-	transfer = fpi_usb_fill_bulk_transfer(dev,
-					      ssm,
-					      EP_IN,
-					      data,
-					      bytes,
-					      generic_ignore_data_cb,
-					      NULL,
-					      BULK_TIMEOUT);
-
-	r = fpi_usb_submit_transfer(transfer);
-	if (r < 0)
-		fpi_ssm_mark_failed(ssm, r);
+	transfer = fpi_usb_transfer_new(dev);
+	transfer->ssm = ssm;
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_fill_bulk(transfer, EP_IN, bytes);
+	fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+		               generic_ignore_data_cb, NULL);
+	fpi_usb_transfer_unref(transfer);
 }
 
 /****** IMAGE PROCESSING ******/
 
-static int sum_histogram_values(unsigned char *data, uint8_t threshold)
+static int sum_histogram_values(unsigned char *data, guint8 threshold)
 {
 	int r = 0;
 	int i;
-	uint16_t *histogram = (uint16_t *)(data + 1);
+	guint16 *histogram = (guint16 *)(data + 1);
 
 	if (*data != 0xde)
-		return -EILSEQ;
+		return -1;
 
 	if (threshold > 0x0f)
-		return -EINVAL;
+		return -1;
 
 	/* FIXME endianness */
 	for (i = threshold; i < 16; i++)
@@ -279,23 +248,18 @@ static const struct aes_regwrite finger_det_reqs[] = {
 	{ AES2501_REG_LPONT, AES2501_LPONT_MIN_VALUE },
 };
 
-static void start_finger_detection(struct fp_img_dev *dev);
+static void start_finger_detection(FpImageDevice *dev);
 
-static void finger_det_data_cb(struct libusb_transfer *transfer,
-			       struct fp_dev          *_dev,
-			       fpi_ssm                *ssm,
-			       void                   *user_data)
+static void finger_det_data_cb(FpiUsbTransfer *transfer, FpDevice *_dev,
+			       gpointer user_data, GError *error)
 {
-	struct fp_img_dev *dev = FP_IMG_DEV(_dev);
+	FpImageDevice *dev = FP_IMAGE_DEVICE(_dev);
 	unsigned char *data = transfer->buffer;
 	int i;
 	int sum = 0;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fpi_imgdev_session_error(dev, -EIO);
-		return;
-	} else if (transfer->length != transfer->actual_length) {
-		fpi_imgdev_session_error(dev, -EPROTO);
+	if (error) {
+		fpi_image_device_session_error(dev, error);
 		return;
 	}
 
@@ -304,7 +268,7 @@ static void finger_det_data_cb(struct libusb_transfer *transfer,
 		sum += (data[i] & 0xf) + (data[i] >> 4);
 	if (sum > 20) {
 		/* finger present, start capturing */
-		fpi_imgdev_report_finger_status(dev, TRUE);
+		fpi_image_device_report_finger_status(dev, TRUE);
 		start_capture(dev);
 	} else {
 		/* no finger, poll for a new histogram */
@@ -312,39 +276,30 @@ static void finger_det_data_cb(struct libusb_transfer *transfer,
 	}
 }
 
-static void finger_det_reqs_cb(struct fp_img_dev *dev, int result,
-	void *user_data)
+static void finger_det_reqs_cb(FpImageDevice *dev, GError *error,
+		               void *user_data)
 {
-	fpi_usb_transfer *transfer;
-	unsigned char *data;
-	int r;
+	FpiUsbTransfer *transfer;
 
-	if (result) {
-		fpi_imgdev_session_error(dev, result);
+	if (error) {
+		fpi_image_device_session_error (dev, error);
 		return;
 	}
 
-	data = g_malloc(FINGER_DETECTION_LEN);
-	transfer = fpi_usb_fill_bulk_transfer(FP_DEV(dev),
-					      NULL,
-					      EP_IN,
-					      data,
-					      FINGER_DETECTION_LEN,
-					      finger_det_data_cb,
-					      NULL,
-					      BULK_TIMEOUT);
-
-	r = fpi_usb_submit_transfer(transfer);
-	if (r < 0)
-		fpi_imgdev_session_error(dev, r);
+	transfer = fpi_usb_transfer_new(FP_DEVICE(dev));
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_fill_bulk(transfer, EP_IN, FINGER_DETECTION_LEN);
+	fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+		               finger_det_data_cb, NULL);
+	fpi_usb_transfer_unref(transfer);
 }
 
-static void start_finger_detection(struct fp_img_dev *dev)
+static void start_finger_detection(FpImageDevice *dev)
 {
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(dev);
 	G_DEBUG_HERE();
 
-	if (aesdev->deactivating) {
+	if (self->deactivating) {
 		complete_deactivation(dev);
 		return;
 	}
@@ -428,36 +383,34 @@ enum capture_states {
 	CAPTURE_NUM_STATES,
 };
 
-static void capture_read_strip_cb(struct libusb_transfer *transfer,
-				  struct fp_dev          *_dev,
-				  fpi_ssm                *ssm,
-				  void                   *user_data)
+static void capture_read_strip_cb(FpiUsbTransfer *transfer, FpDevice *_dev,
+				  gpointer user_data, GError *error)
 {
+	FpiSsm *ssm = transfer->ssm;
 	unsigned char *stripdata;
-	struct fp_img_dev *dev = FP_IMG_DEV(_dev);
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *dev = FP_IMAGE_DEVICE(_dev);
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(_dev);
 	unsigned char *data = transfer->buffer;
 	int sum;
 	int threshold;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fpi_ssm_mark_failed(ssm, -EIO);
-		return;
-	} else if (transfer->length != transfer->actual_length) {
-		fpi_ssm_mark_failed(ssm, -EPROTO);
+	if (error) {
+		fpi_ssm_mark_failed(ssm, error);
 		return;
 	}
 
 	threshold = regval_from_dump(data + 1 + 192*8 + 1 + 16*2 + 1 + 8,
 		AES2501_REG_DATFMT);
 	if (threshold < 0) {
-		fpi_ssm_mark_failed(ssm, threshold);
+		fpi_ssm_mark_failed(ssm,
+				   fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 		return;
 	}
 
 	sum = sum_histogram_values(data + 1 + 192*8, threshold & 0x0f);
 	if (sum < 0) {
-		fpi_ssm_mark_failed(ssm, sum);
+		fpi_ssm_mark_failed(ssm,
+				   fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 		return;
 	}
 	fp_dbg("sum=%d", sum);
@@ -477,21 +430,21 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer,
 	 * to ensure
 	 */
 	if (sum == 0) {
-		aesdev->no_finger_cnt++;
-		if (aesdev->no_finger_cnt == 3) {
-			struct fp_img *img;
+		self->no_finger_cnt++;
+		if (self->no_finger_cnt == 3) {
+			FpImage *img;
 
-			aesdev->strips = g_slist_reverse(aesdev->strips);
+			self->strips = g_slist_reverse(self->strips);
 			fpi_do_movement_estimation(&assembling_ctx,
-					aesdev->strips, aesdev->strips_len);
+					self->strips, self->strips_len);
 			img = fpi_assemble_frames(&assembling_ctx,
-						  aesdev->strips, aesdev->strips_len);
-			img->flags |= FP_IMG_PARTIAL;
-			g_slist_free_full(aesdev->strips, g_free);
-			aesdev->strips = NULL;
-			aesdev->strips_len = 0;
-			fpi_imgdev_image_captured(dev, img);
-			fpi_imgdev_report_finger_status(dev, FALSE);
+						  self->strips,
+						  self->strips_len);
+			g_slist_free_full(self->strips, g_free);
+			self->strips = NULL;
+			self->strips_len = 0;
+			fpi_image_device_image_captured(dev, img);
+			fpi_image_device_report_finger_status(dev, FALSE);
 			/* marking machine complete will re-trigger finger detection loop */
 			fpi_ssm_mark_completed(ssm);
 		} else {
@@ -505,19 +458,18 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer,
 		stripe->delta_y = 0;
 		stripdata = stripe->data;
 		memcpy(stripdata, data + 1, 192*8);
-		aesdev->no_finger_cnt = 0;
-		aesdev->strips = g_slist_prepend(aesdev->strips, stripe);
-		aesdev->strips_len++;
+		self->no_finger_cnt = 0;
+		self->strips = g_slist_prepend(self->strips, stripe);
+		self->strips_len++;
 
 		fpi_ssm_jump_to_state(ssm, CAPTURE_REQUEST_STRIP);
 	}
 }
 
-static void capture_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void capture_run_state(FpiSsm *ssm, FpDevice *device, void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(_dev);
-	int r;
+	FpImageDevice *dev = user_data;
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(device);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPTURE_WRITE_REQS_1:
@@ -525,72 +477,71 @@ static void capture_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data
 			generic_write_regv_cb, ssm);
 		break;
 	case CAPTURE_READ_DATA_1:
-		generic_read_ignore_data(ssm, _dev, READ_REGS_RESP_LEN);
+		generic_read_ignore_data(ssm, device, READ_REGS_RESP_LEN);
 		break;
 	case CAPTURE_WRITE_REQS_2:
 		aes_write_regv(dev, capture_reqs_2, G_N_ELEMENTS(capture_reqs_2),
 			generic_write_regv_cb, ssm);
 		break;
 	case CAPTURE_READ_DATA_2:
-		generic_read_ignore_data(ssm, _dev, READ_REGS_RESP_LEN);
+		generic_read_ignore_data(ssm, device, READ_REGS_RESP_LEN);
 		break;
 	case CAPTURE_REQUEST_STRIP:
-		if (aesdev->deactivating)
+		if (self->deactivating)
 			fpi_ssm_mark_completed(ssm);
 		else
 			aes_write_regv(dev, strip_scan_reqs, G_N_ELEMENTS(strip_scan_reqs),
 				generic_write_regv_cb, ssm);
 		break;
-	case CAPTURE_READ_STRIP: ;
-		fpi_usb_transfer *transfer;
-		unsigned char *data;
+	case CAPTURE_READ_STRIP: {
+			FpiUsbTransfer *transfer;
 
-		data = g_malloc(STRIP_CAPTURE_LEN);
-		transfer = fpi_usb_fill_bulk_transfer(FP_DEV(dev),
-						      ssm,
-						      EP_IN,
-						      data,
-						      STRIP_CAPTURE_LEN,
-						      capture_read_strip_cb,
-						      NULL,
-						      BULK_TIMEOUT);
-
-		r = fpi_usb_submit_transfer(transfer);
-		if (r < 0)
-			fpi_ssm_mark_failed(ssm, r);
-		break;
+			transfer = fpi_usb_transfer_new(device);
+			transfer->ssm = ssm;
+			transfer->short_is_error = TRUE;
+			fpi_usb_transfer_fill_bulk(transfer, EP_IN, STRIP_CAPTURE_LEN);
+			fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+					       capture_read_strip_cb, NULL);
+			fpi_usb_transfer_unref(transfer);
+			break;
+		}
 	};
 }
 
-static void capture_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void capture_sm_complete(FpiSsm *ssm, FpDevice *_dev, void *user_data,
+				GError *error)
 {
-	struct fp_img_dev *dev = user_data;
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *dev = user_data;
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(_dev);
 
 	G_DEBUG_HERE();
-	if (aesdev->deactivating)
+
+	if (self->deactivating) {
 		complete_deactivation(dev);
-	else if (fpi_ssm_get_error(ssm))
-		fpi_imgdev_session_error(dev, fpi_ssm_get_error(ssm));
-	else
+		g_clear_pointer (&error, g_error_free);
+	} else if (error) {
+		fpi_image_device_session_error(dev, error);
+	} else {
 		start_finger_detection(dev);
+	}
 	fpi_ssm_free(ssm);
 }
 
-static void start_capture(struct fp_img_dev *dev)
+static void start_capture(FpImageDevice *dev)
 {
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	fpi_ssm *ssm;
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(dev);
+	FpiSsm *ssm;
 
-	if (aesdev->deactivating) {
+	if (self->deactivating) {
 		complete_deactivation(dev);
 		return;
 	}
 
-	aesdev->no_finger_cnt = 0;
+	self->no_finger_cnt = 0;
 	/* Reset gain */
 	strip_scan_reqs[4].value = AES2501_ADREFHI_MAX_VALUE;
-	ssm = fpi_ssm_new(FP_DEV(dev), capture_run_state, CAPTURE_NUM_STATES, dev);
+	ssm = fpi_ssm_new(FP_DEVICE(dev), capture_run_state,
+			 CAPTURE_NUM_STATES, dev);
 	G_DEBUG_HERE();
 	fpi_ssm_start(ssm, capture_sm_complete);
 }
@@ -700,36 +651,36 @@ enum activate_states {
 	ACTIVATE_NUM_STATES,
 };
 
-void activate_read_regs_cb(struct fp_img_dev *dev, int status,
-	unsigned char *regs, void *user_data)
+void activate_read_regs_cb(FpImageDevice *dev, GError *error,
+			   unsigned char *regs, void *user_data)
 {
-	fpi_ssm *ssm = user_data;
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiSsm *ssm = user_data;
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(dev);
 
-	if (status != 0) {
-		fpi_ssm_mark_failed(ssm, status);
+	if (error) {
+		fpi_ssm_mark_failed(ssm, error);
 	} else {
 		fp_dbg("reg 0xaf = %x", regs[0x5f]);
-		if (regs[0x5f] != 0x6b || ++aesdev->read_regs_retry_count == 13)
+		if (regs[0x5f] != 0x6b || ++self->read_regs_retry_count == 13)
 			fpi_ssm_jump_to_state(ssm, WRITE_INIT_4);
 		else
 			fpi_ssm_next_state(ssm);
 	}
 }
 
-static void activate_init3_cb(struct fp_img_dev *dev, int result,
-	void *user_data)
+static void activate_init3_cb(FpImageDevice *dev, GError *error,
+		              void *user_data)
 {
-	fpi_ssm *ssm = user_data;
-	if (result == 0)
+	FpiSsm *ssm = user_data;
+	if (!error)
 		fpi_ssm_jump_to_state(ssm, READ_REGS);
 	else
-		fpi_ssm_mark_failed(ssm, result);
+		fpi_ssm_mark_failed(ssm, error);
 }
 
-static void activate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void activate_run_state(FpiSsm *ssm, FpDevice *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
+	FpImageDevice *dev = user_data;
 
 	/* This state machine isn't as linear as it may appear. After doing init1
 	 * and init2 register configuration writes, we have to poll a register
@@ -781,97 +732,92 @@ static void activate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_dat
 	}
 }
 
-static void activate_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void activate_sm_complete(FpiSsm *ssm, FpDevice *dev,
+				 void *user_data, GError *error)
 {
-	struct fp_img_dev *dev = user_data;
-	fp_dbg("status %d", fpi_ssm_get_error(ssm));
-	fpi_imgdev_activate_complete(dev, fpi_ssm_get_error(ssm));
+	fpi_image_device_activate_complete(FP_IMAGE_DEVICE (dev), error);
 
-	if (!fpi_ssm_get_error(ssm))
-		start_finger_detection(dev);
+	if (!error)
+		start_finger_detection(FP_IMAGE_DEVICE (dev));
 	fpi_ssm_free(ssm);
 }
 
-static int dev_activate(struct fp_img_dev *dev)
+static void dev_activate(FpImageDevice *dev)
 {
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), activate_run_state,
-		ACTIVATE_NUM_STATES, dev);
-	aesdev->read_regs_retry_count = 0;
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(dev);
+	FpiSsm *ssm = fpi_ssm_new(FP_DEVICE(dev), activate_run_state,
+				  ACTIVATE_NUM_STATES, dev);
+	self->read_regs_retry_count = 0;
 	fpi_ssm_start(ssm, activate_sm_complete);
-	return 0;
 }
 
-static void dev_deactivate(struct fp_img_dev *dev)
+static void dev_deactivate(FpImageDevice *dev)
 {
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(dev);
 	/* FIXME: audit cancellation points, probably need more, specifically
 	 * in error handling paths? */
-	aesdev->deactivating = TRUE;
+	self->deactivating = TRUE;
 }
 
-static void complete_deactivation(struct fp_img_dev *dev)
+static void complete_deactivation(FpImageDevice *dev)
 {
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceAes2501 *self = FPI_DEVICE_AES2501(dev);
 	G_DEBUG_HERE();
 
 	/* FIXME: if we're in the middle of a scan, we should cancel the scan.
 	 * maybe we can do this with a master reset, unconditionally? */
 
-	aesdev->deactivating = FALSE;
-	g_slist_free(aesdev->strips);
-	aesdev->strips = NULL;
-	aesdev->strips_len = 0;
-	fpi_imgdev_deactivate_complete(dev);
+	self->deactivating = FALSE;
+	g_slist_free(self->strips);
+	self->strips = NULL;
+	self->strips_len = 0;
+	fpi_image_device_deactivate_complete(dev, NULL);
 }
 
-static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
+static void dev_init(FpImageDevice *dev)
 {
+	GError *error = NULL;
 	/* FIXME check endpoints */
-	int r;
-	struct aes2501_dev *aesdev;
 
-	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	if (r < 0) {
-		fp_err("could not claim interface 0: %s", libusb_error_name(r));
-		return r;
-	}
-
-	aesdev = g_malloc0(sizeof(struct aes2501_dev));
-	fp_dev_set_instance_data(FP_DEV(dev), aesdev);
-	fpi_imgdev_open_complete(dev, 0);
-	return 0;
+	g_usb_device_claim_interface(fpi_device_get_usb_device(FP_DEVICE(dev)), 0, 0, &error);
+	fpi_image_device_open_complete(dev, error);
 }
 
-static void dev_deinit(struct fp_img_dev *dev)
+static void dev_deinit(FpImageDevice *dev)
 {
-	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	g_free(aesdev);
-	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	fpi_imgdev_close_complete(dev);
+	GError *error = NULL;
+
+	g_usb_device_release_interface(fpi_device_get_usb_device(FP_DEVICE(dev)),
+				       0, 0, &error);
+	fpi_image_device_close_complete(dev, error);
 }
 
-static const struct usb_id id_table[] = {
-	{ .vendor = 0x08ff, .product = 0x2500 }, /* AES2500 */
-	{ .vendor = 0x08ff, .product = 0x2580 }, /* AES2501 */
-	{ 0, 0, 0, },
+static const FpIdEntry id_table [ ] = {
+	{ .vid = 0x08ff,  .pid = 0x2500,
+	}, /* AES2500 */
+	{ .vid = 0x08ff,  .pid = 0x2580,
+	}, /* AES2501 */
+	{ .vid = 0,  .pid = 0,  .driver_data = 0 },
 };
 
-struct fp_img_driver aes2501_driver = {
-	.driver = {
-		.id = AES2501_ID,
-		.name = FP_COMPONENT,
-		.full_name = "AuthenTec AES2501",
-		.id_table = id_table,
-		.scan_type = FP_SCAN_TYPE_SWIPE,
-	},
-	.flags = 0,
-	.img_height = -1,
-	.img_width = IMAGE_WIDTH,
+static void fpi_device_aes2501_init(FpiDeviceAes2501 *self) {
+}
+static void fpi_device_aes2501_class_init(FpiDeviceAes2501Class *klass) {
+	FpDeviceClass *dev_class = FP_DEVICE_CLASS(klass);
+	FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS(klass);
 
-	.open = dev_init,
-	.close = dev_deinit,
-	.activate = dev_activate,
-	.deactivate = dev_deactivate,
-};
+	dev_class->id = "aes2501";
+	dev_class->full_name = "AuthenTec AES2501";
+	dev_class->type = FP_DEVICE_TYPE_USB;
+	dev_class->id_table = id_table;
+	dev_class->scan_type = FP_SCAN_TYPE_SWIPE;
+
+	img_class->img_open = dev_init;
+	img_class->img_close = dev_deinit;
+	img_class->activate = dev_activate;
+	img_class->deactivate = dev_deactivate;
+
+	img_class->img_width = IMAGE_WIDTH;
+	img_class->img_height = -1;
+}
 
