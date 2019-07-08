@@ -27,6 +27,13 @@
 #define FRAME_WIDTH 128
 #define IMAGE_WIDTH	(FRAME_WIDTH + (FRAME_WIDTH / 2))
 
+struct _FpiDeviceAes1660 {
+	FpiDeviceAesX660 parent;
+};
+G_DECLARE_FINAL_TYPE(FpiDeviceAes1660, fpi_device_aes1660, FPI,
+		     DEVICE_AES1660, FpiDeviceAesX660);
+G_DEFINE_TYPE(FpiDeviceAes1660, fpi_device_aes1660, FPI_TYPE_DEVICE_AES_X660);
+
 static struct fpi_frame_asmbl_ctx assembling_ctx = {
 	.frame_width = FRAME_WIDTH,
 	.frame_height = AESX660_FRAME_HEIGHT,
@@ -34,79 +41,50 @@ static struct fpi_frame_asmbl_ctx assembling_ctx = {
 	.get_pixel = aes_get_pixel,
 };
 
-static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
-{
-	/* TODO check that device has endpoints we're using */
-	int r;
-	struct aesX660_dev *aesdev;
-
-	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	if (r < 0) {
-		fp_err("could not claim interface 0: %s", libusb_error_name(r));
-		return r;
-	}
-
-	aesdev = g_malloc0(sizeof(struct aesX660_dev));
-	fp_dev_set_instance_data(FP_DEV(dev), aesdev);
-	aesdev->buffer = g_malloc0(AES1660_FRAME_SIZE + AESX660_HEADER_SIZE);
-	aesdev->init_seqs[0] = aes1660_init_1;
-	aesdev->init_seqs_len[0] = G_N_ELEMENTS(aes1660_init_1);
-	aesdev->init_seqs[1] = aes1660_init_2;
-	aesdev->init_seqs_len[1] = G_N_ELEMENTS(aes1660_init_2);
-	aesdev->start_imaging_cmd = (unsigned char *)aes1660_start_imaging_cmd;
-	aesdev->start_imaging_cmd_len = sizeof(aes1660_start_imaging_cmd);
-	aesdev->assembling_ctx = &assembling_ctx;
-	aesdev->extra_img_flags = FP_IMG_PARTIAL;
-
-	fpi_imgdev_open_complete(dev, 0);
-	return 0;
-}
-
-static void dev_deinit(struct fp_img_dev *dev)
-{
-	struct aesX660_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	g_free(aesdev->buffer);
-	g_free(aesdev);
-	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	fpi_imgdev_close_complete(dev);
-}
-
-static const struct usb_id id_table[] = {
-	{ .vendor = 0x08ff, .product = 0x1660 },
-	{ .vendor = 0x08ff, .product = 0x1680 },
-	{ .vendor = 0x08ff, .product = 0x1681 },
-	{ .vendor = 0x08ff, .product = 0x1682 },
-	{ .vendor = 0x08ff, .product = 0x1683 },
-	{ .vendor = 0x08ff, .product = 0x1684 },
-	{ .vendor = 0x08ff, .product = 0x1685 },
-	{ .vendor = 0x08ff, .product = 0x1686 },
-	{ .vendor = 0x08ff, .product = 0x1687 },
-	{ .vendor = 0x08ff, .product = 0x1688 },
-	{ .vendor = 0x08ff, .product = 0x1689 },
-	{ .vendor = 0x08ff, .product = 0x168a },
-	{ .vendor = 0x08ff, .product = 0x168b },
-	{ .vendor = 0x08ff, .product = 0x168c },
-	{ .vendor = 0x08ff, .product = 0x168d },
-	{ .vendor = 0x08ff, .product = 0x168e },
-	{ .vendor = 0x08ff, .product = 0x168f },
-	{ 0, 0, 0, },
+static const FpIdEntry id_table [ ] = {
+	{ .vid = 0x08ff,  .pid = 0x1660, },
+	{ .vid = 0x08ff,  .pid = 0x1680, },
+	{ .vid = 0x08ff,  .pid = 0x1681, },
+	{ .vid = 0x08ff,  .pid = 0x1682, },
+	{ .vid = 0x08ff,  .pid = 0x1683, },
+	{ .vid = 0x08ff,  .pid = 0x1684, },
+	{ .vid = 0x08ff,  .pid = 0x1685, },
+	{ .vid = 0x08ff,  .pid = 0x1686, },
+	{ .vid = 0x08ff,  .pid = 0x1687, },
+	{ .vid = 0x08ff,  .pid = 0x1688, },
+	{ .vid = 0x08ff,  .pid = 0x1689, },
+	{ .vid = 0x08ff,  .pid = 0x168a, },
+	{ .vid = 0x08ff,  .pid = 0x168b, },
+	{ .vid = 0x08ff,  .pid = 0x168c, },
+	{ .vid = 0x08ff,  .pid = 0x168d, },
+	{ .vid = 0x08ff,  .pid = 0x168e, },
+	{ .vid = 0x08ff,  .pid = 0x168f, },
+	{ .vid = 0,  .pid = 0,  .driver_data = 0 },
 };
 
-struct fp_img_driver aes1660_driver = {
-	.driver = {
-		.id = AES1660_ID,
-		.name = FP_COMPONENT,
-		.full_name = "AuthenTec AES1660",
-		.id_table = id_table,
-		.scan_type = FP_SCAN_TYPE_SWIPE,
-	},
-	.flags = 0,
-	.img_height = -1,
-	.img_width = FRAME_WIDTH + FRAME_WIDTH / 2,
-	.bz3_threshold = 20,
+static void fpi_device_aes1660_init(FpiDeviceAes1660 *self) {
+}
+static void fpi_device_aes1660_class_init(FpiDeviceAes1660Class *klass) {
+	FpDeviceClass *dev_class = FP_DEVICE_CLASS(klass);
+	FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS(klass);
+	FpiDeviceAesX660Class *aes_class = FPI_DEVICE_AES_X660_CLASS (klass);
 
-	.open = dev_init,
-	.close = dev_deinit,
-	.activate = aesX660_dev_activate,
-	.deactivate = aesX660_dev_deactivate,
-};
+	dev_class->id = "aes1660";
+	dev_class->full_name = "AuthenTec AES1660";
+	dev_class->type = FP_DEVICE_TYPE_USB;
+	dev_class->id_table = id_table;
+	dev_class->scan_type = FP_SCAN_TYPE_SWIPE;
+
+	img_class->bz3_threshold = 20;
+
+	img_class->img_width = FRAME_WIDTH + FRAME_WIDTH / 2;
+	img_class->img_height = -1;
+
+	aes_class->init_seqs[0] = aes1660_init_1;
+	aes_class->init_seqs_len[0] = G_N_ELEMENTS(aes1660_init_1);
+	aes_class->init_seqs[1] = aes1660_init_2;
+	aes_class->init_seqs_len[1] = G_N_ELEMENTS(aes1660_init_2);
+	aes_class->start_imaging_cmd = (unsigned char *)aes1660_start_imaging_cmd;
+	aes_class->start_imaging_cmd_len = sizeof(aes1660_start_imaging_cmd);
+	aes_class->assembling_ctx = &assembling_ctx;
+}
