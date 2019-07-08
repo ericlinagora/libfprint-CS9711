@@ -40,11 +40,18 @@
 #include "aeslib.h"
 #include "aes3k.h"
 
-#define CTRL_TIMEOUT	1000
-#define EP_IN		(1 | LIBUSB_ENDPOINT_IN)
-#define EP_OUT		(2 | LIBUSB_ENDPOINT_OUT)
+typedef struct {
+	FpiUsbTransfer *img_trf;
+	gboolean deactivating;
+} FpiDeviceAes3kPrivate;
 
-static void do_capture(struct fp_img_dev *dev);
+#define CTRL_TIMEOUT	1000
+#define EP_IN		(1 | FPI_USB_ENDPOINT_IN)
+#define EP_OUT		(2 | FPI_USB_ENDPOINT_OUT)
+
+static void do_capture(FpImageDevice *dev);
+
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(FpiDeviceAes3k, fpi_device_aes3k, FP_TYPE_IMAGE_DEVICE);
 
 static void aes3k_assemble_image(unsigned char *input, size_t width, size_t height,
 	unsigned char *output)
@@ -60,99 +67,142 @@ static void aes3k_assemble_image(unsigned char *input, size_t width, size_t heig
 	}
 }
 
-static void img_cb(struct libusb_transfer *transfer)
+static void img_cb(FpiUsbTransfer *transfer, FpDevice *device,
+		   gpointer user_data, GError *error)
 {
-	struct fp_img_dev *dev = transfer->user_data;
-	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpImageDevice *dev = FP_IMAGE_DEVICE (device);
+	FpiDeviceAes3k *self = FPI_DEVICE_AES3K (device);
+	FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
+	FpiDeviceAes3kClass *cls = FPI_DEVICE_AES3K_GET_CLASS (self);
 	unsigned char *ptr = transfer->buffer;
-	struct fp_img *tmp;
-	struct fp_img *img;
+	FpImage *tmp;
+	FpImage *img;
 	int i;
 
-	if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
-		goto err;
-	} else if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fpi_imgdev_session_error(dev, -EIO);
-		goto err;
-	} else if (transfer->length != transfer->actual_length) {
-		fpi_imgdev_session_error(dev, -EPROTO);
-		goto err;
+	priv->img_trf = NULL;
+
+	if (error) {
+		if (g_error_matches (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_CANCELLED)) {
+			/* Deactivation was completed. */
+			g_error_free (error);
+			if (priv->deactivating)
+				fpi_image_device_deactivate_complete(dev, NULL);
+			return;
+		}
+
+		fpi_image_device_session_error (dev, error);
 	}
 
-	fpi_imgdev_report_finger_status(dev, TRUE);
+	fpi_image_device_report_finger_status(dev, TRUE);
 
-	tmp = fpi_img_new(aesdev->frame_width * aesdev->frame_width);
-	tmp->width = aesdev->frame_width;
-	tmp->height = aesdev->frame_width;
-	tmp->flags = FP_IMG_COLORS_INVERTED | FP_IMG_V_FLIPPED | FP_IMG_H_FLIPPED;
-	for (i = 0; i < aesdev->frame_number; i++) {
+	tmp = fp_image_new(cls->frame_width, cls->frame_width);
+	tmp->width = cls->frame_width;
+	tmp->height = cls->frame_width;
+	tmp->flags = FPI_IMAGE_COLORS_INVERTED | FPI_IMAGE_V_FLIPPED | FPI_IMAGE_H_FLIPPED;
+	for (i = 0; i < cls->frame_number; i++) {
 		fp_dbg("frame header byte %02x", *ptr);
 		ptr++;
-		aes3k_assemble_image(ptr, aesdev->frame_width, AES3K_FRAME_HEIGHT, tmp->data + (i * aesdev->frame_width * AES3K_FRAME_HEIGHT));
-		ptr += aesdev->frame_size;
+		aes3k_assemble_image(ptr, cls->frame_width, AES3K_FRAME_HEIGHT, tmp->data + (i * cls->frame_width * AES3K_FRAME_HEIGHT));
+		ptr += cls->frame_size;
 	}
 
 	/* FIXME: this is an ugly hack to make the image big enough for NBIS
 	 * to process reliably */
-	img = fpi_img_resize(tmp, aesdev->enlarge_factor, aesdev->enlarge_factor);
-	fp_img_free(tmp);
-	fpi_imgdev_image_captured(dev, img);
+	img = fpi_image_resize(tmp, cls->enlarge_factor, cls->enlarge_factor);
+	g_object_unref (tmp);
+	fpi_image_device_image_captured(dev, img);
 
 	/* FIXME: rather than assuming finger has gone, we should poll regs until
 	 * it really has, then restart the capture */
-	fpi_imgdev_report_finger_status(dev, FALSE);
+	fpi_image_device_report_finger_status(dev, FALSE);
 
 	do_capture(dev);
-
-err:
-	g_free(transfer->buffer);
-	aesdev->img_trf = NULL;
-	libusb_free_transfer(transfer);
 }
 
-static void do_capture(struct fp_img_dev *dev)
+static void do_capture(FpImageDevice *dev)
 {
-	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	unsigned char *data;
-	int r;
+	FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
+	FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
+	FpiDeviceAes3kClass *cls = FPI_DEVICE_AES3K_GET_CLASS (self);
 
-	aesdev->img_trf = fpi_usb_alloc();
-	data = g_malloc(aesdev->data_buflen);
-	libusb_fill_bulk_transfer(aesdev->img_trf, fpi_dev_get_usb_dev(FP_DEV(dev)), EP_IN, data,
-		aesdev->data_buflen, img_cb, dev, 0);
-
-	r = libusb_submit_transfer(aesdev->img_trf);
-	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(aesdev->img_trf);
-		aesdev->img_trf = NULL;
-		fpi_imgdev_session_error(dev, r);
-	}
+	priv->img_trf = fpi_usb_transfer_new (FP_DEVICE (dev));
+	fpi_usb_transfer_fill_bulk(priv->img_trf, EP_IN, cls->data_buflen);
+	priv->img_trf->short_is_error = TRUE;
+	fpi_usb_transfer_submit(priv->img_trf, 0,
+	                       fpi_device_get_cancellable (FP_DEVICE (dev)),
+ 	                       img_cb, NULL);
+	fpi_usb_transfer_unref(priv->img_trf);
 }
 
-static void init_reqs_cb(struct fp_img_dev *dev, int result, void *user_data)
+static void init_reqs_cb(FpImageDevice *dev, GError *result, void *user_data)
 {
-	fpi_imgdev_activate_complete(dev, result);
-	if (result == 0)
+	fpi_image_device_activate_complete (dev, result);
+	if (!result)
 		do_capture(dev);
 }
 
-int aes3k_dev_activate(struct fp_img_dev *dev)
+static void aes3k_dev_activate(FpImageDevice *dev)
 {
-	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	aes_write_regv(dev, aesdev->init_reqs, aesdev->init_reqs_len, init_reqs_cb, NULL);
-	return 0;
+	FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
+	FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
+	FpiDeviceAes3kClass *cls = FPI_DEVICE_AES3K_GET_CLASS (self);
+
+	priv->deactivating = FALSE;
+	aes_write_regv(dev, cls->init_reqs, cls->init_reqs_len, init_reqs_cb, NULL);
 }
 
-void aes3k_dev_deactivate(struct fp_img_dev *dev)
+static void aes3k_dev_deactivate(FpImageDevice *dev)
 {
-	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
+	FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
 
-	/* FIXME: should wait for cancellation to complete before returning
-	 * from deactivation, otherwise app may legally exit before we've
-	 * cleaned up */
-	if (aesdev->img_trf)
-		libusb_cancel_transfer(aesdev->img_trf);
-	fpi_imgdev_deactivate_complete(dev);
+	priv->deactivating = TRUE;
+	if (priv->img_trf)
+		return;
+	fpi_image_device_deactivate_complete(dev, NULL);
 }
 
+static void fpi_device_aes3k_init(FpiDeviceAes3k *self) {
+}
+
+static void aes3k_dev_init(FpImageDevice *dev)
+{
+	GError *error = NULL;
+
+	if (!g_usb_device_claim_interface(fpi_device_get_usb_device(FP_DEVICE(dev)), 0, 0, &error)) {
+		fpi_image_device_open_complete(dev, error);
+		return;
+	}
+
+	fpi_image_device_open_complete(dev, NULL);
+}
+
+static void aes3k_dev_deinit(FpImageDevice *dev)
+{
+	GError *error = NULL;
+
+	g_usb_device_release_interface(fpi_device_get_usb_device(FP_DEVICE(dev)),
+				       0, 0, &error);
+	fpi_image_device_close_complete(dev, error);
+}
+
+
+static void fpi_device_aes3k_class_init(FpiDeviceAes3kClass *klass) {
+	FpDeviceClass *dev_class = FP_DEVICE_CLASS(klass);
+	FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS(klass);
+
+	dev_class->type = FP_DEVICE_TYPE_USB;
+	dev_class->scan_type = FP_SCAN_TYPE_PRESS;
+
+	img_class->img_open = aes3k_dev_init;
+	img_class->img_close = aes3k_dev_deinit;
+	img_class->activate = aes3k_dev_activate;
+	img_class->deactivate = aes3k_dev_deactivate;
+
+	/* Extremely low due to low image quality. */
+	img_class->bz3_threshold = 9;
+
+	/* Everything else is set by the subclasses. */
+}

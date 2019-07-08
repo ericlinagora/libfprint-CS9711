@@ -26,8 +26,6 @@
 
 #define FP_COMPONENT "aes4000"
 
-#include "drivers_api.h"
-#include "aeslib.h"
 #include "aes3k.h"
 
 #define DATA_BUFLEN	0x1259
@@ -114,67 +112,39 @@ static struct aes_regwrite init_reqs[] = {
 	{ 0x81, 0x00 },
 };
 
-static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
-{
-	int r;
-	struct aes3k_dev *aesdev;
-
-	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	if (r < 0) {
-		fp_err("could not claim interface 0: %s", libusb_error_name(r));
-		return r;
-	}
-
-	aesdev = g_malloc0(sizeof(struct aes3k_dev));
-	fp_dev_set_instance_data(FP_DEV(dev), aesdev);
-
-	if (!aesdev)
-		return -ENOMEM;
-
-	aesdev->data_buflen = DATA_BUFLEN;
-	aesdev->frame_width = FRAME_WIDTH;
-	aesdev->frame_size = FRAME_SIZE;
-	aesdev->frame_number = FRAME_NUMBER;
-	aesdev->enlarge_factor = ENLARGE_FACTOR;
-	aesdev->init_reqs = init_reqs;
-	aesdev->init_reqs_len = G_N_ELEMENTS(init_reqs);
-	fpi_imgdev_open_complete(dev, 0);
-
-	return r;
-}
-
-static void dev_deinit(struct fp_img_dev *dev)
-{
-	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	g_free(aesdev);
-	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	fpi_imgdev_close_complete(dev);
-}
+struct _FpiDeviceAes4000 {
+	FpiDeviceAes3k parent;
+};
+G_DECLARE_FINAL_TYPE(FpiDeviceAes4000, fpi_device_aes4000, FPI,
+		     DEVICE_AES4000, FpiDeviceAes3k);
+G_DEFINE_TYPE(FpiDeviceAes4000, fpi_device_aes4000, FPI_TYPE_DEVICE_AES3K);
 
 
-static const struct usb_id id_table[] = {
-	{ .vendor = 0x08ff, .product = 0x5501 },
-	{ 0, 0, 0, },
+static const FpIdEntry id_table [ ] = {
+	{ .pid = 0x08ff, .vid = 0x5501 },
+	{ .vid = 0,  .pid = 0,  .driver_data = 0 },
 };
 
-struct fp_img_driver aes4000_driver = {
-	.driver = {
-		.id = AES4000_ID,
-		.name = FP_COMPONENT,
-		.full_name = "AuthenTec AES4000",
-		.id_table = id_table,
-		.scan_type = FP_SCAN_TYPE_PRESS,
-	},
-	.flags = 0,
-	.img_height = FRAME_WIDTH * ENLARGE_FACTOR,
-	.img_width = FRAME_WIDTH * ENLARGE_FACTOR,
+static void fpi_device_aes4000_init(FpiDeviceAes4000 *self) {
+}
 
-	/* temporarily lowered until image quality improves */
-	.bz3_threshold = 9,
+static void fpi_device_aes4000_class_init(FpiDeviceAes4000Class *klass) {
+	FpDeviceClass *dev_class = FP_DEVICE_CLASS(klass);
+	FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS(klass);
+	FpiDeviceAes3kClass *aes_class = FPI_DEVICE_AES3K_CLASS (klass);
 
-	.open = dev_init,
-	.close = dev_deinit,
-	.activate = aes3k_dev_activate,
-	.deactivate = aes3k_dev_deactivate,
-};
+	dev_class->id = "aes4000";
+	dev_class->full_name = "AuthenTec AES4000";
+	dev_class->id_table = id_table;
 
+	img_class->img_height = FRAME_WIDTH * ENLARGE_FACTOR;
+	img_class->img_width = FRAME_WIDTH * ENLARGE_FACTOR;
+
+	aes_class->data_buflen = DATA_BUFLEN;
+	aes_class->frame_width = FRAME_WIDTH;
+	aes_class->frame_size = FRAME_SIZE;
+	aes_class->frame_number = FRAME_NUMBER;
+	aes_class->enlarge_factor = ENLARGE_FACTOR;
+	aes_class->init_reqs = init_reqs;
+	aes_class->init_reqs_len = G_N_ELEMENTS(init_reqs);
+}

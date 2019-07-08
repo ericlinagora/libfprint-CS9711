@@ -30,11 +30,12 @@ struct aes_regwrite {
 struct fpi_frame;
 struct fpi_frame_asmbl_ctx;
 
-typedef void (*aes_write_regv_cb)(struct fp_img_dev *dev, int result,
-	void *user_data);
+typedef void (*aes_write_regv_cb)(FpImageDevice *dev, GError *error,
+				  void *user_data);
 
-void aes_write_regv(struct fp_img_dev *dev, const struct aes_regwrite *regs,
-	unsigned int num_regs, aes_write_regv_cb callback, void *user_data);
+void aes_write_regv(FpImageDevice *dev, const struct aes_regwrite *regs,
+		    unsigned int num_regs, aes_write_regv_cb callback,
+		    void *user_data);
 
 unsigned char aes_get_pixel(struct fpi_frame_asmbl_ctx *ctx,
 			    struct fpi_frame *frame,

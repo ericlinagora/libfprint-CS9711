@@ -24,20 +24,17 @@
 #include <errno.h>
 #include <string.h>
 
-#include <glib.h>
-
-#include "fpi-usb.h"
+#include "fpi-usb-transfer.h"
 #include "fpi-assembling.h"
 #include "aeslib.h"
 
 #define MAX_REGWRITES_PER_REQUEST	16
 
 #define BULK_TIMEOUT	4000
-#define EP_IN			(1 | LIBUSB_ENDPOINT_IN)
-#define EP_OUT			(2 | LIBUSB_ENDPOINT_OUT)
+#define EP_IN			(1 | FPI_USB_ENDPOINT_IN)
+#define EP_OUT			(2 | FPI_USB_ENDPOINT_OUT)
 
 struct write_regv_data {
-	struct fp_img_dev *imgdev;
 	unsigned int num_regs;
 	const struct aes_regwrite *regs;
 	unsigned int offset;
@@ -45,73 +42,62 @@ struct write_regv_data {
 	void *user_data;
 };
 
-static void continue_write_regv(struct write_regv_data *wdata);
+static void continue_write_regv(FpImageDevice *dev, struct write_regv_data *wdata);
 
 /* libusb bulk callback for regv write completion transfer. continues the
  * transaction */
-static void write_regv_trf_complete(struct libusb_transfer *transfer)
+static void write_regv_trf_complete(FpiUsbTransfer *transfer, FpDevice *device,
+				    gpointer user_data, GError *error)
 {
-	struct write_regv_data *wdata = transfer->user_data;
+	struct write_regv_data *wdata = user_data;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		wdata->callback(wdata->imgdev, -EIO, wdata->user_data);
-		g_free(wdata);
-	} else if (transfer->length != transfer->actual_length) {
-		wdata->callback(wdata->imgdev, -EPROTO, wdata->user_data);
+	if (error) {
+		wdata->callback(FP_IMAGE_DEVICE (device), error, wdata->user_data);
 		g_free(wdata);
 	} else {
-		continue_write_regv(wdata);
+		continue_write_regv(FP_IMAGE_DEVICE (device), wdata);
 	}
-
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
 }
 
 /* write from wdata->offset to upper_bound (inclusive) of wdata->regs */
-static int do_write_regv(struct write_regv_data *wdata, int upper_bound)
+static void do_write_regv(FpImageDevice *dev, struct write_regv_data *wdata, int upper_bound)
 {
 	unsigned int offset = wdata->offset;
 	unsigned int num = upper_bound - offset + 1;
 	size_t alloc_size = num * 2;
-	unsigned char *data = g_malloc(alloc_size);
 	unsigned int i;
 	size_t data_offset = 0;
-	struct libusb_transfer *transfer = fpi_usb_alloc();
-	int r;
+	FpiUsbTransfer *transfer = fpi_usb_transfer_new(FP_DEVICE (dev));
+
+	fpi_usb_transfer_fill_bulk (transfer, EP_OUT, alloc_size);
 
 	for (i = offset; i < offset + num; i++) {
 		const struct aes_regwrite *regwrite = &wdata->regs[i];
-		data[data_offset++] = regwrite->reg;
-		data[data_offset++] = regwrite->value;
+		transfer->buffer[data_offset++] = regwrite->reg;
+		transfer->buffer[data_offset++] = regwrite->value;
 	}
 
-	libusb_fill_bulk_transfer(transfer, FP_DEV(wdata->imgdev)->udev, EP_OUT, data,
-		alloc_size, write_regv_trf_complete, wdata, BULK_TIMEOUT);
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(transfer);
-	}
-
-	return r;
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+			       write_regv_trf_complete, wdata);
+	fpi_usb_transfer_unref (transfer);
 }
 
 /* write the next batch of registers to be written, or if there are no more,
  * indicate completion to the caller */
-static void continue_write_regv(struct write_regv_data *wdata)
+static void continue_write_regv(FpImageDevice *dev, struct write_regv_data *wdata)
 {
 	unsigned int offset = wdata->offset;
 	unsigned int regs_remaining;
 	unsigned int limit;
 	unsigned int upper_bound;
 	int i;
-	int r;
 
 	/* skip all zeros and ensure there is still work to do */
 	while (TRUE) {
 		if (offset >= wdata->num_regs) {
 			fp_dbg("all registers written");
-			wdata->callback(wdata->imgdev, 0, wdata->user_data);
+			wdata->callback(dev, 0, wdata->user_data);
 			g_free(wdata);
 			return;
 		}
@@ -133,12 +119,7 @@ static void continue_write_regv(struct write_regv_data *wdata)
 			break;
 		}
 
-	r = do_write_regv(wdata, upper_bound);
-	if (r < 0) {
-		wdata->callback(wdata->imgdev, r, wdata->user_data);
-		g_free(wdata);
-		return;
-	}
+	do_write_regv(dev, wdata, upper_bound);
 
 	wdata->offset = upper_bound + 1;
 }
@@ -146,20 +127,20 @@ static void continue_write_regv(struct write_regv_data *wdata)
 /* write a load of registers to the device, combining multiple writes in a
  * single URB up to a limit. insert writes to non-existent register 0 to force
  * specific groups of writes to be separated by different URBs. */
-void aes_write_regv(struct fp_img_dev *dev, const struct aes_regwrite *regs,
-	unsigned int num_regs, aes_write_regv_cb callback, void *user_data)
+void aes_write_regv(FpImageDevice *dev, const struct aes_regwrite *regs,
+		    unsigned int num_regs, aes_write_regv_cb callback,
+		    void *user_data)
 {
 	struct write_regv_data *wdata;
 
 	fp_dbg("write %d regs", num_regs);
 	wdata = g_malloc(sizeof(*wdata));
-	wdata->imgdev = dev;
 	wdata->num_regs = num_regs;
 	wdata->regs = regs;
 	wdata->offset = 0;
 	wdata->callback = callback;
 	wdata->user_data = user_data;
-	continue_write_regv(wdata);
+	continue_write_regv(dev, wdata);
 }
 
 unsigned char aes_get_pixel(struct fpi_frame_asmbl_ctx *ctx,

@@ -34,25 +34,26 @@
  *
  */
 
-#ifndef __AES3K_H
-#define __AES3K_H
+#pragma once
+#include "fpi-image-device.h"
+#include "aeslib.h"
 
 #define AES3K_FRAME_HEIGHT	16
 
-struct aes3k_dev {
-	struct libusb_transfer *img_trf;
-	size_t frame_width;  /* image size = frame_width x frame_width */
-	size_t frame_size;   /* 4 bits/pixel: frame_width x AES3K_FRAME_HEIGHT / 2 */
-	size_t frame_number; /* number of frames */
-	size_t enlarge_factor;
+G_DECLARE_DERIVABLE_TYPE(FpiDeviceAes3k, fpi_device_aes3k, FPI,
+			 DEVICE_AES3K, FpImageDevice)
 
-	size_t data_buflen;             /* buffer length of usb bulk transfer */
+#define FPI_TYPE_DEVICE_AES3K (fpi_device_aes3k_get_type ())
+
+struct _FpiDeviceAes3kClass {
+	FpImageDeviceClass parent;
+
+	gsize frame_width;  /* image size = frame_width x frame_width */
+	gsize frame_size;   /* 4 bits/pixel: frame_width x AES3K_FRAME_HEIGHT / 2 */
+	gsize frame_number; /* number of frames */
+	gsize enlarge_factor;
+
+	gsize data_buflen;             /* buffer length of usb bulk transfer */
 	struct aes_regwrite *init_reqs; /* initial values sent to device */
-	size_t init_reqs_len;
+	gsize init_reqs_len;
 };
-
-
-int aes3k_dev_activate(struct fp_img_dev *dev);
-void aes3k_dev_deactivate(struct fp_img_dev *dev);
-
-#endif
