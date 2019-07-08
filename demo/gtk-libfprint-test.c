@@ -39,9 +39,12 @@ typedef struct {
 	GtkWidget *header_bar;
 	GtkWidget *mode_stack;
 	GtkWidget *capture_button;
+	GtkWidget *cancel_button;
 	GtkWidget *capture_image;
 	GtkWidget *spinner;
 	GtkWidget *instructions;
+
+	GCancellable *cancellable;
 
 	gboolean opened;
 	FpDevice *dev;
@@ -219,10 +222,13 @@ dev_capture_start_cb (FpDevice *dev,
 	LibfprintDemoWindow *win = user_data;
 	FpImage *image = NULL;
 
+	g_clear_object (&win->cancellable);
+
 	image = fp_device_capture_finish (dev, res, &error);
 	if (!image) {
 		g_warning ("Error capturing data: %s", error->message);
-		if (error->domain == FP_DEVICE_RETRY)
+		if (error->domain == FP_DEVICE_RETRY ||
+		    g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
 			libfprint_demo_set_mode (win, RETRY_MODE);
 		else
 			libfprint_demo_set_mode (win, ERROR_MODE);
@@ -241,7 +247,7 @@ dev_start_capture (LibfprintDemoWindow *win)
 {
 	libfprint_demo_set_capture_label (win);
 
-	fp_device_capture (win->dev, TRUE, NULL, (GAsyncReadyCallback) dev_capture_start_cb, win);
+	fp_device_capture (win->dev, TRUE, win->cancellable, (GAsyncReadyCallback) dev_capture_start_cb, win);
 }
 
 static void
@@ -269,6 +275,9 @@ activate_capture (GSimpleAction *action,
 	libfprint_demo_set_mode (win, SPINNER_MODE);
 	g_clear_pointer (&win->img, g_object_unref);
 
+	g_clear_object (&win->cancellable);
+	win->cancellable = g_cancellable_new ();
+
 	if (win->opened) {
 		dev_start_capture (win);
 		return;
@@ -277,7 +286,20 @@ activate_capture (GSimpleAction *action,
 	libfprint_demo_set_spinner_label (win, "Opening fingerprint reader");
 
 	win->opened = TRUE;
-	fp_device_open (win->dev, NULL, (GAsyncReadyCallback) dev_open_cb, user_data);
+	fp_device_open (win->dev, win->cancellable, (GAsyncReadyCallback) dev_open_cb, user_data);
+}
+
+static void
+cancel_capture (GSimpleAction *action,
+		GVariant      *parameter,
+		gpointer       user_data)
+{
+	LibfprintDemoWindow *win = user_data;
+
+	g_debug ("cancelling %p", win->cancellable);
+
+	if (win->cancellable)
+		g_cancellable_cancel (win->cancellable);
 }
 
 static void
@@ -368,7 +390,8 @@ static GActionEntry app_entries[] = {
 static GActionEntry win_entries[] = {
 	{ "show-minutiae", activate_show_minutiae, NULL, "false", change_show_minutiae_state },
 	{ "show-binary", activate_show_binary, NULL, "false", change_show_binary_state },
-	{ "capture", activate_capture, NULL, NULL, NULL }
+	{ "capture", activate_capture, NULL, NULL, NULL },
+	{ "cancel", cancel_capture, NULL, NULL, NULL }
 };
 
 static void
@@ -392,16 +415,19 @@ libfprint_demo_set_mode (LibfprintDemoWindow *win,
 	case EMPTY_MODE:
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "empty-mode");
 		gtk_widget_set_sensitive (win->capture_button, FALSE);
+		gtk_widget_set_sensitive (win->cancel_button, FALSE);
 		gtk_spinner_stop (GTK_SPINNER (win->spinner));
 		break;
 	case NOIMAGING_MODE:
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "noimaging-mode");
 		gtk_widget_set_sensitive (win->capture_button, FALSE);
+		gtk_widget_set_sensitive (win->cancel_button, FALSE);
 		gtk_spinner_stop (GTK_SPINNER (win->spinner));
 		break;
 	case CAPTURE_MODE:
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "capture-mode");
 		gtk_widget_set_sensitive (win->capture_button, TRUE);
+		gtk_widget_set_sensitive (win->cancel_button, FALSE);
 
 		title = g_strdup_printf ("%s Test", fp_device_get_name (win->dev));
 		gtk_header_bar_set_title (GTK_HEADER_BAR (win->header_bar), title);
@@ -412,16 +438,19 @@ libfprint_demo_set_mode (LibfprintDemoWindow *win,
 	case SPINNER_MODE:
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "spinner-mode");
 		gtk_widget_set_sensitive (win->capture_button, FALSE);
+		gtk_widget_set_sensitive (win->cancel_button, TRUE);
 		gtk_spinner_start (GTK_SPINNER (win->spinner));
 		break;
 	case ERROR_MODE:
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "error-mode");
 		gtk_widget_set_sensitive (win->capture_button, FALSE);
+		gtk_widget_set_sensitive (win->cancel_button, FALSE);
 		gtk_spinner_stop (GTK_SPINNER (win->spinner));
 		break;
 	case RETRY_MODE:
 		gtk_stack_set_visible_child_name (GTK_STACK (win->mode_stack), "retry-mode");
 		gtk_widget_set_sensitive (win->capture_button, TRUE);
+		gtk_widget_set_sensitive (win->cancel_button, FALSE);
 		gtk_spinner_stop (GTK_SPINNER (win->spinner));
 		break;
 	default:
@@ -490,6 +519,7 @@ libfprint_demo_window_class_init (LibfprintDemoWindowClass *class)
 	gtk_widget_class_bind_template_child (widget_class, LibfprintDemoWindow, header_bar);
 	gtk_widget_class_bind_template_child (widget_class, LibfprintDemoWindow, mode_stack);
 	gtk_widget_class_bind_template_child (widget_class, LibfprintDemoWindow, capture_button);
+	gtk_widget_class_bind_template_child (widget_class, LibfprintDemoWindow, cancel_button);
 	gtk_widget_class_bind_template_child (widget_class, LibfprintDemoWindow, capture_image);
 	gtk_widget_class_bind_template_child (widget_class, LibfprintDemoWindow, spinner);
 	gtk_widget_class_bind_template_child (widget_class, LibfprintDemoWindow, instructions);
