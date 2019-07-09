@@ -34,16 +34,16 @@
 #include <stdlib.h>
 #include <glib.h>
 
-#include "fpi-usb.h"
-#include "vfs301_proto.h"
+#include "fpi-usb-transfer.h"
+#include "vfs301.h"
 #include "vfs301_proto_fragments.h"
 
 /************************** USB STUFF *****************************************/
 
 #ifdef DEBUG
-static void usb_print_packet(int dir, int rv, const unsigned char *data, int length)
+static void usb_print_packet(int dir, GError *error, const guint8 *data, int length)
 {
-	fprintf(stderr, "%s, rv %d, len %d\n", dir ? "send" : "recv", rv, length);
+	fprintf(stderr, "%s, error %s, len %d\n", dir ? "send" : "recv", error ? error->message : "-", length);
 
 #ifdef PRINT_VERBOSE
 	int i;
@@ -61,60 +61,69 @@ static void usb_print_packet(int dir, int rv, const unsigned char *data, int len
 }
 #endif
 
-static int usb_recv(
-	vfs301_dev_t *dev,
-	struct libusb_device_handle *devh, unsigned char endpoint, int max_bytes)
+static void usb_recv(FpDeviceVfs301 *dev, guint8 endpoint, int max_bytes, FpiUsbTransfer **out, GError **error)
 {
-	g_assert(max_bytes <= sizeof(dev->recv_buf));
+	GError *err = NULL;
+	g_autoptr(FpiUsbTransfer) transfer = NULL;
 
-	int r = libusb_bulk_transfer(
-		devh, endpoint,
-		dev->recv_buf, max_bytes,
-		&dev->recv_len, VFS301_DEFAULT_WAIT_TIMEOUT
-	);
+	/* XXX: This function swallows any transfer errors, that is obviously
+	 *      quite bad (it used to assert on no-error)! */
+
+	transfer = fpi_usb_transfer_new (FP_DEVICE (dev));
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_fill_bulk (transfer, endpoint, max_bytes);
+
+	fpi_usb_transfer_submit_sync (transfer, VFS301_DEFAULT_WAIT_TIMEOUT, &err);
+
 
 #ifdef DEBUG
-	usb_print_packet(0, r, dev->recv_buf, dev->recv_len);
+	usb_print_packet(0, err, transfer->buffer, transfer->actual_length);
 #endif
+	if (err) {
+		if (!error)
+			g_warning("Unhandled receive error: %s", err->message);
+		g_propagate_error (error, err);
+	}
 
-	if (r < 0)
-		return r;
-	return 0;
+	if (out)
+		*out = g_steal_pointer (&transfer);
 }
 
-static int usb_send(
-	struct libusb_device_handle *devh, const unsigned char *data, int length)
+static void usb_send(FpDeviceVfs301 *dev, const guint8 *data, gssize length, GError **error)
 {
-	int transferred = 0;
+	GError *err = NULL;
+	g_autoptr(FpiUsbTransfer) transfer = NULL;
 
-	int r = libusb_bulk_transfer(
-		devh, VFS301_SEND_ENDPOINT,
-		(unsigned char *)data, length, &transferred, VFS301_DEFAULT_WAIT_TIMEOUT
-	);
+	/* XXX: This function swallows any transfer errors, that is obviously
+	 *      quite bad (it used to assert on no-error)! */
+
+	transfer = fpi_usb_transfer_new (FP_DEVICE (dev));
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_fill_bulk_full (transfer, VFS301_SEND_ENDPOINT, (guint8*) data, length, g_free);
+
+	fpi_usb_transfer_submit_sync (transfer, VFS301_DEFAULT_WAIT_TIMEOUT, &err);
 
 #ifdef DEBUG
-	usb_print_packet(1, r, data, length);
+	usb_print_packet(1, err, data, length);
 #endif
 
-	g_assert(r == 0);
-
-	if (r < 0)
-		return r;
-	if (transferred < length)
-		return r;
-
-	return 0;
+	if (err) {
+		g_warning ("Error while sending data, continuing anyway: %s", err->message);
+		g_propagate_error (error, err);
+	}
 }
 
 /************************** OUT MESSAGES GENERATION ***************************/
 
-static void vfs301_proto_generate_0B(int subtype, unsigned char *data, int *len)
+static guint8 * vfs301_proto_generate_0B(int subtype, gssize *len)
 {
+	guint8 *res = g_malloc0 (39);
+	guint8 *data = res;
+
 	*data = 0x0B;
 	*len = 1;
 	data++;
 
-	memset(data, 0, 39);
 	*len += 38;
 
 	data[20] = subtype;
@@ -125,40 +134,50 @@ static void vfs301_proto_generate_0B(int subtype, unsigned char *data, int *len)
 		break;
 	case 0x05:
 		data[34] = 0xAB;
-		len++;
+		/* NOTE: There was a len++ here, which could never do anything */
 		break;
 	default:
 		g_assert_not_reached();
 		break;
 	}
+
+	return res;
 }
 
 #define HEX_TO_INT(c) \
 	(((c) >= '0' && (c) <= '9') ? ((c) - '0') : ((c) - 'A' + 10))
 
-static void translate_str(const char **srcL, unsigned char *data, int *len)
+static guint8 * translate_str(const char **srcL, gssize *len)
 {
+	guint8 *res = NULL;
+	guint8 *dst;
+	const char **src_pos;
 	const char *src;
-	unsigned char *dataOrig = data;
+	gssize src_len = 0;
 
-	while (*srcL != NULL) {
-		src = *srcL;
-		while (*src != '\0') {
-			g_assert(*src != '\0');
-			g_assert(*(src +1) != '\0');
-			*data = (unsigned char)((HEX_TO_INT(*src) << 4) | (HEX_TO_INT(*(src + 1))));
+	for (src_pos = srcL; *src_pos; src_pos++) {
+		gint tmp;
 
-			data++;
-			src += 2;
-		}
-
-		srcL++;
+		src = *src_pos;
+		tmp = strlen(src);
+		g_assert (tmp % 2 == 0);
+		src_len += tmp;
 	}
 
-	*len = data - dataOrig;
+	*len = src_len / 2;
+	res = g_malloc0 (*len);
+	dst = res;
+
+	for (src_pos = srcL; *src_pos; src_pos++) {
+		for (src = *src_pos; *src; src += 2, dst += 1) {
+			*dst = (guint8) ((HEX_TO_INT (src[0]) << 4) | (HEX_TO_INT (src[1])));
+		}
+	}
+
+	return res;
 }
 
-static void vfs301_proto_generate(int type, int subtype, unsigned char *data, int *len)
+static guint8 *vfs301_proto_generate(int type, int subtype, gssize *len)
 {
 	switch (type) {
 	case 0x01:
@@ -173,11 +192,15 @@ static void vfs301_proto_generate(int type, int subtype, unsigned char *data, in
 	case 0x17:
 	case 0x19:
 	case 0x1A:
-		*data = type;
-		*len = 1;
+		{
+			guint8 *data = g_malloc0 (1);
+			*data = type;
+			*len = 1;
+			return data;
+		}
 		break;
 	case 0x0B:
-		vfs301_proto_generate_0B(subtype, data, len);
+		return vfs301_proto_generate_0B(subtype, len);
 		break;
 	case 0x02D0:
 		{
@@ -190,49 +213,57 @@ static void vfs301_proto_generate(int type, int subtype, unsigned char *data, in
 				vfs301_02D0_06,
 				vfs301_02D0_07,
 			};
-			g_assert((int)subtype <= (int)(sizeof(dataLs) / sizeof(dataLs[0])));
-			translate_str(dataLs[subtype - 1], data, len);
+			g_assert((int)subtype <= G_N_ELEMENTS (dataLs));
+			return translate_str(dataLs[subtype - 1], len);
 		}
 		break;
 	case 0x0220:
 		switch (subtype) {
 		case 1:
-			translate_str(vfs301_0220_01, data, len);
+			return translate_str(vfs301_0220_01, len);
 			break;
 		case 2:
-			translate_str(vfs301_0220_02, data, len);
+			return translate_str(vfs301_0220_02, len);
 			break;
 		case 3:
-			translate_str(vfs301_0220_03, data, len);
+			return translate_str(vfs301_0220_03, len);
 			break;
 		case 0xFA00:
 		case 0x2C01:
-		case 0x5E01:
-			translate_str(vfs301_next_scan_template, data, len);
-			unsigned char *field = data + *len - (sizeof(S4_TAIL) - 1) / 2 - 4;
+		case 0x5E01: {
+			guint8 *data;
+			guint8 *field;
 
-			g_assert(*field == 0xDE);
-			g_assert(*(field + 1) == 0xAD);
-			g_assert(*(field + 2) == 0xDE);
-			g_assert(*(field + 3) == 0xAD);
+			data = translate_str(vfs301_next_scan_template, len);
+			field = data + *len - (sizeof(S4_TAIL) - 1) / 2 - 4;
 
-			*field = (unsigned char)((subtype >> 8) & 0xFF);
-			*(field + 1) = (unsigned char)(subtype & 0xFF);
-			*(field + 2) = *field;
-			*(field + 3) = *(field + 1);
+			g_assert (field >= data && field < data + *len);
+			g_assert(field[0] == 0xDE);
+			g_assert(field[1] == 0xAD);
+			g_assert(field[2] == 0xDE);
+			g_assert(field[3] == 0xAD);
+
+			field[0] = (guint8)((subtype >> 8) & 0xFF);
+			field[1] = (guint8)(subtype & 0xFF);
+			field[2] = field[0];
+			field[3] = field[1];
+
+			return data;
 			break;
+		}
 		default:
-			g_assert(0);
+			g_assert_not_reached();
 			break;
 		}
 		break;
 	case 0x06:
-		g_assert_not_reached();
-		break;
 	default:
-		g_assert_not_reached();
 		break;
 	}
+
+	g_assert_not_reached();
+	*len = 0;
+	return NULL;
 }
 
 /************************** SCAN IMAGE PROCESSING *****************************/
@@ -256,10 +287,10 @@ static int img_is_finished_scan(fp_line_t *lines, int no_lines)
 }
 #endif
 
-static int scanline_diff(const unsigned char *scanlines, int prev, int cur)
+static int scanline_diff(const guint8 *scanlines, int prev, int cur)
 {
-	const unsigned char *line1 = scanlines + prev * VFS301_FP_OUTPUT_WIDTH;
-	const unsigned char *line2 = scanlines + cur * VFS301_FP_OUTPUT_WIDTH;
+	const guint8 *line1 = scanlines + prev * VFS301_FP_OUTPUT_WIDTH;
+	const guint8 *line2 = scanlines + cur * VFS301_FP_OUTPUT_WIDTH;
 	int i;
 	int diff;
 
@@ -285,11 +316,10 @@ static int scanline_diff(const unsigned char *scanlines, int prev, int cur)
 }
 
 /** Transform the input data to a normalized fingerprint scan */
-void vfs301_extract_image(
-	vfs301_dev_t *vfs, unsigned char *output, int *output_height
+void vfs301_extract_image(FpDeviceVfs301 *vfs, guint8 *output, int *output_height
 )
 {
-	const unsigned char *scanlines = vfs->scanline_buf;
+	const guint8 *scanlines = vfs->scanline_buf;
 	int last_line;
 	int i;
 
@@ -318,15 +348,13 @@ void vfs301_extract_image(
 	}
 }
 
-static int img_process_data(
-	int first_block, vfs301_dev_t *dev, const unsigned char *buf, int len
-)
+static int img_process_data(int first_block, FpDeviceVfs301 *dev, const guint8 *buf, int len)
 {
 	vfs301_line_t *lines = (vfs301_line_t*)buf;
 	int no_lines = len / sizeof(vfs301_line_t);
 	int i;
 	/*int no_nonempty;*/
-	unsigned char *cur_line;
+	guint8 *cur_line;
 	int last_img_height;
 #ifdef SCAN_FINISH_DETECTION
 	int finished_scan;
@@ -340,8 +368,7 @@ static int img_process_data(
 		dev->scanline_count += no_lines;
 	}
 
-	dev->scanline_buf = realloc(dev->scanline_buf, dev->scanline_count * VFS301_FP_OUTPUT_WIDTH);
-	g_assert(dev->scanline_buf != NULL);
+	dev->scanline_buf = g_realloc(dev->scanline_buf, dev->scanline_count * VFS301_FP_OUTPUT_WIDTH);
 
 	for (cur_line = dev->scanline_buf + last_img_height * VFS301_FP_OUTPUT_WIDTH, i = 0;
 		i < no_lines;
@@ -365,27 +392,24 @@ static int img_process_data(
 
 /************************** PROTOCOL STUFF ************************************/
 
-static unsigned char usb_send_buf[0x2000];
-
 #define USB_RECV(from, len) \
-	usb_recv(dev, devh, from, len)
+	usb_recv(dev, from, len, NULL, NULL)
 
 #define USB_SEND(type, subtype) \
 	{ \
-		int len; \
-		vfs301_proto_generate(type, subtype, usb_send_buf, &len); \
-		usb_send(devh, usb_send_buf, len); \
+		const guint8 *data; \
+		gssize len; \
+		data = vfs301_proto_generate(type, subtype, &len); \
+		usb_send(dev, data, len, NULL); \
 	}
 
 #define RAW_DATA(x) x, sizeof(x)
 
 #define IS_VFS301_FP_SEQ_START(b) ((b[0] == 0x01) && (b[1] == 0xfe))
 
-static int vfs301_proto_process_data(int first_block, vfs301_dev_t *dev)
+static int vfs301_proto_process_data(FpDeviceVfs301 *dev, int first_block, const guint8 *buf, gint len)
 {
 	int i;
-	const unsigned char *buf = dev->recv_buf;
-	int len = dev->recv_len;
 
 	if (first_block) {
 		g_assert(len >= VFS301_FP_FRAME_SIZE);
@@ -400,80 +424,86 @@ static int vfs301_proto_process_data(int first_block, vfs301_dev_t *dev)
 	return img_process_data(first_block, dev, buf, len);
 }
 
-void vfs301_proto_request_fingerprint(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev)
+void vfs301_proto_request_fingerprint(FpDeviceVfs301 *dev)
 {
 	USB_SEND(0x0220, 0xFA00);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 000000000000 */
 }
 
-int vfs301_proto_peek_event(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev)
+int vfs301_proto_peek_event(FpDeviceVfs301 *dev)
 {
+	g_autoptr(GError) error = NULL;
+	g_autoptr(FpiUsbTransfer) transfer = NULL;
+
 	const char no_event[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	const char got_event[] = {0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00};
 
 	USB_SEND(0x17, -1);
-	g_assert(USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 7) == 0);
+	usb_recv (dev, VFS301_RECEIVE_ENDPOINT_CTRL, 7, &transfer, &error);
 
-	if (memcmp(dev->recv_buf, no_event, sizeof(no_event)) == 0) {
+	/* XXX: This is obviously not a sane error handling! */
+	g_assert (!error);
+
+	if (memcmp(transfer->buffer, no_event, sizeof(no_event)) == 0) {
 		return 0;
-	} else if (memcmp(dev->recv_buf, got_event, sizeof(no_event)) == 0) {
+	} else if (memcmp(transfer->buffer, got_event, sizeof(no_event)) == 0) {
 		return 1;
 	} else {
 		g_assert_not_reached();
 	}
 }
 
-#define VARIABLE_ORDER(a, b) \
+/* XXX: We sometimes need to receive data on from two endpoints at the same
+ *      time. However, as this driver is currently all synchronous (yikes),
+ *      we will run into timeouts randomly and need to then try again.
+ */
+#define PARALLEL_RECEIVE(e1, l1, e2, l2) \
 	{ \
-		int _rv = a;\
-		b; \
-		if (_rv == -7) \
-			a; \
+		g_autoptr(GError) error = NULL;\
+		usb_recv(dev, e1, l1, NULL, &error); \
+		usb_recv(dev, e2, l2, NULL, NULL); \
+		if (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT)) \
+			usb_recv(dev, e1, l1, NULL, NULL); \
 	}
 
-static void vfs301_proto_process_event_cb(struct libusb_transfer *transfer)
+static void vfs301_proto_process_event_cb(FpiUsbTransfer *transfer,
+					  FpDevice *device,
+					  gpointer user_data, GError *error)
 {
-	vfs301_dev_t *dev = transfer->user_data;
-	struct libusb_device_handle *devh = transfer->dev_handle;
+	FpDeviceVfs301 *dev = user_data;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
+	if (error) {
+		g_warning ("Error receiving data: %s", error->message);
+		g_error_free (error);
 		dev->recv_progress = VFS301_FAILURE;
-		goto end;
-	} else if (transfer->actual_length < dev->recv_exp_amt) {
+		return;
+	} else if (transfer->actual_length < transfer->length) {
 		/* TODO: process the data anyway? */
 		dev->recv_progress = VFS301_ENDED;
-		goto end;
+		return;
 	} else {
-		dev->recv_len = transfer->actual_length;
-		if (!vfs301_proto_process_data(dev->recv_exp_amt == VFS301_FP_RECV_LEN_1, dev)) {
+		FpiUsbTransfer *new;
+		if (!vfs301_proto_process_data(dev,
+		                               transfer->length == VFS301_FP_RECV_LEN_1,
+		                               transfer->buffer,
+		                               transfer->actual_length)) {
 			dev->recv_progress = VFS301_ENDED;
-			goto end;
+			return;
 		}
 
-		dev->recv_exp_amt = VFS301_FP_RECV_LEN_2;
-		libusb_fill_bulk_transfer(
-			transfer, devh, VFS301_RECEIVE_ENDPOINT_DATA,
-			dev->recv_buf, dev->recv_exp_amt,
-			vfs301_proto_process_event_cb, dev, VFS301_FP_RECV_TIMEOUT);
+		new = fpi_usb_transfer_new (device);
 
-		if (libusb_submit_transfer(transfer) < 0) {
-			printf("cb::continue fail\n");
-			dev->recv_progress = VFS301_FAILURE;
-			goto end;
-		}
+		fpi_usb_transfer_fill_bulk(new, VFS301_RECEIVE_ENDPOINT_DATA, VFS301_FP_RECV_LEN_2);
+		fpi_usb_transfer_submit(new, VFS301_FP_RECV_TIMEOUT, NULL,
+				       vfs301_proto_process_event_cb, NULL);
+		fpi_usb_transfer_unref (new);
 		return;
 	}
-
-end:
-	libusb_free_transfer(transfer);
 }
 
-void vfs301_proto_process_event_start(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev)
+void vfs301_proto_process_event_start(FpDeviceVfs301 *dev)
 {
-	struct libusb_transfer *transfer;
+	FpiUsbTransfer *transfer;
 
 	/*
 	 * Notes:
@@ -499,24 +529,16 @@ void vfs301_proto_process_event_start(
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_DATA, 64);
 
 	/* now read the fingerprint data, while there are some */
-	transfer = fpi_usb_alloc();
+	transfer = fpi_usb_transfer_new(FP_DEVICE (dev));
 	dev->recv_progress = VFS301_ONGOING;
-	dev->recv_exp_amt = VFS301_FP_RECV_LEN_1;
 
-	libusb_fill_bulk_transfer(
-		transfer, devh, VFS301_RECEIVE_ENDPOINT_DATA,
-		dev->recv_buf, dev->recv_exp_amt,
-		vfs301_proto_process_event_cb, dev, VFS301_FP_RECV_TIMEOUT);
-
-	if (libusb_submit_transfer(transfer) < 0) {
-		libusb_free_transfer(transfer);
-		dev->recv_progress = VFS301_FAILURE;
-		return;
-	}
+	fpi_usb_transfer_fill_bulk (transfer, VFS301_RECEIVE_ENDPOINT_DATA, VFS301_FP_RECV_LEN_1);
+	fpi_usb_transfer_submit(transfer, VFS301_FP_RECV_TIMEOUT, NULL,
+			       vfs301_proto_process_event_cb, NULL);
+	fpi_usb_transfer_unref(transfer);
 }
 
-int /* vfs301_dev_t::recv_progress */ vfs301_proto_process_event_poll(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev)
+int vfs301_proto_process_event_poll(FpDeviceVfs301 *dev)
 {
 	if (dev->recv_progress != VFS301_ENDED)
 		return dev->recv_progress;
@@ -526,21 +548,21 @@ int /* vfs301_dev_t::recv_progress */ vfs301_proto_process_event_poll(
 	USB_SEND(0x04, -1);
 	/* the following may come in random order, data may not come at all, don't
 	* try for too long... */
-	VARIABLE_ORDER(
-		USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2), /* 1204 */
-		USB_RECV(VFS301_RECEIVE_ENDPOINT_DATA, 16384)
+	PARALLEL_RECEIVE(
+		VFS301_RECEIVE_ENDPOINT_CTRL, 2, /* 1204 */
+		VFS301_RECEIVE_ENDPOINT_DATA, 16384
 	);
 
 	USB_SEND(0x0220, 2);
-	VARIABLE_ORDER(
-		USB_RECV(VFS301_RECEIVE_ENDPOINT_DATA, 5760), /* seems to always come */
-		USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2) /* 0000 */
+	PARALLEL_RECEIVE(
+		VFS301_RECEIVE_ENDPOINT_DATA, 5760, /* seems to always come */
+		VFS301_RECEIVE_ENDPOINT_CTRL, 2 /* 0000 */
 	);
 
 	return dev->recv_progress;
 }
 
-void vfs301_proto_init(struct libusb_device_handle *devh, vfs301_dev_t *dev)
+void vfs301_proto_init(FpDeviceVfs301 *dev)
 {
 	USB_SEND(0x01, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 38);
@@ -551,14 +573,14 @@ void vfs301_proto_init(struct libusb_device_handle *devh, vfs301_dev_t *dev)
 	USB_SEND(0x19, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 64);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 4); /* 6BB4D0BC */
-	usb_send(devh, RAW_DATA(vfs301_06_1));
+	usb_send(dev, RAW_DATA(vfs301_06_1), NULL);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 
 	USB_SEND(0x01, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 38);
 	USB_SEND(0x1A, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
-	usb_send(devh, RAW_DATA(vfs301_06_2));
+	usb_send(dev, RAW_DATA(vfs301_06_2), NULL);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 	USB_SEND(0x0220, 1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
@@ -567,7 +589,7 @@ void vfs301_proto_init(struct libusb_device_handle *devh, vfs301_dev_t *dev)
 
 	USB_SEND(0x1A, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
-	usb_send(devh, RAW_DATA(vfs301_06_3));
+	usb_send(dev, RAW_DATA(vfs301_06_3), NULL);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 
 	USB_SEND(0x01, -1);
@@ -593,29 +615,29 @@ void vfs301_proto_init(struct libusb_device_handle *devh, vfs301_dev_t *dev)
 	USB_SEND(0x02D0, 7);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_DATA, 832);
-	usb_send(devh, RAW_DATA(vfs301_12));
+	usb_send(dev, RAW_DATA(vfs301_12), NULL);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 
 	USB_SEND(0x1A, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
-	usb_send(devh, RAW_DATA(vfs301_06_2));
+	usb_send(dev, RAW_DATA(vfs301_06_2), NULL);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 	USB_SEND(0x0220, 2);
-	VARIABLE_ORDER(
-		USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2), /* 0000 */
-		USB_RECV(VFS301_RECEIVE_ENDPOINT_DATA, 5760)
+	PARALLEL_RECEIVE(
+		VFS301_RECEIVE_ENDPOINT_CTRL, 2, /* 0000 */
+		VFS301_RECEIVE_ENDPOINT_DATA, 5760
 	);
 
 	USB_SEND(0x1A, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
-	usb_send(devh, RAW_DATA(vfs301_06_1));
+	usb_send(dev, RAW_DATA(vfs301_06_1), NULL);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 
 	USB_SEND(0x1A, -1);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
-	usb_send(devh, RAW_DATA(vfs301_06_4));
+	usb_send(dev, RAW_DATA(vfs301_06_4), NULL);
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
-	usb_send(devh, RAW_DATA(vfs301_24)); /* turns on white */
+	usb_send(dev, RAW_DATA(vfs301_24), NULL); /* turns on white */
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_CTRL, 2); /* 0000 */
 
 	USB_SEND(0x01, -1);
@@ -626,6 +648,6 @@ void vfs301_proto_init(struct libusb_device_handle *devh, vfs301_dev_t *dev)
 	USB_RECV(VFS301_RECEIVE_ENDPOINT_DATA, 5760);
 }
 
-void vfs301_proto_deinit(struct libusb_device_handle *devh, vfs301_dev_t *dev)
+void vfs301_proto_deinit(FpDeviceVfs301 *dev)
 {
 }

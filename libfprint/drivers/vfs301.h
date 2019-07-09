@@ -18,7 +18,11 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include <libusb-1.0/libusb.h>
+
+#pragma once
+
+#include "fpi-usb-transfer.h"
+#include "fpi-image-device.h"
 
 enum {
 	VFS301_DEFAULT_WAIT_TIMEOUT = 300,
@@ -31,10 +35,8 @@ enum {
 #define VFS301_FP_RECV_LEN_1 (84032)
 #define VFS301_FP_RECV_LEN_2 (84096)
 
-typedef struct {
-	/* buffer for received data */
-	unsigned char recv_buf[0x20000];
-	int recv_len;
+struct _FpDeviceVfs301 {
+	FpImageDevice parent;
 
 	/* buffer to hold raw scanlines */
 	unsigned char *scanline_buf;
@@ -46,7 +48,9 @@ typedef struct {
 		VFS301_FAILURE = -1
 	} recv_progress;
 	int recv_exp_amt;
-} vfs301_dev_t;
+};
+
+G_DECLARE_FINAL_TYPE (FpDeviceVfs301, fpi_device_vfs301, FPI, DEVICE_VFS301, FpImageDevice)
 
 enum {
 	/* Width of the scanned data in px */
@@ -120,18 +124,14 @@ typedef struct {
 	unsigned char sum3[3];
 } vfs301_line_t;
 
-void vfs301_proto_init(struct libusb_device_handle *devh, vfs301_dev_t *dev);
-void vfs301_proto_deinit(struct libusb_device_handle *devh, vfs301_dev_t *dev);
+void vfs301_proto_init(FpDeviceVfs301 *dev);
+void vfs301_proto_deinit(FpDeviceVfs301 *dev);
 
-void vfs301_proto_request_fingerprint(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev);
+void vfs301_proto_request_fingerprint(FpDeviceVfs301 *dev);
 
 /** returns 0 if no event is ready, or 1 if there is one... */
-int vfs301_proto_peek_event(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev);
-void vfs301_proto_process_event_start(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev);
-int vfs301_proto_process_event_poll(
-	struct libusb_device_handle *devh, vfs301_dev_t *dev);
+int vfs301_proto_peek_event(FpDeviceVfs301 *dev);
+void vfs301_proto_process_event_start(FpDeviceVfs301 *dev);
+int vfs301_proto_process_event_poll(FpDeviceVfs301 *dev);
 
-void vfs301_extract_image(vfs301_dev_t *vfs, unsigned char *output, int *output_height);
+void vfs301_extract_image(FpDeviceVfs301 *vfs, unsigned char *output, int *output_height);
