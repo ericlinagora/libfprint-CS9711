@@ -17,6 +17,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#pragma once
+
+#include "fpi-image-device.h"
+
 /* Timeout for all send/recv operations, except interrupt waiting and abort */
 #define VFS_USB_TIMEOUT 100
 /* Timeout for usb abort */
@@ -74,7 +78,9 @@ struct vfs_line {
 } __attribute__ ((__packed__));
 
 /* The main driver structure */
-struct vfs_dev_t {
+struct _FpDeviceVfs0050 {
+	FpImageDevice parent;
+
 	/* One if we were asked to read fingerprint, zero otherwise */
 	char active;
 
@@ -84,14 +90,8 @@ struct vfs_dev_t {
 	/* For dev_deactivate to check whether ssm still running or not */
 	char ssm_active;
 
-	/* Current async transfer */
-	struct libusb_transfer *transfer;
-
 	/* Should we call fpi_imgdev_activate_complete or fpi_imgdev_deactivate_complete */
 	char need_report;
-
-	/* Should we wait more for interrupt */
-	char wait_interrupt;
 
 	/* Received fingerprint raw lines */
 	struct vfs_line *lines_buffer;
@@ -105,6 +105,8 @@ struct vfs_dev_t {
 	/* Received interrupt data */
 	unsigned char interrupt[8];
 };
+
+G_DECLARE_FINAL_TYPE (FpDeviceVfs0050, fpi_device_vfs0050, FPI, DEVICE_VFS0050, FpImageDevice)
 
 /* SSM states for clear_ep2 */
 enum SUBSM1 {
