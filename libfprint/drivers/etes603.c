@@ -148,67 +148,73 @@
 
 /* This structure must be packed because it is a the raw message sent. */
 struct egis_msg {
-	uint8_t magic[5]; /* out: 'EGIS' 0x09 / in: 'SIGE' 0x0A */
-	uint8_t cmd;
+	guint8 magic[5]; /* out: 'EGIS' 0x09 / in: 'SIGE' 0x0A */
+	guint8 cmd;
 	union {
 		struct {
-			uint8_t nb;
-			uint8_t regs[REG_MAX];
+			guint8 nb;
+			guint8 regs[REG_MAX];
 		} egis_readreg;
 		struct {
-			uint8_t regs[REG_MAX];
+			guint8 regs[REG_MAX];
 		} sige_readreg;
 		struct {
-			uint8_t nb;
+			guint8 nb;
 			struct {
-				uint8_t reg;
-				uint8_t val;
+				guint8 reg;
+				guint8 val;
 			} regs[REG_MAX];
 		} egis_writereg;
 		struct {
-			uint8_t length_factor;
-			uint8_t length;
-			uint8_t use_gvv;
-			uint8_t gain;
-			uint8_t vrt;
-			uint8_t vrb;
+			guint8 length_factor;
+			guint8 length;
+			guint8 use_gvv;
+			guint8 gain;
+			guint8 vrt;
+			guint8 vrb;
 		} egis_readf;
 		struct {
-			uint8_t len[2];
-			uint8_t val[3];
+			guint8 len[2];
+			guint8 val[3];
 		} egis_readfp;
 		struct {
-			uint8_t val[5];
+			guint8 val[5];
 		} sige_misc;
-		uint8_t padding[0x40-6]; /* Ensure size of 0x40 */
+		guint8 padding[0x40-6]; /* Ensure size of 0x40 */
 	};
 } __attribute__((packed));
 
 
 /* Structure to keep information between asynchronous functions. */
-struct etes603_dev {
-	uint8_t regs[256];
+struct _FpiDeviceEtes603 {
+	FpImageDevice parent;
+
+	guint8 regs[256];
 	struct egis_msg *req;
 	size_t req_len;
 	struct egis_msg *ans;
 	size_t ans_len;
 
-	uint8_t *fp;
-	uint16_t fp_height;
+	guint8 *fp;
+	guint16 fp_height;
 
-	uint8_t tunedc_min;
-	uint8_t tunedc_max;
+	guint8 tunedc_min;
+	guint8 tunedc_max;
 
 	/* Device parameters */
-	uint8_t gain;
-	uint8_t dcoffset;
-	uint8_t vrt;
-	uint8_t vrb;
+	guint8 gain;
+	guint8 dcoffset;
+	guint8 vrt;
+	guint8 vrb;
 
+	gboolean deactivating;
 	unsigned int is_active;
 };
+G_DECLARE_FINAL_TYPE(FpiDeviceEtes603, fpi_device_etes603, FPI, DEVICE_ETES603,
+		     FpImageDevice);
+G_DEFINE_TYPE(FpiDeviceEtes603, fpi_device_etes603, FP_TYPE_IMAGE_DEVICE);
 
-static void m_start_fingerdetect(struct fp_img_dev *idev);
+static void m_start_fingerdetect(FpImageDevice *idev);
 /*
  * Prepare the header of the message to be sent to the device.
  */
@@ -236,10 +242,11 @@ static int msg_header_check(struct egis_msg *msg)
 /*
  * Prepare message to ask for a frame.
  */
-static void msg_get_frame(struct etes603_dev *dev,
-	uint8_t use_gvv, uint8_t gain, uint8_t vrt, uint8_t vrb)
+static void msg_get_frame(FpiDeviceEtes603 *self,
+			  guint8 use_gvv, guint8 gain, guint8 vrt,
+			  guint8 vrb)
 {
-	struct egis_msg *msg = dev->req;
+	struct egis_msg *msg = self->req;
 	msg_header_prepare(msg);
 	msg->cmd = CMD_READ_FRAME;
 	msg->egis_readf.length_factor = 0x01;
@@ -251,17 +258,17 @@ static void msg_get_frame(struct etes603_dev *dev,
 	msg->egis_readf.vrt = vrt;
 	msg->egis_readf.vrb = vrb;
 
-	dev->req_len = MSG_HDR_SIZE + 6;
-	dev->ans_len = FRAME_SIZE;
+	self->req_len = MSG_HDR_SIZE + 6;
+	self->ans_len = FRAME_SIZE;
 }
 
 /*
  * Prepare message to ask for a fingerprint frame.
  */
-static void msg_get_fp(struct etes603_dev *dev, uint8_t len0, uint8_t len1,
-	uint8_t v2, uint8_t v3, uint8_t v4)
+static void msg_get_fp(FpiDeviceEtes603 *self, guint8 len0, guint8 len1,
+		       guint8 v2, guint8 v3, guint8 v4)
 {
-	struct egis_msg *msg = dev->req;
+	struct egis_msg *msg = self->req;
 	msg_header_prepare(msg);
 	msg->cmd = CMD_READ_FE;
 	/* Unknown values and always same on captured frames.
@@ -278,17 +285,17 @@ static void msg_get_fp(struct etes603_dev *dev, uint8_t len0, uint8_t len1,
 	msg->egis_readfp.val[1] = v3;
 	msg->egis_readfp.val[2] = v4;
 
-	dev->req_len = MSG_HDR_SIZE + 5;
-	dev->ans_len = FE_SIZE;
+	self->req_len = MSG_HDR_SIZE + 5;
+	self->ans_len = FE_SIZE;
 }
 
 /*
  * Prepare message to read registers from the sensor.
  * Variadic argument pattern: int reg, ...
  */
-static void msg_get_regs(struct etes603_dev *dev, int n_args, ... )
+static void msg_get_regs(FpiDeviceEtes603 *self, int n_args, ... )
 {
-	struct egis_msg *msg = dev->req;
+	struct egis_msg *msg = self->req;
 	va_list ap;
 	int i;
 
@@ -303,14 +310,14 @@ static void msg_get_regs(struct etes603_dev *dev, int n_args, ... )
 	}
 	va_end(ap);
 
-	dev->req_len = MSG_HDR_SIZE + 1 + n_args;
-	dev->ans_len = MSG_HDR_SIZE + 1 + n_args;
+	self->req_len = MSG_HDR_SIZE + 1 + n_args;
+	self->ans_len = MSG_HDR_SIZE + 1 + n_args;
 }
 
 /*
  * Parse the result of read register command.
  */
-static int msg_parse_regs(struct etes603_dev *dev)
+static int msg_parse_regs(FpiDeviceEtes603 *dev)
 {
 	size_t i, n_args;
 	struct egis_msg *msg_req = dev->req;
@@ -335,9 +342,9 @@ static int msg_parse_regs(struct etes603_dev *dev)
  * Prepare message to write sensor's registers.
  * Variadic arguments are: int reg, int val, ...
  */
-static void msg_set_regs(struct etes603_dev *dev, int n_args, ...)
+static void msg_set_regs(FpiDeviceEtes603 *self, int n_args, ...)
 {
-	struct egis_msg *msg = dev->req;
+	struct egis_msg *msg = self->req;
 	va_list ap;
 	int i;
 
@@ -354,11 +361,11 @@ static void msg_set_regs(struct etes603_dev *dev, int n_args, ...)
 	}
 	va_end(ap);
 
-	dev->req_len = MSG_HDR_SIZE + 1 + n_args;
-	dev->ans_len = MSG_HDR_SIZE + 1;
+	self->req_len = MSG_HDR_SIZE + 1 + n_args;
+	self->ans_len = MSG_HDR_SIZE + 1;
 }
 
-static int msg_check_ok(struct etes603_dev *dev)
+static int msg_check_ok(FpiDeviceEtes603 *dev)
 {
 	struct egis_msg *msg = dev->ans;
 	if (msg_header_check(msg)) {
@@ -375,7 +382,7 @@ err:
 /*
  * Check the model of the sensor.
  */
-static int check_info(struct etes603_dev *dev)
+static int check_info(FpiDeviceEtes603 *dev)
 {
 	if (dev->regs[0x70] == 0x4A && dev->regs[0x71] == 0x44
 	    && dev->regs[0x72] == 0x49 && dev->regs[0x73] == 0x31)
@@ -387,7 +394,7 @@ static int check_info(struct etes603_dev *dev)
 	return -1;
 }
 
-static void msg_get_cmd20(struct etes603_dev *dev)
+static void msg_get_cmd20(FpiDeviceEtes603 *dev)
 {
 	struct egis_msg *msg = dev->req;
 	msg_header_prepare(msg);
@@ -395,7 +402,7 @@ static void msg_get_cmd20(struct etes603_dev *dev)
 	dev->req_len = MSG_HDR_SIZE;
 }
 
-static int msg_check_cmd20(struct etes603_dev *dev)
+static int msg_check_cmd20(FpiDeviceEtes603 *dev)
 {
 	struct egis_msg *msg = dev->ans;
 	if (msg_header_check(msg)) {
@@ -413,7 +420,7 @@ static int msg_check_cmd20(struct etes603_dev *dev)
 	return 0;
 }
 
-static void msg_get_cmd25(struct etes603_dev *dev)
+static void msg_get_cmd25(FpiDeviceEtes603 *dev)
 {
 	struct egis_msg *msg = dev->req;
 	msg_header_prepare(msg);
@@ -421,7 +428,7 @@ static void msg_get_cmd25(struct etes603_dev *dev)
 	dev->req_len = MSG_HDR_SIZE;
 }
 
-static int msg_check_cmd25(struct etes603_dev *dev)
+static int msg_check_cmd25(FpiDeviceEtes603 *dev)
 {
 	struct egis_msg *msg = dev->ans;
 	if (msg_header_check(msg)) {
@@ -442,9 +449,9 @@ err:
 	return -1;
 }
 
-static void msg_set_mode_control(struct etes603_dev *dev, uint8_t mode)
+static void msg_set_mode_control(FpiDeviceEtes603 *self, guint8 mode)
 {
-	msg_set_regs(dev, 2, REG_MODE_CONTROL, mode);
+	msg_set_regs(self, 2, REG_MODE_CONTROL, mode);
 }
 
 
@@ -453,7 +460,7 @@ static void msg_set_mode_control(struct etes603_dev *dev, uint8_t mode)
 /*
  * Return the brightness of a 4bpp frame
  */
-static unsigned int process_get_brightness(uint8_t *f, size_t s)
+static unsigned int process_get_brightness(guint8 *f, size_t s)
 {
 	unsigned int i, sum = 0;
 	for (i = 0; i < s; i++) {
@@ -466,7 +473,7 @@ static unsigned int process_get_brightness(uint8_t *f, size_t s)
 /*
  * Return the histogram of a 4bpp frame
  */
-static void process_hist(uint8_t *f, size_t s, float stat[5])
+static void process_hist(guint8 *f, size_t s, float stat[5])
 {
 	float hist[16];
 	float black_mean, white_mean;
@@ -502,7 +509,7 @@ static void process_hist(uint8_t *f, size_t s, float stat[5])
 /*
  * Return true if the frame is almost empty.
  */
-static int process_frame_empty(uint8_t *frame, size_t size)
+static int process_frame_empty(guint8 *frame, size_t size)
 {
 	unsigned int sum = process_get_brightness(frame, size);
 	/* Allow an average of 'threshold' luminosity per pixel */
@@ -512,8 +519,8 @@ static int process_frame_empty(uint8_t *frame, size_t size)
 }
 
 /* Transform 4 bits image to 8 bits image */
-static void process_4to8_bpp(uint8_t *input, unsigned int input_size,
-	uint8_t *output)
+static void process_4to8_bpp(guint8 *input, unsigned int input_size,
+	guint8 *output)
 {
 	unsigned int i, j = 0;
 	for (i = 0; i < input_size; i++, j += 2) {
@@ -526,11 +533,11 @@ static void process_4to8_bpp(uint8_t *input, unsigned int input_size,
 /*
  * Remove duplicated lines at the end of a fingerprint.
  */
-static void process_remove_fp_end(struct etes603_dev *dev)
+static void process_removefpi_end(FpiDeviceEtes603 *dev)
 {
 	unsigned int i;
 	/* 2 last lines with Fly-Estimation are the empty pattern. */
-	uint8_t *pattern = dev->fp + (dev->fp_height - 2) * FE_WIDTH / 2;
+	guint8 *pattern = dev->fp + (dev->fp_height - 2) * FE_WIDTH / 2;
 	for (i = 2; i < dev->fp_height; i+= 2) {
 		if (memcmp(pattern, pattern - (i * FE_WIDTH / 2), FE_WIDTH))
 			break;
@@ -539,7 +546,7 @@ static void process_remove_fp_end(struct etes603_dev *dev)
 	fp_dbg("Removing %d empty lines from image", i - 2);
 }
 
-static void reset_param(struct etes603_dev *dev)
+static void reset_param(FpiDeviceEtes603 *dev)
 {
 	dev->dcoffset = 0;
 	dev->vrt = 0;
@@ -636,121 +643,112 @@ enum {
 	EXIT_NUM_STATES
 };
 
-static int async_tx(struct fp_img_dev *idev, unsigned int ep, void *cb,
-	void *cb_arg)
+static void async_tx(FpDevice *dev, unsigned int ep, void *cb,
+		     FpiSsm *ssm)
 {
-	struct etes603_dev *dev = FP_INSTANCE_DATA(FP_DEV(idev));
-	struct libusb_transfer *transfer = fpi_usb_alloc();
-	unsigned char *buffer;
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
+	FpiUsbTransfer *transfer = fpi_usb_transfer_new(dev);
+	unsigned char *buffer = NULL;
 	int length;
 
 	if (ep == EP_OUT) {
-		buffer = (unsigned char *)dev->req;
-		length = dev->req_len;
+		buffer = (unsigned char *) self->req;
+		length = self->req_len;
 	} else if (ep == EP_IN) {
-		buffer = (unsigned char *)dev->ans;
-		length = dev->ans_len;
+		buffer = (unsigned char *) self->ans;
+		length = self->ans_len;
 	} else {
-		return -EIO;
+		g_assert_not_reached ();
 	}
-	libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(idev)), ep, buffer, length,
-				  cb, cb_arg, BULK_TIMEOUT);
-
-	if (libusb_submit_transfer(transfer)) {
-		libusb_free_transfer(transfer);
-		return -EIO;
-	}
-	return 0;
+	transfer->ssm = ssm;
+	fpi_usb_transfer_fill_bulk_full(transfer, ep, buffer, length, NULL);
+	fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL, cb, NULL);
+	fpi_usb_transfer_unref(transfer);
 }
 
 
-static void async_tx_cb(struct libusb_transfer *transfer)
+static void async_tx_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct etes603_dev *dev = FP_INSTANCE_DATA(FP_DEV(idev));
+	FpImageDevice *idev = FP_IMAGE_DEVICE(device);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(idev);
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fp_warn("transfer is not completed (status=%d)",
-			transfer->status);
-		fpi_ssm_mark_failed(ssm, -EIO);
-		libusb_free_transfer(transfer);
+	if (error) {
+		fp_warn("transfer is not completed (result: %s)",
+			error->message);
+		fpi_ssm_mark_failed(transfer->ssm, error);
 	} else {
 		unsigned char endpoint = transfer->endpoint;
 		int actual_length = transfer->actual_length;
 		int length = transfer->length;
-		/* Freeing now transfer since fpi_ssm_* functions are not
-		 * returning directly. */
-		libusb_free_transfer(transfer);
+
 		if (endpoint == EP_OUT) {
 			if (length != actual_length)
 				fp_warn("length %d != actual_length %d",
 					length, actual_length);
+
 			/* Chained with the answer */
-			if (async_tx(idev, EP_IN, async_tx_cb, ssm))
-				fpi_ssm_mark_failed(ssm, -EIO);
+			async_tx(device, EP_IN, async_tx_cb, transfer->ssm);
 		} else if (endpoint == EP_IN) {
-			dev->ans_len = actual_length;
-			fpi_ssm_next_state(ssm);
+			self->ans_len = actual_length;
+			fpi_ssm_next_state(transfer->ssm);
 		}
 	}
 }
 
-static void m_exit_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_exit_state(FpiSsm *ssm, FpDevice *dev, void *user_data)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case EXIT_SET_REGS_REQ:
-		msg_set_regs(dev, 4, REG_VCO_CONTROL, REG_VCO_IDLE,
+		msg_set_regs(self, 4, REG_VCO_CONTROL, REG_VCO_IDLE,
 			     REG_MODE_CONTROL, REG_MODE_SLEEP);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case EXIT_SET_REGS_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_mark_completed(ssm);
 		break;
 	default:
-		fp_err("Unknown state %d", fpi_ssm_get_cur_state(ssm));
-		goto err;
+		g_assert_not_reached();
 		break;
 	}
 
 	return;
 err:
-	fpi_ssm_mark_failed(ssm, -EIO);
+	fpi_ssm_mark_failed(ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 }
 
-static void m_exit_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_exit_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
+			    GError *error)
 {
-	struct fp_img_dev *idev = user_data;
+	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
 
-	if (fpi_ssm_get_error(ssm)) {
+	if (error) {
 		fp_err("Error switching the device to idle state");
 	} else {
 		fp_dbg("The device is now in idle state");
 	}
-	fpi_imgdev_deactivate_complete(idev);
+	fpi_image_device_deactivate_complete(idev, error);
 	fpi_ssm_free(ssm);
 }
 
-static void m_exit_start(struct fp_img_dev *idev)
+static void m_exit_start(FpImageDevice *idev)
 {
-	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(idev), m_exit_state,
+	FpiSsm *ssm = fpi_ssm_new(FP_DEVICE(idev), m_exit_state,
 					  EXIT_NUM_STATES, idev);
 	fp_dbg("Switching device to idle mode");
 	fpi_ssm_start(ssm, m_exit_complete);
 }
 
-static void m_capture_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_capture_state(FpiSsm *ssm, FpDevice *dev, void *user_data)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 
-	if (dev->is_active == FALSE) {
+	if (self->is_active == FALSE) {
 		fpi_ssm_mark_completed(ssm);
 		return;
 	}
@@ -759,88 +757,87 @@ static void m_capture_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 	case CAP_FP_INIT_SET_REG10_REQ:
 		/* Reset fingerprint */
 		fp_dbg("Capturing a fingerprint...");
-		memset(dev->fp, 0, FE_SIZE * 2);
-		dev->fp_height = 0;
-		msg_set_regs(dev, 2, REG_10, 0x92);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		memset(self->fp, 0, FE_SIZE * 2);
+		self->fp_height = 0;
+		msg_set_regs(self, 2, REG_10, 0x92);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case CAP_FP_INIT_SET_REG10_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAP_FP_INIT_SET_MODE_FP_REQ:
-		msg_set_mode_control(dev, REG_MODE_FP);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_mode_control(self, REG_MODE_FP);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case CAP_FP_INIT_SET_MODE_FP_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fp_dbg("Capturing a 1st frame...");
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAP_FP_GET_FP_REQ:
-		msg_get_fp(dev, 0x01, 0xF4, 0x02, 0x01, 0x64);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_get_fp(self, 0x01, 0xF4, 0x02, 0x01, 0x64);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case CAP_FP_GET_FP_ANS:
-		memcpy(dev->fp + dev->fp_height * FE_WIDTH / 2, dev->ans,
+		memcpy(self->fp + self->fp_height * FE_WIDTH / 2, self->ans,
 			FE_SIZE);
-		dev->fp_height += FE_HEIGHT;
-		if (dev->fp_height <= FE_HEIGHT) {
+		self->fp_height += FE_HEIGHT;
+		if (self->fp_height <= FE_HEIGHT) {
 			/* 2 lines are at least removed each time */
-			dev->fp_height -= 2;
+			self->fp_height -= 2;
 			fp_dbg("Capturing a 2nd frame...");
 			fpi_ssm_jump_to_state(ssm, CAP_FP_GET_FP_REQ);
 		} else {
-			struct fp_img *img;
+			FpImage *img;
 			unsigned int img_size;
 			/* Remove empty parts 2 times for the 2 frames */
-			process_remove_fp_end(dev);
-			process_remove_fp_end(dev);
-			img_size = dev->fp_height * FE_WIDTH;
-			img = fpi_img_new(img_size);
+			process_removefpi_end(self);
+			process_removefpi_end(self);
+			img_size = self->fp_height * FE_WIDTH;
+			img = fp_image_new(FE_WIDTH, self->fp_height);
 			/* Images received are white on black, so invert it. */
 			/* TODO detect sweep direction */
-			img->flags = FP_IMG_COLORS_INVERTED | FP_IMG_V_FLIPPED;
-			img->height = dev->fp_height;
-			process_4to8_bpp(dev->fp, img_size / 2, img->data);
+			img->flags = FPI_IMAGE_COLORS_INVERTED | FPI_IMAGE_V_FLIPPED;
+			img->height = self->fp_height;
+			process_4to8_bpp(self->fp, img_size / 2, img->data);
 			fp_dbg("Sending the raw fingerprint image (%dx%d)",
 				img->width, img->height);
-			fpi_imgdev_image_captured(idev, img);
-			fpi_imgdev_report_finger_status(idev, FALSE);
+			fpi_image_device_image_captured(idev, img);
+			fpi_image_device_report_finger_status(idev, FALSE);
 			fpi_ssm_mark_completed(ssm);
 		}
 		break;
 	default:
-		fp_err("Unknown state %d", fpi_ssm_get_cur_state(ssm));
-		goto err;
+		g_assert_not_reached();
 		break;
 	}
 
 	return;
 err:
-	fpi_ssm_mark_failed(ssm, -EIO);
+	fpi_ssm_mark_failed(ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 }
 
-static void m_capture_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_capture_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
+			       GError *error)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 
-	if (fpi_ssm_get_error(ssm)) {
-		if (fpi_imgdev_get_action_state(idev) != IMG_ACQUIRE_STATE_DEACTIVATING) {
+	if (error) {
+		if (self->is_active) {
 			fp_err("Error while capturing fingerprint "
-				"(fpi_ssm_get_error(ssm)=%d)", fpi_ssm_get_error(ssm));
-			fpi_imgdev_session_error(idev, fpi_ssm_get_error(ssm));
+				"(%s)", error->message);
+			fpi_image_device_session_error (idev, error);
+		} else {
+			g_error_free (error);
 		}
 	}
 	fpi_ssm_free(ssm);
 
-	if (dev->is_active == TRUE) {
+	if (self->is_active == TRUE) {
 		fp_dbg("Device is still active, restarting finger detection");
 		m_start_fingerdetect(idev);
 	} else {
@@ -848,141 +845,136 @@ static void m_capture_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_dat
 	}
 }
 
-static void m_finger_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_finger_state(FpiSsm *ssm, FpDevice *dev, void *user_data)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 
-	if (dev->is_active == FALSE) {
+	if (self->is_active == FALSE) {
 		fpi_ssm_mark_completed(ssm);
 		return;
 	}
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case FGR_FPA_INIT_SET_MODE_SLEEP_REQ:
-		msg_set_mode_control(dev, REG_MODE_SLEEP);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_mode_control(self, REG_MODE_SLEEP);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case FGR_FPA_INIT_SET_MODE_SLEEP_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case FGR_FPA_INIT_SET_DCOFFSET_REQ:
-		msg_set_regs(dev, 2, REG_DCOFFSET, dev->dcoffset);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 2, REG_DCOFFSET, self->dcoffset);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case FGR_FPA_INIT_SET_DCOFFSET_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case FGR_FPA_INIT_SET_GAINVRTVRB_REQ:
-		msg_set_regs(dev, 6, REG_GAIN, dev->gain, REG_VRT, dev->vrt,
-			REG_VRB, dev->vrb);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 6, REG_GAIN, self->gain, REG_VRT,
+			     self->vrt,
+			     REG_VRB, self->vrb);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case FGR_FPA_INIT_SET_GAINVRTVRB_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case FGR_FPA_INIT_SET_VCO_CONTROL_RT_REQ:
-		msg_set_regs(dev, 2, REG_VCO_CONTROL, REG_VCO_RT);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 2, REG_VCO_CONTROL, REG_VCO_RT);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case FGR_FPA_INIT_SET_VCO_CONTROL_RT_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case FGR_FPA_INIT_SET_REG04_REQ:
-		msg_set_regs(dev, 2, REG_04, 0x00);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 2, REG_04, 0x00);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case FGR_FPA_INIT_SET_REG04_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case FGR_FPA_INIT_SET_MODE_SENSOR_REQ:
-		msg_set_mode_control(dev, REG_MODE_SENSOR);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_mode_control(self, REG_MODE_SENSOR);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case FGR_FPA_INIT_SET_MODE_SENSOR_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case FGR_FPA_GET_FRAME_REQ:
-		msg_get_frame(dev, 0x00, 0x00, 0x00, 0x00);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_get_frame(self, 0x00, 0x00, 0x00, 0x00);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case FGR_FPA_GET_FRAME_ANS:
-		if (process_frame_empty((uint8_t *)dev->ans, FRAME_SIZE)) {
+		if (process_frame_empty((guint8 *) self->ans, FRAME_SIZE)) {
 			fpi_ssm_jump_to_state(ssm, FGR_FPA_GET_FRAME_REQ);
 		} else {
-			fpi_imgdev_report_finger_status(idev, TRUE);
+			fpi_image_device_report_finger_status(FP_IMAGE_DEVICE (dev), TRUE);
 			fpi_ssm_mark_completed(ssm);
 		}
 		break;
 	default:
-		fp_err("Unknown state %d", fpi_ssm_get_cur_state(ssm));
-		goto err;
+		g_assert_not_reached();
 		break;
 	}
 
 	return;
 err:
-	fpi_ssm_mark_failed(ssm, -EIO);
+	fpi_ssm_mark_failed(ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 }
 
-static void m_finger_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_finger_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
+			      GError *error)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 
-	if (!fpi_ssm_get_error(ssm)) {
-		fpi_ssm *ssm_cap;
-		ssm_cap = fpi_ssm_new(FP_DEV(idev), m_capture_state,
-				CAP_NUM_STATES, idev);
+	if (!error) {
+		FpiSsm *ssm_cap;
+		ssm_cap = fpi_ssm_new(dev, m_capture_state,
+				     CAP_NUM_STATES, NULL);
 		fpi_ssm_start(ssm_cap, m_capture_complete);
 	} else {
-		if (fpi_imgdev_get_action_state(idev) != IMG_ACQUIRE_STATE_DEACTIVATING) {
+		if (self->is_active) {
 			fp_err("Error while capturing fingerprint "
-				"(fpi_ssm_get_error(ssm)=%d)", fpi_ssm_get_error(ssm));
-			fpi_imgdev_session_error(idev, -4);
+				"(%s)", error->message);
+			fpi_image_device_session_error(idev, error);
+		} else {
+			g_error_free (error);
 		}
-		dev->is_active = FALSE;
+		self->is_active = FALSE;
 	}
 
 	fpi_ssm_free(ssm);
 }
 
-static void m_start_fingerdetect(struct fp_img_dev *idev)
+static void m_start_fingerdetect(FpImageDevice *idev)
 {
-	fpi_ssm *ssmf;
-	ssmf = fpi_ssm_new(FP_DEV(idev), m_finger_state, FGR_NUM_STATES, idev);
+	FpiSsm *ssmf;
+	ssmf = fpi_ssm_new(FP_DEVICE(idev), m_finger_state, FGR_NUM_STATES,
+			  idev);
 	fpi_ssm_start(ssmf, m_finger_complete);
 }
 
 /*
  * Tune value of VRT and VRB for contrast and brightness.
  */
-static void m_tunevrb_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_tunevrb_state(FpiSsm *ssm, FpDevice *dev, void *user_data)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 	float hist[5];
 
-	if (dev->is_active == FALSE) {
+	if (self->is_active == FALSE) {
 		fpi_ssm_mark_completed(ssm);
 		return;
 	}
@@ -990,158 +982,145 @@ static void m_tunevrb_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case TUNEVRB_INIT:
 		fp_dbg("Tuning of VRT/VRB");
-		g_assert(dev->dcoffset);
+		g_assert(self->dcoffset);
 		/* VRT(reg E1)=0x0A and VRB(reg E2)=0x10 are starting values */
-		dev->vrt = 0x0A;
-		dev->vrb = 0x10;
+		self->vrt = 0x0A;
+		self->vrb = 0x10;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_GET_GAIN_REQ:
-		msg_get_regs(dev, 1, REG_GAIN);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_get_regs(self, 1, REG_GAIN);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_GET_GAIN_ANS:
-		if (msg_parse_regs(dev))
+		if (msg_parse_regs(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_GET_DCOFFSET_REQ:
-		msg_get_regs(dev, 1, REG_DCOFFSET);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_get_regs(self, 1, REG_DCOFFSET);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_GET_DCOFFSET_ANS:
-		if (msg_parse_regs(dev))
+		if (msg_parse_regs(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_SET_DCOFFSET_REQ:
 		/* Reduce DCoffset by 1 to allow tuning */
-		msg_set_regs(dev, 2, REG_DCOFFSET, dev->dcoffset - 1);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 2, REG_DCOFFSET, self->dcoffset - 1);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_SET_DCOFFSET_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_FRAME_REQ:
-		fp_dbg("Testing VRT=0x%02X VRB=0x%02X", dev->vrt, dev->vrb);
-		msg_get_frame(dev, 0x01, dev->gain, dev->vrt, dev->vrb);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		fp_dbg("Testing VRT=0x%02X VRB=0x%02X", self->vrt, self->vrb);
+		msg_get_frame(self, 0x01, self->gain, self->vrt, self->vrb);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_FRAME_ANS:
-		process_hist((uint8_t *)dev->ans, FRAME_SIZE, hist);
+		process_hist((guint8 *) self->ans, FRAME_SIZE, hist);
 		/* Note that this tuning could probably be improved */
 		if (hist[0] + hist[1] > 0.95) {
-			if (dev->vrt <= 0 || dev->vrb <= 0) {
+			if (self->vrt <= 0 || self->vrb <= 0) {
 				fp_dbg("Image is too dark, reducing DCOffset");
-				dev->dcoffset--;
+				self->dcoffset--;
 				fpi_ssm_jump_to_state(ssm, TUNEVRB_INIT);
 			} else {
-				dev->vrt--;
-				dev->vrb--;
+				self->vrt--;
+				self->vrb--;
 				fpi_ssm_jump_to_state(ssm, TUNEVRB_FRAME_REQ);
 			}
 			break;
 		}
 		if (hist[4] > 0.95) {
 			fp_dbg("Image is too bright, increasing DCOffset");
-			dev->dcoffset++;
+			self->dcoffset++;
 			fpi_ssm_jump_to_state(ssm, TUNEVRB_INIT);
 			break;
 		}
 		if (hist[4] + hist[3] > 0.4) {
-			if (dev->vrt >= 2 * dev->vrb - 0x0a) {
-				dev->vrt++; dev->vrb++;
+			if (self->vrt >= 2 * self->vrb - 0x0a) {
+				self->vrt++; self->vrb++;
 			} else {
-				dev->vrt++;
+				self->vrt++;
 			}
 			/* Check maximum for vrt/vrb */
 			/* TODO if maximum is reached, leave with an error? */
-			if (dev->vrt > VRT_MAX)
-				dev->vrt = VRT_MAX;
-			if (dev->vrb > VRB_MAX)
-				dev->vrb = VRB_MAX;
+			if (self->vrt > VRT_MAX)
+				self->vrt = VRT_MAX;
+			if (self->vrb > VRB_MAX)
+				self->vrb = VRB_MAX;
 			fpi_ssm_jump_to_state(ssm, TUNEVRB_FRAME_REQ);
 			break;
 		}
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_FINAL_SET_DCOFFSET_REQ:
-		fp_dbg("-> VRT=0x%02X VRB=0x%02X", dev->vrt, dev->vrb);
+		fp_dbg("-> VRT=0x%02X VRB=0x%02X", self->vrt, self->vrb);
 		/* Reset the DCOffset */
-		msg_set_regs(dev, 2, REG_DCOFFSET, dev->dcoffset);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 2, REG_DCOFFSET, self->dcoffset);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_FINAL_SET_DCOFFSET_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_FINAL_SET_REG2627_REQ:
 		/* In traces, REG_26/REG_27 are set. purpose? values? */
-		msg_set_regs(dev, 4, REG_26, 0x11, REG_27, 0x00);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 4, REG_26, 0x11, REG_27, 0x00);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_FINAL_SET_REG2627_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_FINAL_SET_GAINVRTVRB_REQ:
 		/* Set Gain/VRT/VRB values found */
-		msg_set_regs(dev, 6, REG_GAIN, dev->gain, REG_VRT, dev->vrt,
-			     REG_VRB, dev->vrb);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 6, REG_GAIN, self->gain, REG_VRT,
+			     self->vrt,
+			     REG_VRB, self->vrb);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_FINAL_SET_GAINVRTVRB_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		/* In traces, Gain/VRT/VRB are read again. */
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEVRB_FINAL_SET_MODE_SLEEP_REQ:
-		msg_set_mode_control(dev, REG_MODE_SLEEP);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_mode_control(self, REG_MODE_SLEEP);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEVRB_FINAL_SET_MODE_SLEEP_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_mark_completed(ssm);
 		break;
 	default:
-		fp_err("Unknown state %d", fpi_ssm_get_cur_state(ssm));
-		goto err;
+		g_assert_not_reached();
 		break;
 	}
 
 	return;
 err:
-	fpi_ssm_mark_failed(ssm, -EIO);
+	fpi_ssm_mark_failed(ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 }
 
-static void m_tunevrb_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_tunevrb_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
+			       GError *error)
 {
-	struct fp_img_dev *idev = user_data;
+	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
 
-	fpi_imgdev_activate_complete(idev, fpi_ssm_get_error(ssm) != 0);
-	if (!fpi_ssm_get_error(ssm)) {
+	fpi_image_device_activate_complete(idev, error);
+	if (!error) {
 		fp_dbg("Tuning is done. Starting finger detection.");
 		m_start_fingerdetect(idev);
-	} else {
-		struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
-		fp_err("Error while tuning VRT");
-		dev->is_active = FALSE;
-		reset_param(dev);
-		fpi_imgdev_session_error(idev, -3);
 	}
 	fpi_ssm_free(ssm);
 }
@@ -1150,12 +1129,11 @@ static void m_tunevrb_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_dat
  * This function tunes the DCoffset value and adjusts the gain value if
  * required.
  */
-static void m_tunedc_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_tunedc_state(FpiSsm *ssm, FpDevice *dev, void *user_data)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 
-	if (dev->is_active == FALSE) {
+	if (self->is_active == FALSE) {
 		fpi_ssm_mark_completed(ssm);
 		return;
 	}
@@ -1167,324 +1145,314 @@ static void m_tunedc_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case TUNEDC_INIT:
 		/* reg_e0 = 0x23 is sensor normal/small gain */
-		dev->gain = GAIN_SMALL_INIT;
-		dev->tunedc_min = DCOFFSET_MIN;
-		dev->tunedc_max = DCOFFSET_MAX;
+		self->gain = GAIN_SMALL_INIT;
+		self->tunedc_min = DCOFFSET_MIN;
+		self->tunedc_max = DCOFFSET_MAX;
 		fp_dbg("Tuning DCoffset");
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEDC_SET_DCOFFSET_REQ:
 		/* Dichotomic search to find at which value the frame becomes
 		 * almost black. */
-		dev->dcoffset = (dev->tunedc_max + dev->tunedc_min) / 2;
-		fp_dbg("Testing DCoffset=0x%02X Gain=0x%02X", dev->dcoffset,
-			dev->gain);
-		msg_set_regs(dev, 2, REG_DCOFFSET, dev->dcoffset);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		self->dcoffset = (self->tunedc_max + self->tunedc_min) / 2;
+		fp_dbg("Testing DCoffset=0x%02X Gain=0x%02X", self->dcoffset,
+			self->gain);
+		msg_set_regs(self, 2, REG_DCOFFSET, self->dcoffset);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEDC_SET_DCOFFSET_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEDC_GET_FRAME_REQ:
 		/* vrt:0x15 vrb:0x10 are constant in all tuning frames. */
-		msg_get_frame(dev, 0x01, dev->gain, 0x15, 0x10);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_get_frame(self, 0x01, self->gain, 0x15, 0x10);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEDC_GET_FRAME_ANS:
-		if (process_frame_empty((uint8_t *)dev->ans, FRAME_WIDTH))
-			dev->tunedc_max = dev->dcoffset;
+		if (process_frame_empty((guint8 *) self->ans, FRAME_WIDTH))
+			self->tunedc_max = self->dcoffset;
 		else
-			dev->tunedc_min = dev->dcoffset;
-		if (dev->tunedc_min + 1 < dev->tunedc_max) {
+			self->tunedc_min = self->dcoffset;
+		if (self->tunedc_min + 1 < self->tunedc_max) {
 			fpi_ssm_jump_to_state(ssm, TUNEDC_SET_DCOFFSET_REQ);
-		} else if (dev->tunedc_max < DCOFFSET_MAX) {
-			dev->dcoffset = dev->tunedc_max + 1;
+		} else if (self->tunedc_max < DCOFFSET_MAX) {
+			self->dcoffset = self->tunedc_max + 1;
 			fpi_ssm_next_state(ssm);
 		} else {
-			dev->gain--;
+			self->gain--;
 			fpi_ssm_jump_to_state(ssm, TUNEDC_SET_DCOFFSET_REQ);
 		}
 		break;
 	case TUNEDC_FINAL_SET_REG2122_REQ:
-		fp_dbg("-> DCoffset=0x%02X Gain=0x%02X", dev->dcoffset,
-			dev->gain);
+		fp_dbg("-> DCoffset=0x%02X Gain=0x%02X", self->dcoffset,
+			self->gain);
 		/* ??? how reg21 / reg22 are calculated */
-		msg_set_regs(dev, 4, REG_21, 0x23, REG_22, 0x21);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 4, REG_21, 0x23, REG_22, 0x21);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEDC_FINAL_SET_REG2122_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEDC_FINAL_SET_GAIN_REQ:
-		msg_set_regs(dev, 2, REG_GAIN, dev->gain);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 2, REG_GAIN, self->gain);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEDC_FINAL_SET_GAIN_ANS:
 		fpi_ssm_next_state(ssm);
 		break;
 	case TUNEDC_FINAL_SET_DCOFFSET_REQ:
-		msg_set_regs(dev, 2, REG_DCOFFSET, dev->dcoffset);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 2, REG_DCOFFSET, self->dcoffset);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case TUNEDC_FINAL_SET_DCOFFSET_ANS:
 		/* In captured traffic, read GAIN, VRT, and VRB registers. */
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_mark_completed(ssm);
 		break;
 	default:
-		fp_err("Unknown state %d", fpi_ssm_get_cur_state(ssm));
-		goto err;
+		g_assert_not_reached();
 		break;
 	}
 
 	return;
 err:
-	fpi_ssm_mark_failed(ssm, -EIO);
-
+	fpi_ssm_mark_failed(ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 }
 
-static void m_tunedc_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_tunedc_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
+			      GError *error)
 {
-	struct fp_img_dev *idev = user_data;
-	if (!fpi_ssm_get_error(ssm)) {
-		fpi_ssm *ssm_tune;
-		ssm_tune = fpi_ssm_new(FP_DEV(idev), m_tunevrb_state,
+	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
+
+	if (!error) {
+		FpiSsm *ssm_tune;
+		ssm_tune = fpi_ssm_new(FP_DEVICE(idev), m_tunevrb_state,
 					TUNEVRB_NUM_STATES, idev);
 		fpi_ssm_start(ssm_tune, m_tunevrb_complete);
 	} else {
-		struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
 		fp_err("Error while tuning DCOFFSET");
-		dev->is_active = FALSE;
-		reset_param(dev);
-		fpi_imgdev_session_error(idev, -2);
+		reset_param(FPI_DEVICE_ETES603 (dev));
+		fpi_image_device_session_error(idev, error);
 	}
 	fpi_ssm_free(ssm);
 }
 
-static void m_init_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_init_state(FpiSsm *ssm, FpDevice *dev, void *user_data)
 {
-	struct fp_img_dev *idev = user_data;
-	struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 
-	if (dev->is_active == FALSE) {
+	if (self->is_active == FALSE) {
 		fpi_ssm_mark_completed(ssm);
 		return;
 	}
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case INIT_CHECK_INFO_REQ:
-		msg_get_regs(dev, 4, REG_INFO0, REG_INFO1, REG_INFO2,
+		msg_get_regs(self, 4, REG_INFO0, REG_INFO1, REG_INFO2,
 			     REG_INFO3);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case INIT_CHECK_INFO_ANS:
-		if (msg_parse_regs(dev))
+		if (msg_parse_regs(self))
 			goto err;
-		if (check_info(dev))
+		if (check_info(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case INIT_CMD20_REQ:
-		msg_get_cmd20(dev);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_get_cmd20(self);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case INIT_CMD20_ANS:
-		if (msg_check_cmd20(dev))
+		if (msg_check_cmd20(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case INIT_CMD25_REQ:
-		msg_get_cmd25(dev);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_get_cmd25(self);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case INIT_CMD25_ANS:
-		if (msg_check_cmd25(dev))
+		if (msg_check_cmd25(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case INIT_SENSOR_REQ:
 		/* In captured traffic, those are split. */
-		msg_set_regs(dev, 18, REG_MODE_CONTROL, REG_MODE_SLEEP,
-			REG_50, 0x0F, REG_GAIN, 0x04, REG_VRT, 0x08,
-			REG_VRB, 0x0D, REG_VCO_CONTROL, REG_VCO_RT,
-			REG_DCOFFSET, 0x36, REG_F0, 0x00, REG_F2, 0x00);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 18, REG_MODE_CONTROL, REG_MODE_SLEEP,
+			     REG_50, 0x0F, REG_GAIN, 0x04, REG_VRT, 0x08,
+			     REG_VRB, 0x0D, REG_VCO_CONTROL, REG_VCO_RT,
+			     REG_DCOFFSET, 0x36, REG_F0, 0x00, REG_F2, 0x00);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case INIT_SENSOR_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case INIT_ENC_REQ:
 		/* Initialize encryption registers without encryption. */
 		/* Set registers from 0x41 to 0x48 (0x8 regs) */
-		msg_set_regs(dev, 16, REG_ENC1, 0x12, REG_ENC2, 0x34,
-		     REG_ENC3, 0x56, REG_ENC4, 0x78, REG_ENC5, 0x90,
-		     REG_ENC6, 0xAB, REG_ENC7, 0xCD, REG_ENC8, 0xEF);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 16, REG_ENC1, 0x12, REG_ENC2, 0x34,
+			     REG_ENC3, 0x56, REG_ENC4, 0x78, REG_ENC5, 0x90,
+			     REG_ENC6, 0xAB, REG_ENC7, 0xCD, REG_ENC8, 0xEF);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case INIT_ENC_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_next_state(ssm);
 		break;
 	case INIT_REGS_REQ:
 		/* Set register from 0x20 to 0x37 (0x18 regs) */
-		msg_set_regs(dev, 48,
-		     REG_20, 0x00, REG_21, 0x23, REG_22, 0x21, REG_23, 0x20,
-		     REG_24, 0x14, REG_25, 0x6A, REG_26, 0x00, REG_27, 0x00,
-		     REG_28, 0x00, REG_29, 0xC0, REG_2A, 0x50, REG_2B, 0x50,
-		     REG_2C, 0x4D, REG_2D, 0x03, REG_2E, 0x06, REG_2F, 0x06,
-		     REG_30, 0x10, REG_31, 0x02, REG_32, 0x14, REG_33, 0x34,
-		     REG_34, 0x01, REG_35, 0x08, REG_36, 0x03, REG_37, 0x21);
-		if (async_tx(idev, EP_OUT, async_tx_cb, ssm))
-			goto err;
+		msg_set_regs(self, 48,
+			     REG_20, 0x00, REG_21, 0x23, REG_22, 0x21, REG_23,
+			     0x20,
+			     REG_24, 0x14, REG_25, 0x6A, REG_26, 0x00, REG_27,
+			     0x00,
+			     REG_28, 0x00, REG_29, 0xC0, REG_2A, 0x50, REG_2B,
+			     0x50,
+			     REG_2C, 0x4D, REG_2D, 0x03, REG_2E, 0x06, REG_2F,
+			     0x06,
+			     REG_30, 0x10, REG_31, 0x02, REG_32, 0x14, REG_33,
+			     0x34,
+			     REG_34, 0x01, REG_35, 0x08, REG_36, 0x03, REG_37,
+			     0x21);
+		async_tx(dev, EP_OUT, async_tx_cb, ssm);
 		break;
 	case INIT_REGS_ANS:
-		if (msg_check_ok(dev))
+		if (msg_check_ok(self))
 			goto err;
 		fpi_ssm_mark_completed(ssm);
 		break;
 	default:
-		fp_err("Unknown state %d", fpi_ssm_get_cur_state(ssm));
-		goto err;
+		g_assert_not_reached();
 		break;
 	}
 
 	return;
 err:
-	fpi_ssm_mark_failed(ssm, -EIO);
-
+	fpi_ssm_mark_failed(ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
 }
 
-static void m_init_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void m_init_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
+			    GError *error)
 {
-	struct fp_img_dev *idev = user_data;
-	if (!fpi_ssm_get_error(ssm)) {
-		fpi_ssm *ssm_tune;
-		ssm_tune = fpi_ssm_new(FP_DEV(idev), m_tunedc_state,
+	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
+	if (!error) {
+		FpiSsm *ssm_tune;
+		ssm_tune = fpi_ssm_new(FP_DEVICE(idev), m_tunedc_state,
 					TUNEDC_NUM_STATES, idev);
 		fpi_ssm_start(ssm_tune, m_tunedc_complete);
 	} else {
-		struct etes603_dev *dev = FP_INSTANCE_DATA(_dev);
 		fp_err("Error initializing the device");
-		dev->is_active = FALSE;
-		reset_param(dev);
-		fpi_imgdev_session_error(idev, -1);
+		reset_param(FPI_DEVICE_ETES603 (dev));
+		fpi_image_device_session_error (idev, error);
 	}
 	fpi_ssm_free(ssm);
 }
 
-static int dev_activate(struct fp_img_dev *idev)
+static void dev_activate(FpImageDevice *idev)
 {
-	struct etes603_dev *dev = FP_INSTANCE_DATA(FP_DEV(idev));
-	fpi_ssm *ssm;
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(idev);
+	FpiSsm *ssm;
 
-	g_assert(dev);
+	g_assert(self);
 
 	/* Reset info and data */
-	dev->is_active = TRUE;
+	self->is_active = TRUE;
 
-	if (dev->dcoffset == 0) {
+	if (self->dcoffset == 0) {
 		fp_dbg("Tuning device...");
-		ssm = fpi_ssm_new(FP_DEV(idev), m_init_state, INIT_NUM_STATES, idev);
+		ssm = fpi_ssm_new(FP_DEVICE(idev), m_init_state,
+				 INIT_NUM_STATES, idev);
 		fpi_ssm_start(ssm, m_init_complete);
 	} else {
 		fp_dbg("Using previous tuning (DCOFFSET=0x%02X,VRT=0x%02X,"
-			"VRB=0x%02X,GAIN=0x%02X).", dev->dcoffset, dev->vrt,
-			dev->vrb, dev->gain);
-		fpi_imgdev_activate_complete(idev, 0);
-		ssm = fpi_ssm_new(FP_DEV(idev), m_finger_state, FGR_NUM_STATES, idev);
+			"VRB=0x%02X,GAIN=0x%02X).", self->dcoffset, self->vrt,
+			self->vrb, self->gain);
+		fpi_image_device_activate_complete(idev, NULL);
+		ssm = fpi_ssm_new(FP_DEVICE(idev), m_finger_state,
+				 FGR_NUM_STATES, idev);
 		fpi_ssm_start(ssm, m_finger_complete);
 	}
-	return 0;
 }
 
-static void dev_deactivate(struct fp_img_dev *idev)
+static void dev_deactivate(FpImageDevice *idev)
 {
-	struct etes603_dev *dev = FP_INSTANCE_DATA(FP_DEV(idev));
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(idev);
 
 	fp_dbg("deactivating");
+	self->deactivating = TRUE;
 
 	/* this can be called even if still activated. */
-	if (dev->is_active == TRUE) {
-		dev->is_active = FALSE;
+	if (self->is_active == TRUE) {
+		self->is_active = FALSE;
+	} else {
+		m_exit_start(idev);
+	}
+}
+
+static void dev_open(FpImageDevice *idev)
+{
+	GError *error = NULL;
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(idev);
+
+	if (!g_usb_device_claim_interface (fpi_device_get_usb_device(FP_DEVICE(idev)), 0, 0, &error)) {
+		fpi_image_device_open_complete(idev, error);
+		return;
 	}
 
-	m_exit_start(idev);
+	self->req = g_malloc(sizeof(struct egis_msg));
+	self->ans = g_malloc(FE_SIZE);
+	self->fp = g_malloc(FE_SIZE * 4);
+
+	fpi_image_device_open_complete(idev, NULL);
 }
 
-static int dev_open(struct fp_img_dev *idev, unsigned long driver_data)
+static void dev_close(FpImageDevice *idev)
 {
-	int ret;
-	struct etes603_dev *dev;
+	GError *error = NULL;
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(idev);
 
-	dev = g_malloc0(sizeof(struct etes603_dev));
-	fp_dev_set_instance_data(FP_DEV(idev), dev);
+	g_free(self->req);
+	g_free(self->ans);
+	g_free(self->fp);
 
-	dev->req = g_malloc(sizeof(struct egis_msg));
-	dev->ans = g_malloc(FE_SIZE);
-	dev->fp = g_malloc(FE_SIZE * 4);
-
-	ret = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(idev)), 0);
-	if (ret != LIBUSB_SUCCESS) {
-		fp_err("libusb_claim_interface failed on interface 0: %s", libusb_error_name(ret));
-		return ret;
-	}
-
-	fpi_imgdev_open_complete(idev, 0);
-	return 0;
+	g_usb_device_release_interface(fpi_device_get_usb_device(FP_DEVICE(idev)),
+				       0, 0, &error);
+	fpi_image_device_close_complete(idev, error);
 }
 
-static void dev_close(struct fp_img_dev *idev)
-{
-	struct etes603_dev *dev = FP_INSTANCE_DATA(FP_DEV(idev));
-
-	g_free(dev->req);
-	g_free(dev->ans);
-	g_free(dev->fp);
-	g_free(dev);
-
-	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(idev)), 0);
-	fpi_imgdev_close_complete(idev);
-}
-
-static const struct usb_id id_table[] = {
+static const FpIdEntry id_table [ ] = {
 	/* EgisTec (aka Lightuning) ES603 */
-	{ .vendor = 0x1c7a, .product = 0x0603},
-	{ 0, 0, 0, },
+	{ .vid = 0x1c7a,  .pid = 0x0603, },
+	{ .vid = 0,  .pid = 0,  .driver_data = 0 },
 };
 
-struct fp_img_driver etes603_driver = {
-	.driver = {
-		.id = ETES603_ID,
-		.name = FP_COMPONENT,
-		.full_name = "EgisTec ES603",
-		.id_table = id_table,
-		.scan_type = FP_SCAN_TYPE_SWIPE,
-	},
-	.flags = 0,
-	.img_height = -1,
-	.img_width = 256,
+static void fpi_device_etes603_init(FpiDeviceEtes603 *self) {
+}
+static void fpi_device_etes603_class_init(FpiDeviceEtes603Class *klass) {
+	FpDeviceClass *dev_class = FP_DEVICE_CLASS(klass);
+	FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS(klass);
 
-	.open = dev_open,
-	.close = dev_close,
-	.activate = dev_activate,
-	.deactivate = dev_deactivate,
-};
+	dev_class->id = "etes603";
+	dev_class->full_name = "EgisTec ES603";
+	dev_class->type = FP_DEVICE_TYPE_USB;
+	dev_class->id_table = id_table;
+	dev_class->scan_type = FP_SCAN_TYPE_SWIPE;
+
+	img_class->img_open = dev_open;
+	img_class->img_close = dev_close;
+	img_class->activate = dev_activate;
+	img_class->deactivate = dev_deactivate;
+
+	img_class->img_width = 256;
+	img_class->img_height = -1;
+}
 
