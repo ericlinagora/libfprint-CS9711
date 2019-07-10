@@ -72,7 +72,7 @@ test:
     <<: *flatpak_artifacts
 
 flatpak master:
-    image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:master
+    image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.32
     stage: flatpack
     variables:
         MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
