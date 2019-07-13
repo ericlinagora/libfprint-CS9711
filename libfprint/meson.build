@@ -7,6 +7,8 @@ libfprint_sources = [
     'fpi-assembling.c',
     'fpi-ssm.c',
     'fpi-usb-transfer.c',
+    'fpi-byte-reader.c',
+    'fpi-byte-writer.c',
 ]
 
 libfprint_public_headers = [
@@ -22,6 +24,9 @@ libfprint_private_headers = [
     'fpi-image.h',
     'fpi-image-device.h',
     'fpi-print.h',
+    'fpi-byte-reader.h',
+    'fpi-byte-writer.h',
+    'fpi-byte-utils.h',
 ]
 
 nbis_sources = [
