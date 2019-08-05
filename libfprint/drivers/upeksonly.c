@@ -136,7 +136,7 @@ static unsigned char upeksonly_get_pixel(struct fpi_line_asmbl_ctx *ctx,
 	unsigned char *buf;
 	unsigned offset;
 
-	/* The scans from this device are rolled right by two colums */
+	/* The scans from this device are rolled right by two columns */
 	if (x < ctx->line_width - 2)
 		offset = x + 2;
 	else if ((x > ctx->line_width - 2) && (x < ctx->line_width))
@@ -296,12 +296,12 @@ static void row_complete(struct fp_img_dev *dev)
 			sdev->num_blank = 0;
 		} else {
 			sdev->num_blank++;
-			/* Don't consider the scan complete unless theres at least
+			/* Don't consider the scan complete unless there's at least
 			 * MIN_ROWS recorded or very long blank read occurred.
 			 *
 			 * Typical problem spot: one brief touch before starting the
 			 * actual scan. Happens most commonly if scan is started
-			 * from before the first joint resulting in a gap after the inital touch.
+			 * from before the first joint resulting in a gap after the initial touch.
 			 */
 			if (sdev->num_blank > FINGER_REMOVED_THRESHOLD) {
 				sdev->finger_state = FINGER_REMOVED;
