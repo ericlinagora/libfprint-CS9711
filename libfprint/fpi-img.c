@@ -405,7 +405,7 @@ int fpi_img_to_print_data(struct fp_img_dev *imgdev, struct fp_img *img,
 		}
 	}
 
-	/* FIXME: space is wasted if we dont hit the max minutiae count. would
+	/* FIXME: space is wasted if we don't hit the max minutiae count. would
 	 * be good to make this dynamic. */
 	print = fpi_print_data_new(FP_DEV(imgdev));
 	item = fpi_print_data_item_new(sizeof(struct xyt_struct));
