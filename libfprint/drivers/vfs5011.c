@@ -405,7 +405,7 @@ submit_image(fpi_ssm             *ssm,
 	g_slist_free_full(data->rows, g_free);
 	data->rows = NULL;
 
-	fp_dbg("Image captured, commiting");
+	fp_dbg("Image captured, committing");
 
 	fpi_imgdev_image_captured(dev, img);
 }

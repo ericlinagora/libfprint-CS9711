@@ -577,7 +577,7 @@ static void activate_ssm(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 			vdev->need_report = 0;
 		}
 
-		/* Asyncronously enquire an interrupt */
+		/* Asynchronously enquire an interrupt */
 		vdev->transfer = fpi_usb_alloc();
 		vdev->transfer->flags |= LIBUSB_TRANSFER_FREE_TRANSFER;
 		libusb_fill_interrupt_transfer(vdev->transfer, usb_dev, 0x83,

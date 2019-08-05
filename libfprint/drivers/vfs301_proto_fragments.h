@@ -1147,7 +1147,7 @@ static const unsigned char vfs301_24[] = { /* 119 B */
  *
  * The contents of PACKET() inside this blob seems to be some kind
  * of a micro-program, which specifies which columns contain what. LE seems
- * to be used also here. Not neccessarily is 1 output column described
+ * to be used also here. Not necessarily is 1 output column described
  * by 1 operation. For example the vfs301_line_t::sum section seems
  * to perform 2 operations for each column - probably some kind of diff between
  * input lines?

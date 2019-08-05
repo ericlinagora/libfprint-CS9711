@@ -109,7 +109,7 @@ typedef struct {
 
 	unsigned char scan[VFS301_FP_WIDTH];
 
-	/* A offseted, stretched, inverted copy of scan... probably could
+	/* A offsetted, stretched, inverted copy of scan... probably could
 	 * serve finger motion speed detection?
 	 * Seems to be subdivided to some 10B + 53B + 1B blocks */
 	unsigned char mirror[64];

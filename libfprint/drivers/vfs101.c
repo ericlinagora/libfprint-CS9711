@@ -47,7 +47,7 @@
 /* Minimum image height */
 #define VFS_IMG_MIN_HEIGHT	200
 
-/* Scan level thresold */
+/* Scan level threshold */
 #define VFS_IMG_SLT_BEGIN		768
 #define VFS_IMG_SLT_END			64
 #define VFS_IMG_SLT_LINES		4
@@ -641,7 +641,7 @@ static int action_completed(struct fp_img_dev *dev)
 
 #define offset(x, y)	((x) + ((y) * VFS_FRAME_SIZE))
 
-/* Screen image to remove noise and find bottom line and height od image */
+/* Screen image to remove noise and find bottom line and height of image */
 static void img_screen(struct vfs101_dev *vdev)
 {
 	int y, x, count, top;
@@ -654,7 +654,7 @@ static void img_screen(struct vfs101_dev *vdev)
 
 	/* Image returned from sensor can contain many empty lines,
 	 * for remove these lines compare byte 282-283 (scan level information)
-	 * with two differents threshold, one for the begin of finger image and
+	 * with two different thresholds, one for the begin of finger image and
 	 * one for the end. To increase stability of the code use a counter
 	 * of lines that satisfy the threshold.
 	 */
@@ -700,7 +700,7 @@ static void img_screen(struct vfs101_dev *vdev)
 
 	vdev->height = top - vdev->bottom + 1;
 
-	/* Checkk max height */
+	/* Check max height */
 	if (vdev->height > VFS_IMG_MAX_HEIGHT)
 		vdev->height = VFS_IMG_MAX_HEIGHT;
 
@@ -1178,7 +1178,7 @@ static void m_init_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 	switch (fpi_ssm_get_cur_state(ssm))
 	{
 	case M_INIT_0_RECV_DIRTY:
-		/* Recv eventualy dirty data */
+		/* Recv eventually dirty data */
 		vdev->ignore_error = TRUE;
 		async_recv(ssm, dev);
 		break;
@@ -1463,7 +1463,7 @@ static void dev_deactivate(struct fp_img_dev *dev)
 	/* Reset active state */
 	vdev->active = FALSE;
 
-	/* Handle eventualy existing events */
+	/* Handle eventually existing events */
 	while (vdev->transfer)
 		fp_handle_events();
 
