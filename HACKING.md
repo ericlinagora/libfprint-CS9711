@@ -3,8 +3,8 @@
 ## GLib
 
 Although the library uses GLib internally, libfprint is designed to provide
-a completely neutral interface to it's application users. So, the public
-APIs should never return GLib data types or anything like that.
+a completely neutral interface to its application users. So, the public
+APIs should never return GLib data types.
 
 ## Two-faced-ness
 
