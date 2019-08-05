@@ -415,7 +415,7 @@ static struct aes_regwrite strip_scan_reqs[] = {
 /* capture SM movement:
  * write reqs and read data 1 + 2,
  * request and read strip,
- * jump back to request UNLESS theres no finger, in which case exit SM,
+ * jump back to request UNLESS there's no finger, in which case exit SM,
  * report lack of finger presence, and move to finger detection */
 
 enum capture_states {

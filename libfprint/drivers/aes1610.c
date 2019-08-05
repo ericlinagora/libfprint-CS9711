@@ -404,7 +404,7 @@ static unsigned char list_BD_values[10] = {
 /*
  * Adjust the gain according to the histogram data
  * 0xbd, 0xbe, 0x29 and 0x2A registers are affected
- * Returns 0 if no problem occured
+ * Returns 0 if no problem occurred
  * TODO: This is a basic support for gain. It needs testing/tweaking.  */
 static int adjust_gain(unsigned char *buffer, int status)
 {
@@ -412,7 +412,7 @@ static int adjust_gain(unsigned char *buffer, int status)
 	static int pos_list_BE = 0;
 	static int pos_list_BD = 0;
 
-	// This is the first adjustement (we begin acquisition)
+	// This is the first adjustment (we begin acquisition)
 	// We adjust strip_scan_reqs for future strips and capture_reqs that is sent just after this step
 	if (status == GAIN_STATUS_FIRST) {
 		if (buffer[1] > 0x78) { // maximum gain needed
@@ -534,7 +534,7 @@ static void restore_gain(void)
 
 /* capture SM movement:
  * request and read strip,
- * jump back to request UNLESS theres no finger, in which case exit SM,
+ * jump back to request UNLESS there's no finger, in which case exit SM,
  * report lack of finger presence, and move to finger detection */
 
 enum capture_states {
@@ -728,7 +728,7 @@ static void activate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_dat
 	struct fp_img_dev *dev = user_data;
 
 	/* activation on aes1610 seems much more straightforward compared to aes2501 */
-	/* verify theres anything missing here */
+	/* verify there's anything missing here */
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case WRITE_INIT:
 		fp_dbg("write init");

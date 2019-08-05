@@ -109,7 +109,7 @@ enum aes2501_mesure_drive {
 
 /* Select (1=square | 0=sine) wave drive during measure */
 #define AES2501_MEASDRV_SQUARE		0x20
-/* 0 = use mesure drive setting, 1 = when sine wave is selected */
+/* 0 = use measure drive setting, 1 = when sine wave is selected */
 #define AES2501_MEASDRV_MEASURE_SQUARE	0x10
 
 enum aes2501_measure_freq {
