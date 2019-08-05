@@ -1316,7 +1316,7 @@ static void m_init_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 		fpi_ssm_next_state(ssm);
 		break;
 	case INIT_SENSOR_REQ:
-		/* In captured traffic, those are splitted. */
+		/* In captured traffic, those are split. */
 		msg_set_regs(dev, 18, REG_MODE_CONTROL, REG_MODE_SLEEP,
 			REG_50, 0x0F, REG_GAIN, 0x04, REG_VRT, 0x08,
 			REG_VRB, 0x0D, REG_VCO_CONTROL, REG_VCO_RT,
