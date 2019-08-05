@@ -149,7 +149,7 @@ static void enroll_stop_cb(struct fp_dev *dev, void *user_data)
  * or I/O problems.
  *
  * The RETRY codes from #fp_enroll_result may be returned from any enroll
- * stage. These codes indicate that the scan was not succesful in that the
+ * stage. These codes indicate that the scan was not successful in that the
  * user did not position their finger correctly or similar. When a RETRY code
  * is returned, the enrollment stage is <emphasis role="strong">not</emphasis> advanced, so the next call
  * into this function will retry the current stage again. The current stage may
