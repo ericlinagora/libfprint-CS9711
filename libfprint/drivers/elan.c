@@ -302,7 +302,7 @@ static void elan_submit_image(FpImageDevice *dev)
 	assembling_ctx.frame_height = self->frame_height;
 	assembling_ctx.image_width = self->frame_width * 3 / 2;
 	g_slist_foreach(raw_frames, (GFunc) self->process_frame, &frames);
-	fpi_do_movement_estimation(&assembling_ctx, frames, num_frames);
+	fpi_do_movement_estimation(&assembling_ctx, frames);
 	img = fpi_assemble_frames(&assembling_ctx, frames, num_frames);
 
 	fpi_image_device_image_captured(dev, img);

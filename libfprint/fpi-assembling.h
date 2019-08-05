@@ -65,8 +65,7 @@ struct fpi_frame_asmbl_ctx
 };
 
 void fpi_do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
-                                 GSList                     *stripes,
-                                 size_t                      num_stripes);
+                                 GSList                     *stripes);
 
 FpImage *fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
                               GSList                     *stripes,

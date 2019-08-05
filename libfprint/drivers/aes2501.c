@@ -435,8 +435,7 @@ static void capture_read_strip_cb(FpiUsbTransfer *transfer, FpDevice *_dev,
 			FpImage *img;
 
 			self->strips = g_slist_reverse(self->strips);
-			fpi_do_movement_estimation(&assembling_ctx,
-					self->strips, self->strips_len);
+			fpi_do_movement_estimation(&assembling_ctx, self->strips);
 			img = fpi_assemble_frames(&assembling_ctx,
 						  self->strips,
 						  self->strips_len);

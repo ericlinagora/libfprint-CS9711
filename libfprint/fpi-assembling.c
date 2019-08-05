@@ -173,7 +173,6 @@ do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
  * fpi_do_movement_estimation:
  * @ctx: #fpi_frame_asmbl_ctx - frame assembling context
  * @stripes: a singly-linked list of #fpi_frame
- * @num_stripes: number of items in @stripes to process
  *
  * fpi_do_movement_estimation() estimates the movement between adjacent
  * frames, populating @delta_x and @delta_y values for each #fpi_frame.
@@ -181,17 +180,12 @@ do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
  * This function is used for devices that don't do movement estimation
  * in hardware. If hardware movement estimation is supported, the driver
  * should populate @delta_x and @delta_y instead.
- *
- * Note that @num_stripes might be shorter than the length of the list,
- * if some stripes should be skipped.
  */
 void
 fpi_do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
-                            GSList *stripes, size_t num_stripes)
+                            GSList *stripes)
 {
   int err, rev_err;
-
-  g_return_if_fail (g_slist_length(stripes) != num_stripes);
 
   err = do_movement_estimation (ctx, stripes, FALSE);
   rev_err = do_movement_estimation (ctx, stripes, TRUE);
