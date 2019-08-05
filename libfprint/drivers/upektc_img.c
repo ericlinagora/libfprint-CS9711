@@ -287,7 +287,7 @@ static void capture_read_data_cb(struct libusb_transfer *transfer)
 				fpi_ssm_mark_completed(ssm);
 				break;
 			default:
-				fp_err("Uknown response!\n");
+				fp_err("Unknown response!\n");
 				fpi_ssm_mark_failed(ssm, -EIO);
 				break;
 		}
