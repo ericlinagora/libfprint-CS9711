@@ -482,8 +482,7 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer,
 			struct fp_img *img;
 
 			aesdev->strips = g_slist_reverse(aesdev->strips);
-			fpi_do_movement_estimation(&assembling_ctx,
-					aesdev->strips, aesdev->strips_len);
+			fpi_do_movement_estimation(&assembling_ctx, aesdev->strips);
 			img = fpi_assemble_frames(&assembling_ctx,
 						  aesdev->strips, aesdev->strips_len);
 			img->flags |= FP_IMG_PARTIAL;

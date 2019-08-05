@@ -611,7 +611,7 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer)
 		/* send stop capture bits */
 		aes_write_regv(dev, capture_stop, G_N_ELEMENTS(capture_stop), stub_capture_stop_cb, NULL);
 		aesdev->strips = g_slist_reverse(aesdev->strips);
-		fpi_do_movement_estimation(&assembling_ctx, aesdev->strips, aesdev->strips_len);
+		fpi_do_movement_estimation(&assembling_ctx, aesdev->strips);
 		img = fpi_assemble_frames(&assembling_ctx, aesdev->strips, aesdev->strips_len);
 		img->flags |= FP_IMG_PARTIAL;
 		g_slist_free_full(aesdev->strips, g_free);

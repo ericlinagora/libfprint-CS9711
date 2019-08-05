@@ -307,7 +307,7 @@ static void elan_submit_image(struct fp_img_dev *dev)
 	assembling_ctx.frame_height = elandev->frame_height;
 	assembling_ctx.image_width = elandev->frame_width * 3 / 2;
 	g_slist_foreach(raw_frames, (GFunc) elandev->process_frame, &frames);
-	fpi_do_movement_estimation(&assembling_ctx, frames, num_frames);
+	fpi_do_movement_estimation(&assembling_ctx, frames);
 	img = fpi_assemble_frames(&assembling_ctx, frames, num_frames);
 
 	img->flags |= FP_IMG_PARTIAL;
