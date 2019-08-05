@@ -668,7 +668,7 @@ static uint32_t do_decode(uint8_t *data, int num_bytes, uint32_t key)
 		data[i] = data[i+1] ^ xorbyte;
 	}
 
-	/* the final byte is implictly zero */
+	/* the final byte is implicitly zero */
 	data[i] = 0;
 	return update_key(key);
 }
