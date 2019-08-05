@@ -121,13 +121,12 @@ static void find_overlap(struct fpi_frame_asmbl_ctx *ctx,
 }
 
 static unsigned int do_movement_estimation(struct fpi_frame_asmbl_ctx *ctx,
-			    GSList *stripes, size_t num_stripes,
-			    gboolean reverse)
+			    GSList *stripes, gboolean reverse)
 {
-	GSList *list_entry = stripes;
+	GSList *l;
 	GTimer *timer;
-	int frame = 1;
-	struct fpi_frame *prev_stripe = list_entry->data;
+	guint num_frames = 0;
+	struct fpi_frame *prev_stripe;
 	unsigned int min_error;
 	/* Max error is width * height * 255, for AES2501 which has the largest
 	 * sensor its 192*16*255 = 783360. So for 32bit value it's ~5482 frame before
@@ -135,32 +134,28 @@ static unsigned int do_movement_estimation(struct fpi_frame_asmbl_ctx *ctx,
 	 */
 	unsigned long long total_error = 0;
 
-	list_entry = g_slist_next(list_entry);
-
 	timer = g_timer_new();
-	do {
-		struct fpi_frame *cur_stripe = list_entry->data;
+	prev_stripe = stripes->data;
+	for (l = stripes; l != NULL; l = l->next, num_frames++) {
+		struct fpi_frame *cur_stripe = l->data;
 
 		if (reverse) {
 			find_overlap(ctx, prev_stripe, cur_stripe, &min_error);
 			cur_stripe->delta_y = -cur_stripe->delta_y;
 			cur_stripe->delta_x = -cur_stripe->delta_x;
-		}
-		else
+		} else {
 			find_overlap(ctx, cur_stripe, prev_stripe, &min_error);
+		}
 		total_error += min_error;
 
-		frame++;
 		prev_stripe = cur_stripe;
-		list_entry = g_slist_next(list_entry);
-
-	} while (frame < num_stripes);
+	}
 
 	g_timer_stop(timer);
 	fp_dbg("calc delta completed in %f secs", g_timer_elapsed(timer, NULL));
 	g_timer_destroy(timer);
 
-	return total_error / num_stripes;
+	return total_error / num_frames;
 }
 
 /**
@@ -183,11 +178,14 @@ void fpi_do_movement_estimation(struct fpi_frame_asmbl_ctx *ctx,
 			    GSList *stripes, size_t num_stripes)
 {
 	int err, rev_err;
-	err = do_movement_estimation(ctx, stripes, num_stripes, FALSE);
-	rev_err = do_movement_estimation(ctx, stripes, num_stripes, TRUE);
+
+	g_return_if_fail (g_slist_length(stripes) != num_stripes);
+
+	err = do_movement_estimation(ctx, stripes, FALSE);
+	rev_err = do_movement_estimation(ctx, stripes, TRUE);
 	fp_dbg("errors: %d rev: %d", err, rev_err);
 	if (err < rev_err) {
-		do_movement_estimation(ctx, stripes, num_stripes, FALSE);
+		do_movement_estimation(ctx, stripes, FALSE);
 	}
 }
 
