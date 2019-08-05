@@ -214,7 +214,7 @@ API_EXPORTED size_t fp_print_data_get_data(struct fp_print_data *data,
 		item = list_item->data;
 		out_item = (struct fpi_print_data_item_fp2 *)buf;
 		out_item->length = GUINT32_TO_LE(item->length);
-		/* FIXME: fp_print_data_item->data content is not endianess agnostic */
+		/* FIXME: fp_print_data_item->data content is not endianness agnostic */
 		memcpy(out_item->data, item->data, item->length);
 		buf += sizeof(*out_item);
 		buf += item->length;
@@ -236,7 +236,7 @@ static struct fp_print_data *fpi_print_data_from_fp1_data(unsigned char *buf,
 	data = print_data_new(GUINT16_FROM_LE(raw->driver_id),
 		GUINT32_FROM_LE(raw->devtype), raw->data_type);
 	item = fpi_print_data_item_new(print_data_len);
-	/* FIXME: fp_print_data->data content is not endianess agnostic */
+	/* FIXME: fp_print_data->data content is not endianness agnostic */
 	memcpy(item->data, raw->data, print_data_len);
 	data->prints = g_slist_prepend(data->prints, item);
 
@@ -272,7 +272,7 @@ static struct fp_print_data *fpi_print_data_from_fp2_data(unsigned char *buf,
 		total_data_len -= item_len;
 
 		item = fpi_print_data_item_new(item_len);
-		/* FIXME: fp_print_data->data content is not endianess agnostic */
+		/* FIXME: fp_print_data->data content is not endianness agnostic */
 		memcpy(item->data, raw_item->data, item_len);
 		data->prints = g_slist_prepend(data->prints, item);
 
