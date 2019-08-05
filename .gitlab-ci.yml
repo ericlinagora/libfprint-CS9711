@@ -7,6 +7,7 @@ variables:
   DEPENDENCIES: libusb1-devel glib2-devel nss-devel pixman-devel systemd meson gtk-doc
                 gcc gcc-c++ glibc-devel libX11-devel libXv-devel gtk3-devel flatpak-builder
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
+  LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
 .build_one_driver_template: &build_one_driver
   script:
@@ -24,10 +25,16 @@ variables:
     - ninja -C _build
     - ninja -C _build install
 
+.build_template: &check_abi
+  script:
+    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES doxygen libabigail git
+    - ./.ci/check-abi ${LAST_ABI_BREAK} $(git rev-parse HEAD)
+
 build:
   stage: build
   <<: *build_one_driver
   <<: *build
+  <<: *check_abi
 
 .flatpak_script_template: &flatpak_script
     script:
