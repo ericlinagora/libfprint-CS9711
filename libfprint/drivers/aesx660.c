@@ -305,7 +305,7 @@ static void capture_set_idle_cmd_cb(struct libusb_transfer *transfer)
 		struct fp_img *img;
 
 		aesdev->strips = g_slist_reverse(aesdev->strips);
-		img = fpi_assemble_frames(aesdev->assembling_ctx, aesdev->strips, aesdev->strips_len);
+		img = fpi_assemble_frames(aesdev->assembling_ctx, aesdev->strips);
 		img->flags |= aesdev->extra_img_flags;
 		g_slist_foreach(aesdev->strips, (GFunc) g_free, NULL);
 		g_slist_free(aesdev->strips);
