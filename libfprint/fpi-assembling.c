@@ -365,7 +365,7 @@ static void median_filter(int *data, int size, int filtersize)
 			i1 = 0;
 		if (i2 >= size)
 			i2 = size-1;
-		g_memmove(sortbuf, data+i1, (i2-i1+1)*sizeof(int));
+		memmove(sortbuf, data+i1, (i2-i1+1)*sizeof(int));
 		g_qsort_with_data(sortbuf, i2-i1+1, sizeof(int), cmpint, NULL);
 		result[i] = sortbuf[(i2-i1+1)/2];
 	}
@@ -480,7 +480,7 @@ out:
 	img->height = line_ind;
 	img->width = ctx->line_width;
 	img->flags = FP_IMG_V_FLIPPED;
-	g_memmove(img->data, output, ctx->line_width * line_ind);
+	memmove(img->data, output, ctx->line_width * line_ind);
 	g_free(offsets);
 	g_free(output);
 	return img;
