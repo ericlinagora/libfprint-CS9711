@@ -371,7 +371,7 @@ static int process_chunk(struct vfs5011_data *data, int transferred)
 				VFS5011_IMAGE_WIDTH) >= DIFFERENCE_THRESHOLD)) {
 			data->lastline = g_malloc(VFS5011_LINE_SIZE);
 			data->rows = g_slist_prepend(data->rows, data->lastline);
-			g_memmove(data->lastline, linebuf, VFS5011_LINE_SIZE);
+			memmove(data->lastline, linebuf, VFS5011_LINE_SIZE);
 			data->lines_recorded++;
 			if (data->lines_recorded >= data->max_lines_recorded) {
 				fp_dbg("process_chunk: recorded %d lines, finishing",
