@@ -21,7 +21,7 @@
 #ifndef __ELAN_H
 #define __ELAN_H
 
-#include <libusb.h>
+#include <glib.h>
 
 #define ELAN_VEND_ID 0x04f3
 
@@ -59,9 +59,9 @@
 #define ELAN_SKIP_LAST_FRAMES 2
 
 #define ELAN_CMD_LEN 0x2
-#define ELAN_EP_CMD_OUT (0x1 | LIBUSB_ENDPOINT_OUT)
-#define ELAN_EP_CMD_IN (0x3 | LIBUSB_ENDPOINT_IN)
-#define ELAN_EP_IMG_IN (0x2 | LIBUSB_ENDPOINT_IN)
+#define ELAN_EP_CMD_OUT (0x1 | FPI_USB_ENDPOINT_OUT)
+#define ELAN_EP_CMD_IN (0x3 | FPI_USB_ENDPOINT_IN)
+#define ELAN_EP_IMG_IN (0x2 | FPI_USB_ENDPOINT_IN)
 
 /* used as response length to tell the driver to skip reading response */
 #define ELAN_CMD_SKIP_READ 0
@@ -76,6 +76,7 @@ struct elan_cmd {
 	int response_len;
 	int response_in;
 	unsigned short devices;
+	gboolean never_cancel;
 };
 
 static const struct elan_cmd get_sensor_dim_cmd = {
@@ -152,73 +153,73 @@ static const struct elan_cmd stop_cmd = {
 	.response_len = ELAN_CMD_SKIP_READ,
 	.response_in = ELAN_EP_CMD_IN,
 	.devices = ELAN_ALL_DEV,
+	.never_cancel = TRUE,
 };
 
-static const struct usb_id elan_id_table[] = {
-	{.vendor = ELAN_VEND_ID,.product = 0x0903,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0907,.driver_data = ELAN_0907},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c01,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c02,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c03,.driver_data = ELAN_0C03},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c04,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c05,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c06,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c07,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c08,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c09,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c0a,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c0b,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c0c,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c0d,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c0e,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c0f,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c10,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c11,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c12,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c13,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c14,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c15,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c16,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c17,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c18,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c19,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c1a,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c1b,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c1c,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c1d,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c1e,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c1f,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c20,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c21,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c22,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c23,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c24,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c25,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c26,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c27,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c28,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c29,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c2a,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c2b,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c2c,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c2d,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c2e,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c2f,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c30,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c31,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c32,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c33,.driver_data = ELAN_ALL_DEV},
-	{.vendor = ELAN_VEND_ID,.product = 0x0c42,.driver_data = ELAN_0C42},
-	{0, 0, 0,},
+static const FpIdEntry elan_id_table [ ] = {
+	{.vid = ELAN_VEND_ID,  .pid = 0x0903, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0907, .driver_data = ELAN_0907},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c01, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c02, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c03, .driver_data = ELAN_0C03},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c04, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c05, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c06, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c07, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c08, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c09, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c0a, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c0b, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c0c, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c0d, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c0e, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c0f, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c10, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c11, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c12, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c13, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c14, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c15, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c16, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c17, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c18, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c19, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c1a, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c1b, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c1c, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c1d, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c1e, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c1f, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c20, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c21, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c22, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c23, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c24, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c25, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c26, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c27, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c28, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c29, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c2a, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c2b, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c2c, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c2d, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c2e, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c2f, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c30, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c31, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c32, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c33, .driver_data = ELAN_ALL_DEV},
+	{.vid = ELAN_VEND_ID,  .pid = 0x0c42, .driver_data = ELAN_0C42},
+	{.vid = 0,  .pid = 0,  .driver_data = 0},
 };
 
-static void elan_cmd_done(fpi_ssm *ssm);
-static void elan_cmd_read(fpi_ssm *ssm, struct fp_img_dev *dev);
+static void elan_cmd_done(FpiSsm *ssm);
+static void elan_cmd_read(FpiSsm *ssm, FpDevice *dev);
 
-static void elan_calibrate(struct fp_img_dev *dev);
-static void elan_capture(struct fp_img_dev *dev);
-static void elan_deactivate(struct fp_img_dev *dev);
+static void elan_calibrate(FpDevice *dev);
+static void elan_capture(FpDevice *dev);
 
-static int dev_change_state(struct fp_img_dev *dev, enum fp_imgdev_state state);
+static void dev_change_state(FpImageDevice *dev, FpImageDeviceState state);
 
 #endif
