@@ -23,6 +23,7 @@ common_cflags = cc.get_supported_arguments([
     '-fgnu89-inline',
     '-std=gnu99',
     '-Wall',
+    '-Wtype-limits',
     '-Wundef',
     '-Wunused',
     '-Wstrict-prototypes',
