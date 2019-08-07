@@ -387,9 +387,21 @@ API_EXPORTED int fp_async_verify_stop(struct fp_dev *dev,
 
 	g_return_val_if_fail(dev != NULL, -ENODEV);
 
+	G_DEBUG_HERE();
+
+	if (dev->state == DEV_STATE_VERIFY_STOPPING) {
+		fp_dbg ("Already stopping verification, returning -EINPROGRESS");
+		return -EINPROGRESS;
+	}
+
+	if (dev->state == DEV_STATE_INITIALIZED) {
+		if (callback)
+			callback(dev, user_data);
+		return 0;
+	}
+
 	drv = dev->drv;
 
-	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_ERROR
 		&& dev->state != DEV_STATE_VERIFYING
 		&& dev->state != DEV_STATE_VERIFY_DONE);
@@ -511,9 +523,21 @@ API_EXPORTED int fp_async_identify_stop(struct fp_dev *dev,
 
 	g_return_val_if_fail(dev != NULL, -ENODEV);
 
+	G_DEBUG_HERE();
+
+	if (dev->state == DEV_STATE_IDENTIFY_STOPPING) {
+		fp_dbg ("Already stopping identification, returning -EINPROGRESS");
+		return -EINPROGRESS;
+	}
+
+	if (dev->state == DEV_STATE_INITIALIZED) {
+		if (callback)
+			callback(dev, user_data);
+		return 0;
+	}
+
 	drv = dev->drv;
 
-	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_IDENTIFYING
 		&& dev->state != DEV_STATE_IDENTIFY_DONE);
 
