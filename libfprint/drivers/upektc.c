@@ -23,13 +23,15 @@
 #include "drivers_api.h"
 #include "upektc.h"
 
-#define UPEKTC_EP_IN (2 | LIBUSB_ENDPOINT_IN)
-#define UPEKTC_EP_OUT (3 | LIBUSB_ENDPOINT_OUT)
-#define UPEKET_EP_IN (1 | LIBUSB_ENDPOINT_IN)
-#define UPEKET_EP_OUT (2 | LIBUSB_ENDPOINT_OUT)
+#define UPEKTC_EP_IN (2 | FPI_USB_ENDPOINT_IN)
+#define UPEKTC_EP_OUT (3 | FPI_USB_ENDPOINT_OUT)
+#define UPEKET_EP_IN (1 | FPI_USB_ENDPOINT_IN)
+#define UPEKET_EP_OUT (2 | FPI_USB_ENDPOINT_OUT)
 #define BULK_TIMEOUT 4000
 
-struct upektc_dev {
+struct _FpiDeviceUpektc {
+	FpImageDevice parent;
+
 	gboolean deactivating;
 	const struct setup_cmd *setup_commands;
 	size_t setup_commands_len;
@@ -38,15 +40,18 @@ struct upektc_dev {
 	int init_idx;
 	int sum_threshold;
 };
+G_DECLARE_FINAL_TYPE(FpiDeviceUpektc, fpi_device_upektc, FPI, DEVICE_UPEKTC,
+		     FpImageDevice);
+G_DEFINE_TYPE(FpiDeviceUpektc, fpi_device_upektc, FP_TYPE_IMAGE_DEVICE);
 
 enum upektc_driver_data {
 	UPEKTC_2015,
 	UPEKTC_3001,
 };
 
-static void start_capture(struct fp_img_dev *dev);
-static void complete_deactivation(struct fp_img_dev *dev);
-static void start_finger_detection(struct fp_img_dev *dev);
+static void start_capture(FpImageDevice *dev);
+static void complete_deactivation(FpImageDevice *dev, GError *error);
+static void start_finger_detection(FpImageDevice *dev);
 
 /****** INITIALIZATION/DEINITIALIZATION ******/
 
@@ -57,98 +62,90 @@ enum activate_states {
 };
 
 static void
-upektc_next_init_cmd(fpi_ssm           *ssm,
-		     struct fp_img_dev *dev)
+upektc_next_init_cmd(FpiSsm           *ssm,
+		     FpImageDevice *dev)
 {
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
 
-	upekdev->init_idx += 1;
-	if (upekdev->init_idx == upekdev->setup_commands_len)
+	self->init_idx += 1;
+	if (self->init_idx == self->setup_commands_len)
 		fpi_ssm_mark_completed(ssm);
 	else
 		fpi_ssm_jump_to_state(ssm, WRITE_INIT);
 }
 
-static void write_init_cb(struct libusb_transfer *transfer)
+static void write_init_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			  gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpImageDevice *dev = FP_IMAGE_DEVICE(device);
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
 
-	if ((transfer->status == LIBUSB_TRANSFER_COMPLETED) &&
-		(transfer->length == transfer->actual_length)) {
-		if (upekdev->setup_commands[upekdev->init_idx].response_len)
-			fpi_ssm_next_state(ssm);
+	if (!error) {
+		if (self->setup_commands[self->init_idx].response_len)
+			fpi_ssm_next_state(transfer->ssm);
 		else
-			upektc_next_init_cmd(ssm, dev);
+			upektc_next_init_cmd(transfer->ssm, dev);
 	} else {
-		fpi_ssm_mark_failed(ssm, -EIO);
+		fpi_ssm_mark_failed(transfer->ssm, error);
 	}
-	libusb_free_transfer(transfer);
 }
 
-static void read_init_data_cb(struct libusb_transfer *transfer)
+static void read_init_data_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			      gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
+	FpImageDevice *dev = FP_IMAGE_DEVICE(device);
 
-	if (transfer->status == LIBUSB_TRANSFER_COMPLETED)
-		upektc_next_init_cmd(ssm, dev);
+	if (!error)
+		upektc_next_init_cmd(transfer->ssm, dev);
 	else
-		fpi_ssm_mark_failed(ssm, -EIO);
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
+		fpi_ssm_mark_failed(transfer->ssm, error);
 }
 
-static void activate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void activate_run_state(FpiSsm *ssm, FpDevice *dev, void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(_dev);
-	int r;
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case WRITE_INIT:
 	{
-		struct libusb_transfer *transfer = fpi_usb_alloc();
+		FpiUsbTransfer *transfer = fpi_usb_transfer_new(dev);
 
-		libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)), upekdev->ep_out,
-			(unsigned char*)upekdev->setup_commands[upekdev->init_idx].cmd,
-			UPEKTC_CMD_LEN, write_init_cb, ssm, BULK_TIMEOUT);
-		r = libusb_submit_transfer(transfer);
-		if (r < 0) {
-			libusb_free_transfer(transfer);
-			fpi_ssm_mark_failed(ssm, -ENOMEM);
-		}
+		fpi_usb_transfer_fill_bulk_full(transfer,
+						self->ep_out,
+						(unsigned char *) self->setup_commands[self->init_idx].cmd,
+						UPEKTC_CMD_LEN,
+						NULL);
+		transfer->ssm = ssm;
+		transfer->short_is_error = TRUE;
+		fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+					write_init_cb, NULL);
+		fpi_usb_transfer_unref(transfer);
 	}
 	break;
 	case READ_DATA:
 	{
-		struct libusb_transfer *transfer = fpi_usb_alloc();
-		unsigned char *data;
+		FpiUsbTransfer *transfer = fpi_usb_transfer_new(dev);
 
-		data = g_malloc(upekdev->setup_commands[upekdev->init_idx].response_len);
-		libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)), upekdev->ep_in, data,
-			upekdev->setup_commands[upekdev->init_idx].response_len,
-			read_init_data_cb, ssm, BULK_TIMEOUT);
-
-		r = libusb_submit_transfer(transfer);
-		if (r < 0) {
-			g_free(data);
-			libusb_free_transfer(transfer);
-			fpi_ssm_mark_failed(ssm, r);
-		}
+		fpi_usb_transfer_fill_bulk (transfer,
+					    self->ep_in,
+					    self->setup_commands[self->init_idx].response_len);
+		transfer->ssm = ssm;
+		fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+					read_init_data_cb, NULL);
+		fpi_usb_transfer_unref(transfer);
 	}
 	break;
 	}
 }
 
-static void activate_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void activate_sm_complete(FpiSsm *ssm, FpDevice *_dev,
+				 void *user_data, GError *error)
 {
-	struct fp_img_dev *dev = user_data;
-	fp_dbg("status %d", fpi_ssm_get_error(ssm));
-	fpi_imgdev_activate_complete(dev, fpi_ssm_get_error(ssm));
+	FpImageDevice *dev = FP_IMAGE_DEVICE(_dev);
 
-	if (!fpi_ssm_get_error(ssm))
+	fpi_image_device_activate_complete(dev, error);
+
+	if (!error)
 		start_finger_detection(dev);
 	fpi_ssm_free(ssm);
 }
@@ -172,90 +169,69 @@ static int finger_present(unsigned char *img, size_t len, int sum_threshold)
 	return sum < sum_threshold ? 0 : 1;
 }
 
-static void finger_det_data_cb(struct libusb_transfer *transfer)
+static void finger_det_data_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			       gpointer user_data, GError *error)
 {
-	struct fp_img_dev *dev = transfer->user_data;
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	unsigned char *data = transfer->buffer;
+	FpImageDevice *dev = FP_IMAGE_DEVICE(device);
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fp_dbg("data transfer status %d\n", transfer->status);
-		fpi_imgdev_session_error(dev, -EIO);
-		goto out;
-	} else if (transfer->length != transfer->actual_length) {
-		fp_dbg("expected %d, got %d bytes", transfer->length,
-			transfer->actual_length);
-		fpi_imgdev_session_error(dev, -EPROTO);
+	if (error) {
+		fp_dbg("data transfer status %s\n", error->message);
+		fpi_image_device_session_error(dev, error);
+		return;
 	}
 
-	if (finger_present(data, IMAGE_SIZE, upekdev->sum_threshold)) {
+	if (finger_present(transfer->buffer, IMAGE_SIZE, self->sum_threshold)) {
 		/* finger present, start capturing */
-		fpi_imgdev_report_finger_status(dev, TRUE);
+		fpi_image_device_report_finger_status(dev, TRUE);
 		start_capture(dev);
 	} else {
 		/* no finger, poll for a new histogram */
 		start_finger_detection(dev);
 	}
-
-out:
-	g_free(data);
-	libusb_free_transfer(transfer);
 }
 
-static void finger_det_cmd_cb(struct libusb_transfer *t)
+static void finger_det_cmd_cb(FpiUsbTransfer *t, FpDevice *device,
+			      gpointer user_data, GError *error)
 {
-	struct libusb_transfer *transfer;
-	unsigned char *data;
-	int r;
-	struct fp_img_dev *dev = t->user_data;
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiUsbTransfer *transfer;
+	FpImageDevice *dev = FP_IMAGE_DEVICE (device);
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
 
-	if (t->status != LIBUSB_TRANSFER_COMPLETED) {
-		fp_dbg("req transfer status %d\n", t->status);
-		fpi_imgdev_session_error(dev, -EIO);
-		goto exit_free_transfer;
-	} else if (t->length != t->actual_length) {
-		fp_dbg("expected %d, sent %d bytes", t->length, t->actual_length);
-		fpi_imgdev_session_error(dev, -EPROTO);
-		goto exit_free_transfer;
-	}
-
-	transfer = fpi_usb_alloc();
-	data = g_malloc(IMAGE_SIZE);
-	libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)), upekdev->ep_in, data, IMAGE_SIZE,
-		finger_det_data_cb, dev, BULK_TIMEOUT);
-
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(transfer);
-		fpi_imgdev_session_error(dev, r);
-	}
-exit_free_transfer:
-	libusb_free_transfer(t);
-}
-
-static void start_finger_detection(struct fp_img_dev *dev)
-{
-	int r;
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	struct libusb_transfer *transfer;
-	G_DEBUG_HERE();
-
-	if (upekdev->deactivating) {
-		complete_deactivation(dev);
+	if (error) {
+		fp_dbg("req transfer status %s\n", error->message);
+		fpi_image_device_session_error(dev, error);
 		return;
 	}
 
-	transfer = fpi_usb_alloc();
-	libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)), upekdev->ep_out,
-		(unsigned char *)scan_cmd, UPEKTC_CMD_LEN,
-		finger_det_cmd_cb, dev, BULK_TIMEOUT);
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		libusb_free_transfer(transfer);
-		fpi_imgdev_session_error(dev, r);
+	transfer = fpi_usb_transfer_new (device);
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_fill_bulk(transfer, self->ep_in,
+				   IMAGE_SIZE);
+	fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+			       finger_det_data_cb, NULL);
+	fpi_usb_transfer_unref(transfer);
+}
+
+static void start_finger_detection(FpImageDevice *dev)
+{
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
+	FpiUsbTransfer *transfer;
+	G_DEBUG_HERE();
+
+	if (self->deactivating) {
+		complete_deactivation(dev, NULL);
+		return;
 	}
+
+	transfer = fpi_usb_transfer_new(FP_DEVICE(dev));
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_fill_bulk_full(transfer, self->ep_out,
+				       (unsigned char *)scan_cmd,
+				       UPEKTC_CMD_LEN, NULL);
+	fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+			       finger_det_cmd_cb, NULL);
+	fpi_usb_transfer_unref(transfer);
 }
 
 /****** CAPTURE ******/
@@ -266,213 +242,199 @@ enum capture_states {
 	CAPTURE_NUM_STATES,
 };
 
-static void capture_cmd_cb(struct libusb_transfer *transfer)
+static void capture_cmd_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			   gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-
-	if ((transfer->status == LIBUSB_TRANSFER_COMPLETED) &&
-		(transfer->length == transfer->actual_length)) {
-		fpi_ssm_next_state(ssm);
+	if (!error) {
+		fpi_ssm_next_state(transfer->ssm);
 	} else {
-		fpi_ssm_mark_failed(ssm, -EIO);
+		fpi_ssm_mark_failed(transfer->ssm, error);
 	}
-	libusb_free_transfer(transfer);
 }
 
-static void capture_read_data_cb(struct libusb_transfer *transfer)
+static void capture_read_data_cb(FpiUsbTransfer *transfer, FpDevice *device,
+				 gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	unsigned char *data = transfer->buffer;
-	struct fp_img *img;
+	FpImageDevice *dev = FP_IMAGE_DEVICE(device);
+	FpImage *img;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fp_dbg("request is not completed, %d", transfer->status);
-		fpi_ssm_mark_failed(ssm, -EIO);
-		goto out;
-	} else if (transfer->length != transfer->actual_length) {
-		fp_dbg("expected %d, sent %d bytes", transfer->length, transfer->actual_length);
-		fpi_ssm_mark_failed(ssm, -EPROTO);
-		goto out;
+	if (error) {
+		fp_dbg("request is not completed, %s", error->message);
+		fpi_ssm_mark_failed(transfer->ssm, error);
+		return;
 	}
 
-	img = fpi_img_new(IMAGE_SIZE);
-	memcpy(img->data, data, IMAGE_SIZE);
-	fpi_imgdev_image_captured(dev, img);
-	fpi_imgdev_report_finger_status(dev, FALSE);
-	fpi_ssm_mark_completed(ssm);
-out:
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
+	img = fp_image_new(IMAGE_WIDTH, IMAGE_HEIGHT);
+	memcpy(img->data, transfer->buffer, IMAGE_SIZE);
+	fpi_image_device_image_captured(dev, img);
+	fpi_image_device_report_finger_status(dev, FALSE);
+	fpi_ssm_mark_completed(transfer->ssm);
 }
 
-static void capture_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void capture_run_state(FpiSsm *ssm, FpDevice *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(_dev);
-	int r;
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPTURE_WRITE_CMD:
 	{
-		struct libusb_transfer *transfer = fpi_usb_alloc();
+		FpiUsbTransfer *transfer = fpi_usb_transfer_new(_dev);
 
-		libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)), upekdev->ep_out,
-			(unsigned char *)scan_cmd, UPEKTC_CMD_LEN,
-			capture_cmd_cb, ssm, BULK_TIMEOUT);
-		r = libusb_submit_transfer(transfer);
-		if (r < 0) {
-			libusb_free_transfer(transfer);
-			fpi_ssm_mark_failed(ssm, -ENOMEM);
-		}
+		fpi_usb_transfer_fill_bulk_full(transfer, self->ep_out,
+					       (unsigned char *)scan_cmd,
+					       UPEKTC_CMD_LEN, NULL);
+		transfer->ssm = ssm;
+		transfer->short_is_error = TRUE;
+		fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+					capture_cmd_cb, NULL);
+		fpi_usb_transfer_unref(transfer);
 	}
 	break;
 	case CAPTURE_READ_DATA:
 	{
-		struct libusb_transfer *transfer = fpi_usb_alloc();
-		unsigned char *data;
+		FpiUsbTransfer *transfer = fpi_usb_transfer_new(_dev);
 
-		data = g_malloc(IMAGE_SIZE);
-		libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)), upekdev->ep_in, data, IMAGE_SIZE,
-			capture_read_data_cb, ssm, BULK_TIMEOUT);
-
-		r = libusb_submit_transfer(transfer);
-		if (r < 0) {
-			g_free(data);
-			libusb_free_transfer(transfer);
-			fpi_ssm_mark_failed(ssm, r);
-		}
+		fpi_usb_transfer_fill_bulk(transfer, self->ep_in,
+					   IMAGE_SIZE);
+		transfer->ssm = ssm;
+		transfer->short_is_error = TRUE;
+		fpi_usb_transfer_submit(transfer, BULK_TIMEOUT, NULL,
+				        capture_read_data_cb, NULL);
+		fpi_usb_transfer_unref(transfer);
 	}
 	break;
 	};
 }
 
-static void capture_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void capture_sm_complete(FpiSsm *ssm, FpDevice *_dev, void *user_data,
+				GError *error)
 {
-	struct fp_img_dev *dev = user_data;
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *dev = user_data;
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(_dev);
 
 	fp_dbg("Capture completed");
-	if (upekdev->deactivating)
-		complete_deactivation(dev);
-	else if (fpi_ssm_get_error(ssm))
-		fpi_imgdev_session_error(dev, fpi_ssm_get_error(ssm));
+	if (self->deactivating)
+		complete_deactivation(dev, error);
+	else if (error)
+		fpi_image_device_session_error(dev, error);
 	else
 		start_finger_detection(dev);
+
 	fpi_ssm_free(ssm);
 }
 
-static void start_capture(struct fp_img_dev *dev)
+static void start_capture(FpImageDevice *dev)
 {
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	fpi_ssm *ssm;
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
+	FpiSsm *ssm;
 
-	if (upekdev->deactivating) {
-		complete_deactivation(dev);
+	if (self->deactivating) {
+		complete_deactivation(dev, NULL);
 		return;
 	}
 
-	ssm = fpi_ssm_new(FP_DEV(dev), capture_run_state, CAPTURE_NUM_STATES, dev);
+	ssm = fpi_ssm_new(FP_DEVICE(dev), capture_run_state,
+			  CAPTURE_NUM_STATES, dev);
 	G_DEBUG_HERE();
 	fpi_ssm_start(ssm, capture_sm_complete);
 }
 
-static int dev_activate(struct fp_img_dev *dev)
+static void dev_activate(FpImageDevice *dev)
 {
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), activate_run_state,
-		ACTIVATE_NUM_STATES, dev);
-	upekdev->init_idx = 0;
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
+	FpiSsm *ssm = fpi_ssm_new(FP_DEVICE(dev), activate_run_state,
+				  ACTIVATE_NUM_STATES, dev);
+	self->init_idx = 0;
 	fpi_ssm_start(ssm, activate_sm_complete);
-	return 0;
 }
 
-static void dev_deactivate(struct fp_img_dev *dev)
+static void dev_deactivate(FpImageDevice *dev)
 {
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
 
-	upekdev->deactivating = TRUE;
+	self->deactivating = TRUE;
 }
 
-static void complete_deactivation(struct fp_img_dev *dev)
+static void complete_deactivation(FpImageDevice *dev, GError *error)
 {
-	struct upektc_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
 	G_DEBUG_HERE();
 
-	upekdev->deactivating = FALSE;
-	fpi_imgdev_deactivate_complete(dev);
+	self->deactivating = FALSE;
+	fpi_image_device_deactivate_complete(dev, error);
 }
 
-static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
+static void dev_init(FpImageDevice *dev)
 {
-	/* TODO check that device has endpoints we're using */
-	int r;
-	struct upektc_dev *upekdev;
+	GError *error = NULL;
+	FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC(dev);
+	guint64 driver_data = fpi_device_get_driver_data (FP_DEVICE (dev));
 
-	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	if (r < 0) {
-		fp_err("could not claim interface 0: %s", libusb_error_name(r));
-		return r;
+	/* TODO check that device has endpoints we're using */
+
+	if (!g_usb_device_claim_interface(fpi_device_get_usb_device(FP_DEVICE(dev)), 0, 0, &error)) {
+		fpi_image_device_open_complete(dev, error);
+		return;
 	}
 
-	upekdev = g_malloc0(sizeof(struct upektc_dev));
-	fp_dev_set_instance_data(FP_DEV(dev), upekdev);
 	switch (driver_data) {
 	case UPEKTC_2015:
-		upekdev->ep_in = UPEKTC_EP_IN;
-		upekdev->ep_out = UPEKTC_EP_OUT;
-		upekdev->setup_commands = upektc_setup_commands;
-		upekdev->setup_commands_len = G_N_ELEMENTS(upektc_setup_commands);
-		upekdev->sum_threshold = UPEKTC_SUM_THRESHOLD;
+		self->ep_in = UPEKTC_EP_IN;
+		self->ep_out = UPEKTC_EP_OUT;
+		self->setup_commands = upektc_setup_commands;
+		self->setup_commands_len = G_N_ELEMENTS(upektc_setup_commands);
+		self->sum_threshold = UPEKTC_SUM_THRESHOLD;
 		break;
 	case UPEKTC_3001:
-		upekdev->ep_in = UPEKET_EP_IN;
-		upekdev->ep_out = UPEKET_EP_OUT;
-		upekdev->setup_commands = upeket_setup_commands;
-		upekdev->setup_commands_len = G_N_ELEMENTS(upeket_setup_commands);
-		upekdev->sum_threshold = UPEKET_SUM_THRESHOLD;
+		self->ep_in = UPEKET_EP_IN;
+		self->ep_out = UPEKET_EP_OUT;
+		self->setup_commands = upeket_setup_commands;
+		self->setup_commands_len = G_N_ELEMENTS(upeket_setup_commands);
+		self->sum_threshold = UPEKET_SUM_THRESHOLD;
 		break;
 	default:
 		fp_err("Device variant %lu is not known\n", driver_data);
-		g_free(upekdev);
-		fp_dev_set_instance_data(FP_DEV(dev), NULL);
-		return -ENODEV;
-		break;
+		g_assert_not_reached ();
+		fpi_image_device_open_complete(dev, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
+		return;
 	}
-	fpi_imgdev_open_complete(dev, 0);
-	return 0;
+	fpi_image_device_open_complete(dev, NULL);
 }
 
-static void dev_deinit(struct fp_img_dev *dev)
+static void dev_deinit(FpImageDevice *dev)
 {
-	void *user_data;
-	user_data = FP_INSTANCE_DATA(FP_DEV(dev));
-	g_free(user_data);
-	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	fpi_imgdev_close_complete(dev);
+	GError *error = NULL;
+
+	g_usb_device_release_interface(fpi_device_get_usb_device(FP_DEVICE(dev)),
+				       0, 0, &error);
+	fpi_image_device_close_complete(dev, error);
 }
 
-static const struct usb_id id_table[] = {
-	{ .vendor = 0x0483, .product = 0x2015, .driver_data = UPEKTC_2015 },
-	{ .vendor = 0x147e, .product = 0x3001, .driver_data = UPEKTC_3001 },
-	{ 0, 0, 0, },
+static const FpIdEntry id_table [ ] = {
+	{ .vid = 0x0483,  .pid = 0x2015, .driver_data = UPEKTC_2015 },
+	{ .vid = 0x147e,  .pid = 0x3001, .driver_data = UPEKTC_3001 },
+	{ .vid = 0,  .pid = 0,  .driver_data = 0 },
 };
 
-struct fp_img_driver upektc_driver = {
-	.driver = {
-		.id = UPEKTC_ID,
-		.name = FP_COMPONENT,
-		.full_name = "UPEK TouchChip/Eikon Touch 300",
-		.id_table = id_table,
-		.scan_type = FP_SCAN_TYPE_PRESS,
-	},
-	.flags = 0,
-	.img_height = IMAGE_HEIGHT,
-	.img_width = IMAGE_WIDTH,
+static void fpi_device_upektc_init(FpiDeviceUpektc *self) {
+}
+static void fpi_device_upektc_class_init(FpiDeviceUpektcClass *klass) {
+	FpDeviceClass *dev_class = FP_DEVICE_CLASS(klass);
+	FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS(klass);
 
-	.bz3_threshold = 30,
-	.open = dev_init,
-	.close = dev_deinit,
-	.activate = dev_activate,
-	.deactivate = dev_deactivate,
-};
+	dev_class->id = "upektc";
+	dev_class->full_name = "UPEK TouchChip/Eikon Touch 300";
+	dev_class->type = FP_DEVICE_TYPE_USB;
+	dev_class->id_table = id_table;
+	dev_class->scan_type = FP_SCAN_TYPE_PRESS;
+
+	img_class->img_open = dev_init;
+	img_class->img_close = dev_deinit;
+	img_class->activate = dev_activate;
+	img_class->deactivate = dev_deactivate;
+
+	img_class->bz3_threshold = 30;
+
+	img_class->img_width = IMAGE_WIDTH;
+	img_class->img_height = IMAGE_HEIGHT;
+}
