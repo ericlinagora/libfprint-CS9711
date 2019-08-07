@@ -44,13 +44,6 @@ enum {
 	UPEKSONLY_1001,
 };
 
-struct img_transfer_data {
-	int idx;
-	struct fp_img_dev *dev;
-	gboolean flying;
-	gboolean cancelling;
-};
-
 enum sonly_kill_transfers_action {
 	NOT_KILLING = 0,
 
@@ -73,17 +66,21 @@ enum sonly_fs {
 	FINGER_REMOVED,
 };
 
-struct sonly_dev {
+struct _FpiDeviceUpeksonly {
+	FpImageDevice parent;
+
 	gboolean capturing;
 	gboolean deactivating;
-	uint8_t read_reg_result;
+	guint8 read_reg_result;
 
 	int dev_model;
 	int img_width;
 
-	fpi_ssm *loopsm;
-	struct libusb_transfer *img_transfer[NUM_BULK_TRANSFERS];
-	struct img_transfer_data *img_transfer_data;
+	FpiSsm *loopsm;
+
+	/* Do we really need multiple concurrent transfers? */
+	GCancellable *img_cancellable;
+	GPtrArray *img_transfers;
 	int num_flying;
 
 	GSList *rows;
@@ -98,12 +95,17 @@ struct sonly_dev {
 	int last_seqnum;
 
 	enum sonly_kill_transfers_action killing_transfers;
-	int kill_status_code;
+	GError *kill_error;
 	union {
-		fpi_ssm *kill_ssm;
-		void (*kill_cb)(struct fp_img_dev *dev);
+		FpiSsm *kill_ssm;
+		void (*kill_cb)(FpImageDevice *dev);
 	};
+
+	struct fpi_line_asmbl_ctx assembling_ctx;
 };
+G_DECLARE_FINAL_TYPE(FpiDeviceUpeksonly, fpi_device_upeksonly, FPI,
+		     DEVICE_UPEKSONLY, FpImageDevice);
+G_DEFINE_TYPE(FpiDeviceUpeksonly, fpi_device_upeksonly, FP_TYPE_IMAGE_DEVICE);
 
 
 /* Calculate squared standard deviation of sum of two lines */
@@ -152,136 +154,110 @@ static unsigned char upeksonly_get_pixel(struct fpi_line_asmbl_ctx *ctx,
 	return buf[offset];
 }
 
-static struct fpi_line_asmbl_ctx assembling_ctx = {
-	.max_height = 1024,
-	.resolution = 8,
-	.median_filter_size = 25,
-	.max_search_offset = 30,
-	.get_deviation = upeksonly_get_deviation2,
-	.get_pixel = upeksonly_get_pixel,
-};
-
 /***** IMAGE PROCESSING *****/
 
-static void free_img_transfers(struct sonly_dev *sdev)
+static void free_img_transfers(FpiDeviceUpeksonly *sdev)
 {
-	int i;
-	for (i = 0; i < NUM_BULK_TRANSFERS; i++) {
-		struct libusb_transfer *transfer = sdev->img_transfer[i];
-		if (!transfer)
-			continue;
-
-		g_free(transfer->buffer);
-		libusb_free_transfer(transfer);
-	}
-	g_free(sdev->img_transfer_data);
+	g_cancellable_cancel (sdev->img_cancellable);
+	g_clear_object (&sdev->img_cancellable);
+	g_clear_pointer (&sdev->img_transfers, g_ptr_array_unref);
 }
 
-static void last_transfer_killed(struct fp_img_dev *dev)
+static void last_transfer_killed(FpImageDevice *dev)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	switch (sdev->killing_transfers) {
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
+	switch (self->killing_transfers) {
 	case ABORT_SSM:
-		fp_dbg("abort ssm error %d", sdev->kill_status_code);
-		fpi_ssm_mark_failed(sdev->kill_ssm, sdev->kill_status_code);
+		fp_dbg("abort ssm error %s", self->kill_error->message);
+		fpi_ssm_mark_failed(self->kill_ssm, g_steal_pointer (&self->kill_error));
 		return;
 	case ITERATE_SSM:
 		fp_dbg("iterate ssm");
-		fpi_ssm_next_state(sdev->kill_ssm);
+		fpi_ssm_next_state(self->kill_ssm);
 		return;
 	case IMG_SESSION_ERROR:
-		fp_dbg("session error %d", sdev->kill_status_code);
-		fpi_imgdev_session_error(dev, sdev->kill_status_code);
+		fp_dbg("session error %s", self->kill_error->message);
+		fpi_image_device_session_error(dev, g_steal_pointer (&self->kill_error));
 		return;
 	default:
 		return;
 	}
 }
 
-static void cancel_img_transfers(struct fp_img_dev *dev)
+static void cancel_img_transfers(FpImageDevice *dev)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	int i;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 
-	if (sdev->num_flying == 0) {
+	g_cancellable_cancel (self->img_cancellable);
+
+	if (self->num_flying == 0)
 		last_transfer_killed(dev);
-		return;
-	}
-
-	for (i = 0; i < NUM_BULK_TRANSFERS; i++) {
-		struct img_transfer_data *idata = &sdev->img_transfer_data[i];
-		if (!idata->flying || idata->cancelling)
-			continue;
-		fp_dbg("cancelling transfer %d", i);
-		int r = libusb_cancel_transfer(sdev->img_transfer[i]);
-		if (r < 0)
-			fp_dbg("cancel failed error %d", r);
-		idata->cancelling = TRUE;
-	}
 }
 
-static gboolean is_capturing(struct sonly_dev *sdev)
+static gboolean is_capturing(FpiDeviceUpeksonly *sdev)
 {
 	return sdev->num_rows < MAX_ROWS && (sdev->finger_state != FINGER_REMOVED);
 }
 
-static void handoff_img(struct fp_img_dev *dev)
+static void handoff_img(FpImageDevice *dev)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	struct fp_img *img;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
+	FpImage *img;
 
-	GSList *elem = sdev->rows;
+	GSList *elem = self->rows;
 
 	if (!elem) {
 		fp_err("no rows?");
 		return;
 	}
 
-	sdev->rows = g_slist_reverse(sdev->rows);
+	self->rows = g_slist_reverse(self->rows);
 
-	fp_dbg("%lu rows", sdev->num_rows);
-	img = fpi_assemble_lines(&assembling_ctx, sdev->rows, sdev->num_rows);
+	fp_dbg("%lu rows", self->num_rows);
+	img = fpi_assemble_lines(&self->assembling_ctx, self->rows, self->num_rows);
 
-	g_slist_free_full(sdev->rows, g_free);
-	sdev->rows = NULL;
+	g_slist_free_full(self->rows, g_free);
+	self->rows = NULL;
 
-	fpi_imgdev_image_captured(dev, img);
-	fpi_imgdev_report_finger_status(dev, FALSE);
+	fpi_image_device_image_captured(dev, img);
+	fpi_image_device_report_finger_status(dev, FALSE);
 
-	sdev->killing_transfers = ITERATE_SSM;
-	sdev->kill_ssm = sdev->loopsm;
+	self->killing_transfers = ITERATE_SSM;
+	self->kill_ssm = self->loopsm;
 	cancel_img_transfers(dev);
 }
 
-static void row_complete(struct fp_img_dev *dev)
+static void row_complete(FpImageDevice *dev)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	sdev->rowbuf_offset = -1;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
+	self->rowbuf_offset = -1;
 
-	if (sdev->num_rows > 0) {
-		unsigned char *lastrow = sdev->rows->data;
+	if (self->num_rows > 0) {
+		unsigned char *lastrow = self->rows->data;
 		int std_sq_dev, mean_sq_diff;
 
-		std_sq_dev = fpi_std_sq_dev(sdev->rowbuf, sdev->img_width);
-		mean_sq_diff = fpi_mean_sq_diff_norm(lastrow, sdev->rowbuf, sdev->img_width);
+		std_sq_dev = fpi_std_sq_dev(self->rowbuf, self->img_width);
+		mean_sq_diff = fpi_mean_sq_diff_norm(lastrow, self->rowbuf,
+						     self->img_width);
 
-		switch (sdev->finger_state) {
+		switch (self->finger_state) {
 		case AWAIT_FINGER:
-			if (sdev->deactivating) {
-				sdev->killing_transfers = ITERATE_SSM;
-				sdev->kill_ssm = sdev->loopsm;
+			if (self->deactivating) {
+				self->killing_transfers = ITERATE_SSM;
+				self->kill_ssm = self->loopsm;
 				cancel_img_transfers(dev);
 			}
 			fp_dbg("std_sq_dev: %d", std_sq_dev);
 			if (std_sq_dev > BLANK_THRESHOLD) {
-				sdev->num_nonblank++;
+				self->num_nonblank++;
 			} else {
-				sdev->num_nonblank = 0;
+				self->num_nonblank = 0;
 			}
 
-			if (sdev->num_nonblank > FINGER_PRESENT_THRESHOLD) {
-				sdev->finger_state = FINGER_DETECTED;
-				fpi_imgdev_report_finger_status(dev, TRUE);
+			if (self->num_nonblank > FINGER_PRESENT_THRESHOLD) {
+				self->finger_state = FINGER_DETECTED;
+				fpi_image_device_report_finger_status(dev,
+								      TRUE);
 			} else {
 				return;
 			}
@@ -293,9 +269,9 @@ static void row_complete(struct fp_img_dev *dev)
 		}
 
 		if (std_sq_dev > BLANK_THRESHOLD) {
-			sdev->num_blank = 0;
+			self->num_blank = 0;
 		} else {
-			sdev->num_blank++;
+			self->num_blank++;
 			/* Don't consider the scan complete unless there's at least
 			 * MIN_ROWS recorded or very long blank read occurred.
 			 *
@@ -303,66 +279,68 @@ static void row_complete(struct fp_img_dev *dev)
 			 * actual scan. Happens most commonly if scan is started
 			 * from before the first joint resulting in a gap after the initial touch.
 			 */
-			if (sdev->num_blank > FINGER_REMOVED_THRESHOLD) {
-				sdev->finger_state = FINGER_REMOVED;
-				fp_dbg("detected finger removal. Blank rows: %d, Full rows: %lu", sdev->num_blank, sdev->num_rows);
+			if (self->num_blank > FINGER_REMOVED_THRESHOLD) {
+				self->finger_state = FINGER_REMOVED;
+				fp_dbg("detected finger removal. Blank rows: %d, Full rows: %lu",
+				       self->num_blank, self->num_rows);
 				handoff_img(dev);
 				return;
 			}
 		}
 		fp_dbg("mean_sq_diff: %d, std_sq_dev: %d", mean_sq_diff, std_sq_dev);
-		fp_dbg("num_blank: %d", sdev->num_blank);
+		fp_dbg("num_blank: %d", self->num_blank);
 		if (mean_sq_diff < DIFF_THRESHOLD) {
 			return;
 		}
 	}
 
-	switch (sdev->finger_state) {
+	switch (self->finger_state) {
 	case AWAIT_FINGER:
-		if (!sdev->num_rows) {
-			sdev->rows = g_slist_prepend(sdev->rows, sdev->rowbuf);
-			sdev->num_rows++;
+		if (!self->num_rows) {
+			self->rows = g_slist_prepend(self->rows, self->rowbuf);
+			self->num_rows++;
 		} else {
 			return;
 		}
 		break;
 	case FINGER_DETECTED:
 	case FINGER_REMOVED:
-		sdev->rows = g_slist_prepend(sdev->rows, sdev->rowbuf);
-		sdev->num_rows++;
+		self->rows = g_slist_prepend(self->rows, self->rowbuf);
+		self->num_rows++;
 		break;
 	}
-	sdev->rowbuf = NULL;
+	self->rowbuf = NULL;
 
-	if (sdev->num_rows >= MAX_ROWS) {
+	if (self->num_rows >= MAX_ROWS) {
 		fp_dbg("row limit met");
 		handoff_img(dev);
 	}
 }
 
 /* add data to row buffer */
-static void add_to_rowbuf(struct fp_img_dev *dev, unsigned char *data, int size)
+static void add_to_rowbuf(FpImageDevice *dev, unsigned char *data, int size)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 
-	memcpy(sdev->rowbuf + sdev->rowbuf_offset, data, size);
-	sdev->rowbuf_offset += size;
-	if (sdev->rowbuf_offset >= sdev->img_width)
+	memcpy(self->rowbuf + self->rowbuf_offset, data, size);
+	self->rowbuf_offset += size;
+	if (self->rowbuf_offset >= self->img_width)
 		row_complete(dev);
 
 }
 
-static void start_new_row(struct sonly_dev *sdev, unsigned char *data, int size)
+static void start_new_row(FpiDeviceUpeksonly *self, unsigned char *data,
+			  int size)
 {
-	if (!sdev->rowbuf)
-		sdev->rowbuf = g_malloc(sdev->img_width);
-	memcpy(sdev->rowbuf, data, size);
-	sdev->rowbuf_offset = size;
+	if (!self->rowbuf)
+		self->rowbuf = g_malloc(self->img_width);
+	memcpy(self->rowbuf, data, size);
+	self->rowbuf_offset = size;
 }
 
 /* returns number of bytes left to be copied into rowbuf (capped to 62)
  * or -1 if we aren't capturing anything */
-static int rowbuf_remaining(struct sonly_dev *sdev)
+static int rowbuf_remaining(FpiDeviceUpeksonly *sdev)
 {
 	int r;
 
@@ -375,10 +353,10 @@ static int rowbuf_remaining(struct sonly_dev *sdev)
 	return r;
 }
 
-static void handle_packet(struct fp_img_dev *dev, unsigned char *data)
+static void handle_packet(FpImageDevice *dev, unsigned char *data)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	uint16_t seqnum = data[0] << 8 | data[1];
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
+	guint16 seqnum = data[0] << 8 | data[1];
 	int abs_base_addr;
 	int for_rowbuf;
 	int next_row_addr;
@@ -389,110 +367,128 @@ static void handle_packet(struct fp_img_dev *dev, unsigned char *data)
 	memset (dummy_data, 204, 62);
 
 	data += 2; /* skip sequence number */
-	if (seqnum != sdev->last_seqnum + 1) {
-		if (seqnum != 0 && sdev->last_seqnum != 16383) {
-			int missing_data = seqnum - sdev->last_seqnum;
+	if (seqnum != self->last_seqnum + 1) {
+		if (seqnum != 0 && self->last_seqnum != 16383) {
+			int missing_data = seqnum - self->last_seqnum;
 			int i;
-			fp_warn("lost %d packets of data between %d and %d", missing_data, sdev->last_seqnum, seqnum );
+			fp_warn("lost %d packets of data between %d and %d", missing_data,
+				self->last_seqnum, seqnum );
 
 			/* Minimize distortions for readers that lose a lot of packets */
 			for (i =1; i < missing_data; i++) {
-				abs_base_addr = (sdev->last_seqnum + 1) * 62;
+				abs_base_addr = (self->last_seqnum + 1) * 62;
 
 				/* If possible take the replacement data from last row */
-				if (sdev->num_rows > 1) {
-					int row_left = sdev->img_width - sdev->rowbuf_offset;
-					unsigned char *last_row = g_slist_nth_data (sdev->rows, 0);
+				if (self->num_rows > 1) {
+					int row_left = self->img_width - self->rowbuf_offset;
+					unsigned char *last_row = g_slist_nth_data (self->rows,
+										    0);
 
 					if (row_left >= 62) {
-						memcpy(dummy_data, last_row + sdev->rowbuf_offset, 62);
+						memcpy(dummy_data,
+						       last_row + self->rowbuf_offset,
+						       62);
 					} else {
-						memcpy(dummy_data, last_row + sdev->rowbuf_offset, row_left);
+						memcpy(dummy_data,
+						       last_row + self->rowbuf_offset,
+						       row_left);
 						memcpy(dummy_data + row_left, last_row , 62 - row_left);
 					}
 				}
 
-				fp_warn("adding dummy input for %d, i=%d", sdev->last_seqnum + i, i);
-				for_rowbuf = rowbuf_remaining(sdev);
+				fp_warn("adding dummy input for %d, i=%d",
+				        self->last_seqnum + i, i);
+				for_rowbuf = rowbuf_remaining(self);
 				if (for_rowbuf != -1) {
 					add_to_rowbuf(dev, dummy_data, for_rowbuf);
 					/* row boundary */
 					if (for_rowbuf < 62) {
-						start_new_row(sdev, dummy_data + for_rowbuf, 62 - for_rowbuf);
+						start_new_row(self,
+						              dummy_data + for_rowbuf,
+						              62 - for_rowbuf);
 					}
-				} else if (abs_base_addr % sdev->img_width == 0) {
-					start_new_row(sdev, dummy_data, 62);
+				} else if (abs_base_addr % self->img_width == 0) {
+					start_new_row(self, dummy_data, 62);
 				} else {
 					/* does the data in the packet reside on a row boundary?
 					 * if so capture it */
-					next_row_addr = ((abs_base_addr / sdev->img_width) + 1) * sdev->img_width;
+					next_row_addr = ((abs_base_addr / self->img_width) + 1) * self->img_width;
 					diff = next_row_addr - abs_base_addr;
 					if (diff < 62)
-						start_new_row(sdev, dummy_data + diff, 62 - diff);
+						start_new_row(self,
+						              dummy_data + diff,
+						              62 - diff);
 				}
-				sdev->last_seqnum = sdev->last_seqnum + 1;
+				self->last_seqnum = self->last_seqnum + 1;
 			}
 		}
 	}
-	if (seqnum <= sdev->last_seqnum) {
+	if (seqnum <= self->last_seqnum) {
 		fp_dbg("detected wraparound");
-		sdev->wraparounds++;
+		self->wraparounds++;
 	}
 
-	sdev->last_seqnum = seqnum;
-	seqnum += sdev->wraparounds * 16384;
+	self->last_seqnum = seqnum;
+	seqnum += self->wraparounds * 16384;
 	abs_base_addr = seqnum * 62;
 
 	/* are we already capturing a row? if so append the data to the
 	 * row buffer */
-	for_rowbuf = rowbuf_remaining(sdev);
+	for_rowbuf = rowbuf_remaining(self);
 	if (for_rowbuf != -1) {
 		add_to_rowbuf(dev, data, for_rowbuf);
 		/*row boundary*/
 		if (for_rowbuf < 62) {
-			start_new_row(sdev, data + for_rowbuf, 62 - for_rowbuf);
+			start_new_row(self, data + for_rowbuf,
+				      62 - for_rowbuf);
 		}
 		return;
 	}
 
 	/* does the packet START on a boundary? if so we want it in full */
-	if (abs_base_addr % sdev->img_width == 0) {
-		start_new_row(sdev, data, 62);
+	if (abs_base_addr % self->img_width == 0) {
+		start_new_row(self, data, 62);
 		return;
 	}
 
 	/* does the data in the packet reside on a row boundary?
 	 * if so capture it */
-	next_row_addr = ((abs_base_addr / sdev->img_width) + 1) * sdev->img_width;
+	next_row_addr = ((abs_base_addr / self->img_width) + 1) * self->img_width;
 	diff = next_row_addr - abs_base_addr;
 	if (diff < 62)
-		start_new_row(sdev, data + diff, 62 - diff);
+		start_new_row(self, data + diff, 62 - diff);
 }
 
-static void img_data_cb(struct libusb_transfer *transfer)
+static void img_data_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			gpointer user_data, GError *error)
 {
-	struct img_transfer_data *idata = transfer->user_data;
-	struct fp_img_dev *dev = idata->dev;
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpImageDevice *dev = FP_IMAGE_DEVICE (device);
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 	int i;
 
-	idata->flying = FALSE;
-	idata->cancelling = FALSE;
-	sdev->num_flying--;
+	self->num_flying--;
 
-	if (sdev->killing_transfers) {
-		if (sdev->num_flying == 0)
+	if (self->killing_transfers) {
+		if (self->num_flying == 0)
 			last_transfer_killed(dev);
 
 		/* don't care about error or success if we're terminating */
+		g_clear_error (&error);
 		return;
 	}
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fp_warn("bad status %d, terminating session", transfer->status);
-		sdev->killing_transfers = IMG_SESSION_ERROR;
-		sdev->kill_status_code = transfer->status;
+	if (error) {
+		fp_warn("bad status %s, terminating session", error->message);
+		self->killing_transfers = IMG_SESSION_ERROR;
+
+		/* This cannot really happen, but just in case. */
+		if (!self->kill_error)
+			self->kill_error = error;
+		else
+			g_error_free (error);
+
 		cancel_img_transfers(dev);
+		return;
 	}
 
 	/* there are 64 packets in the transfer buffer
@@ -501,75 +497,48 @@ static void img_data_cb(struct libusb_transfer *transfer)
 	 * then there are 62 bytes for image data
 	 */
 	for (i = 0; i < 4096; i += 64) {
-		if (!is_capturing(sdev))
+		if (!is_capturing(self))
 			return;
 		handle_packet(dev, transfer->buffer + i);
 	}
 
-	if (is_capturing(sdev)) {
-		int r = libusb_submit_transfer(transfer);
-		if (r < 0) {
-			fp_warn("failed resubmit, error %d", r);
-			sdev->killing_transfers = IMG_SESSION_ERROR;
-			sdev->kill_status_code = r;
-			cancel_img_transfers(dev);
-			return;
-		}
-		sdev->num_flying++;
-		idata->flying = TRUE;
+	if (is_capturing(self)) {
+		fpi_usb_transfer_submit (transfer,
+					 0,
+					 self->img_cancellable,
+					 img_data_cb,
+					 user_data);
+		self->num_flying++;
 	}
 }
 
 /***** STATE MACHINE HELPERS *****/
 
 struct write_regs_data {
-	fpi_ssm *ssm;
-	struct libusb_transfer *transfer;
+	FpDevice *dev;
+	FpiSsm *ssm;
+	FpiUsbTransfer *transfer;
 	const struct sonly_regwrite *regs;
 	size_t num_regs;
 	size_t regs_written;
 };
 
-static void write_regs_finished(struct write_regs_data *wrdata, int result)
+static void write_regs_finished(struct write_regs_data *wrdata, GError *error)
 {
-	g_free(wrdata->transfer->buffer);
-	libusb_free_transfer(wrdata->transfer);
-	if (result == 0)
+	if (!error)
 		fpi_ssm_next_state(wrdata->ssm);
 	else
-		fpi_ssm_mark_failed(wrdata->ssm, result);
-	g_free(wrdata);
+		fpi_ssm_mark_failed(wrdata->ssm, error);
 }
 
+static void write_regs_iterate(struct write_regs_data *wrdata);
 
-static void write_regs_iterate(struct write_regs_data *wrdata)
+static void write_regs_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			  gpointer user_data, GError *error)
 {
-	struct libusb_control_setup *setup;
-	const struct sonly_regwrite *regwrite;
-	int r;
-
-	if (wrdata->regs_written >= wrdata->num_regs) {
-		write_regs_finished(wrdata, 0);
-		return;
-	}
-
-	regwrite = &wrdata->regs[wrdata->regs_written];
-
-	fp_dbg("set %02x=%02x", regwrite->reg, regwrite->value);
-	setup = libusb_control_transfer_get_setup(wrdata->transfer);
-	setup->wIndex = regwrite->reg;
-	wrdata->transfer->buffer[LIBUSB_CONTROL_SETUP_SIZE] = regwrite->value;
-
-	r = libusb_submit_transfer(wrdata->transfer);
-	if (r < 0)
-		write_regs_finished(wrdata, r);
-}
-
-static void write_regs_cb(struct libusb_transfer *transfer)
-{
-	struct write_regs_data *wrdata = transfer->user_data;
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		write_regs_finished(wrdata, transfer->status);
+	struct write_regs_data *wrdata = user_data;
+	if (error) {
+		write_regs_finished(wrdata, error);
 		return;
 	}
 
@@ -577,122 +546,140 @@ static void write_regs_cb(struct libusb_transfer *transfer)
 	write_regs_iterate(wrdata);
 }
 
+static void write_regs_iterate(struct write_regs_data *wrdata)
+{
+	FpiUsbTransfer *transfer;
+	const struct sonly_regwrite *regwrite;
+
+	if (wrdata->regs_written >= wrdata->num_regs) {
+		write_regs_finished(wrdata, NULL);
+		return;
+	}
+
+	regwrite = &wrdata->regs[wrdata->regs_written];
+	fp_dbg("set %02x=%02x", regwrite->reg, regwrite->value);
+
+	transfer = fpi_usb_transfer_new(wrdata->dev);
+	fpi_usb_transfer_fill_control(transfer,
+				      G_USB_DEVICE_DIRECTION_HOST_TO_DEVICE,
+				      G_USB_DEVICE_REQUEST_TYPE_VENDOR,
+				      G_USB_DEVICE_RECIPIENT_DEVICE,
+				      0x0c,
+				      0,
+				      regwrite->reg,
+				      1);
+	transfer->short_is_error = TRUE;
+	transfer->ssm = wrdata->ssm;
+	fpi_usb_transfer_submit(transfer, CTRL_TIMEOUT, NULL, write_regs_cb, NULL);
+	fpi_usb_transfer_unref(transfer);
+
+	transfer->buffer[0] = regwrite->value;
+}
+
 static void
-sm_write_regs(fpi_ssm                     *ssm,
-	      struct fp_dev               *dev,
+sm_write_regs(FpiSsm                      *ssm,
+	      FpDevice                    *dev,
 	      const struct sonly_regwrite *regs,
 	      size_t                       num_regs)
 {
 	struct write_regs_data *wrdata = g_malloc(sizeof(*wrdata));
-	unsigned char *data;
-
-	wrdata->transfer = fpi_usb_alloc();
-	data = g_malloc(LIBUSB_CONTROL_SETUP_SIZE + 1);
-	libusb_fill_control_setup(data, 0x40, 0x0c, 0, 0, 1);
-	libusb_fill_control_transfer(wrdata->transfer,
-		fpi_dev_get_usb_dev(dev), data,
-		write_regs_cb, wrdata, CTRL_TIMEOUT);
-	wrdata->transfer->flags = LIBUSB_TRANSFER_SHORT_NOT_OK;
 
 	wrdata->ssm = ssm;
 	wrdata->regs = regs;
 	wrdata->num_regs = num_regs;
 	wrdata->regs_written = 0;
+	wrdata->dev = dev;
+
 	write_regs_iterate(wrdata);
 }
 
-static void sm_write_reg_cb(struct libusb_transfer *transfer)
+static void sm_write_reg_cb(FpiUsbTransfer *transfer, FpDevice *device,
+		            gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-	g_free(transfer->buffer);
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
-		fpi_ssm_mark_failed(ssm, -EIO);
+	if (error)
+		fpi_ssm_mark_failed(transfer->ssm, error);
 	else
-		fpi_ssm_next_state(ssm);
+		fpi_ssm_next_state(transfer->ssm);
 
 }
 
 static void
-sm_write_reg(fpi_ssm           *ssm,
-	     struct fp_img_dev *dev,
-	     uint8_t            reg,
-	     uint8_t            value)
+sm_write_reg(FpiSsm        *ssm,
+	     FpImageDevice *dev,
+	     guint8         reg,
+	     guint8         value)
 {
-	struct libusb_transfer *transfer = fpi_usb_alloc();
-	unsigned char *data;
-	int r;
+	FpiUsbTransfer *transfer = fpi_usb_transfer_new(FP_DEVICE (dev));
 
 	fp_dbg("set %02x=%02x", reg, value);
-	data = g_malloc(LIBUSB_CONTROL_SETUP_SIZE + 1);
-	libusb_fill_control_setup(data, 0x40, 0x0c, 0, reg, 1);
-	libusb_fill_control_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)),
-		data, sm_write_reg_cb,
-		ssm, CTRL_TIMEOUT);
+	fpi_usb_transfer_fill_control(transfer,
+				      G_USB_DEVICE_DIRECTION_HOST_TO_DEVICE,
+				      G_USB_DEVICE_REQUEST_TYPE_VENDOR,
+				      G_USB_DEVICE_RECIPIENT_DEVICE,
+				      0x0c,
+				      0,
+				      reg,
+				      1);
+	transfer->short_is_error = TRUE;
+	transfer->ssm = ssm;
+	fpi_usb_transfer_submit(transfer, CTRL_TIMEOUT, NULL, sm_write_reg_cb, NULL);
+	fpi_usb_transfer_unref(transfer);
 
-	data[LIBUSB_CONTROL_SETUP_SIZE] = value;
-	transfer->flags = LIBUSB_TRANSFER_SHORT_NOT_OK |
-		LIBUSB_TRANSFER_FREE_TRANSFER;
-
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(transfer);
-		fpi_ssm_mark_failed(ssm, r);
-	}
+	transfer->buffer[0] = value;
 }
 
-static void sm_read_reg_cb(struct libusb_transfer *transfer)
+static void sm_read_reg_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			   gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpImageDevice *dev = FP_IMAGE_DEVICE(device);
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fpi_ssm_mark_failed(ssm, -EIO);
+	if (error) {
+		fpi_ssm_mark_failed(transfer->ssm, error);
 	} else {
-		sdev->read_reg_result = libusb_control_transfer_get_data(transfer)[0];
-		fp_dbg("read reg result = %02x", sdev->read_reg_result);
-		fpi_ssm_next_state(ssm);
+		self->read_reg_result = transfer->buffer[0];
+		fp_dbg("read reg result = %02x", self->read_reg_result);
+		fpi_ssm_next_state(transfer->ssm);
 	}
 
 	g_free(transfer->buffer);
 }
 
 static void
-sm_read_reg(fpi_ssm           *ssm,
-	    struct fp_img_dev *dev,
-	    uint8_t            reg)
+sm_read_reg(FpiSsm           *ssm,
+	    FpImageDevice *dev,
+	    guint8            reg)
 {
-	struct libusb_transfer *transfer = fpi_usb_alloc();
-	unsigned char *data;
-	int r;
+	FpiUsbTransfer *transfer = fpi_usb_transfer_new(FP_DEVICE(dev));
 
 	fp_dbg("read reg %02x", reg);
-	data = g_malloc(LIBUSB_CONTROL_SETUP_SIZE + 8);
-	libusb_fill_control_setup(data, 0xc0, 0x0c, 0, reg, 8);
-	libusb_fill_control_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)),
-		data, sm_read_reg_cb,
-		ssm, CTRL_TIMEOUT);
-	transfer->flags = LIBUSB_TRANSFER_SHORT_NOT_OK |
-		LIBUSB_TRANSFER_FREE_TRANSFER;
-
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(transfer);
-		fpi_ssm_mark_failed(ssm, r);
-	}
+	fpi_usb_transfer_fill_control(transfer,
+				      G_USB_DEVICE_DIRECTION_DEVICE_TO_HOST,
+				      G_USB_DEVICE_REQUEST_TYPE_VENDOR,
+				      G_USB_DEVICE_RECIPIENT_DEVICE,
+				      0x0c,
+				      0,
+				      reg,
+				      8);
+	transfer->ssm = ssm;
+	transfer->short_is_error = TRUE;
+	fpi_usb_transfer_submit(transfer,
+				CTRL_TIMEOUT,
+				NULL,
+				sm_read_reg_cb,
+				NULL);
+	fpi_usb_transfer_unref(transfer);
 }
 
-static void sm_await_intr_cb(struct libusb_transfer *transfer)
+static void sm_await_intr_cb(FpiUsbTransfer *transfer, FpDevice *device,
+			     gpointer user_data, GError *error)
 {
-	fpi_ssm *ssm = transfer->user_data;
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpImageDevice *dev = FP_IMAGE_DEVICE(device);
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
+	if (error) {
 		g_free(transfer->buffer);
-		fpi_ssm_mark_failed(ssm, transfer->status);
+		fpi_ssm_mark_failed(transfer->ssm, error);
 		return;
 	}
 
@@ -701,33 +688,30 @@ static void sm_await_intr_cb(struct libusb_transfer *transfer)
 		transfer->buffer[2], transfer->buffer[3]);
 	g_free(transfer->buffer);
 
-	sdev->finger_state = FINGER_DETECTED;
-	fpi_imgdev_report_finger_status(dev, TRUE);
-	fpi_ssm_next_state(ssm);
+	self->finger_state = FINGER_DETECTED;
+	fpi_image_device_report_finger_status(dev, TRUE);
+	fpi_ssm_next_state(transfer->ssm);
 }
 
 static void
-sm_await_intr(fpi_ssm           *ssm,
-	      struct fp_img_dev *dev)
+sm_await_intr(FpiSsm        *ssm,
+	      FpImageDevice *dev)
 {
-	struct libusb_transfer *transfer = fpi_usb_alloc();
-	unsigned char *data;
-	int r;
+	FpiUsbTransfer *transfer = fpi_usb_transfer_new(FP_DEVICE(dev));
 
 	G_DEBUG_HERE();
-	data = g_malloc(4);
-	libusb_fill_interrupt_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)),
-		0x83, data, 4,
-		sm_await_intr_cb, ssm, 0);
-	transfer->flags = LIBUSB_TRANSFER_SHORT_NOT_OK |
-		LIBUSB_TRANSFER_FREE_TRANSFER;
 
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		libusb_free_transfer(transfer);
-		g_free(data);
-		fpi_ssm_mark_failed(ssm, r);
-	}
+	fpi_usb_transfer_fill_interrupt (transfer, 0x83, 4);
+	transfer->short_is_error = TRUE;
+	transfer->ssm = ssm;
+
+	/* NOTE: This was changed to be cancellable with the version 2 port! */
+	fpi_usb_transfer_submit (transfer,
+				 0,
+				 fpi_device_get_cancellable (FP_DEVICE (dev)),
+				 sm_await_intr_cb,
+				 NULL);
+	fpi_usb_transfer_unref (transfer);
 }
 
 /***** AWAIT FINGER *****/
@@ -752,10 +736,11 @@ enum awfsm_1000_states {
 	AWFSM_1000_NUM_STATES,
 };
 
-static void awfsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void awfsm_2016_run_state(FpiSsm *ssm, FpDevice *_dev,
+				 void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *dev = user_data;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case AWFSM_2016_WRITEV_1:
@@ -765,7 +750,7 @@ static void awfsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 		sm_read_reg(ssm, dev, 0x01);
 		break;
 	case AWFSM_2016_WRITE_01:
-		if (sdev->read_reg_result != 0xc6)
+		if (self->read_reg_result != 0xc6)
 			sm_write_reg(ssm, dev, 0x01, 0x46);
 		else
 			sm_write_reg(ssm, dev, 0x01, 0xc6);
@@ -777,7 +762,7 @@ static void awfsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 		sm_read_reg(ssm, dev, 0x13);
 		break;
 	case AWFSM_2016_WRITE_13:
-		if (sdev->read_reg_result != 0x45)
+		if (self->read_reg_result != 0x45)
 			sm_write_reg(ssm, dev, 0x13, 0x05);
 		else
 			sm_write_reg(ssm, dev, 0x13, 0x45);
@@ -789,9 +774,9 @@ static void awfsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 		sm_read_reg(ssm, dev, 0x07);
 		break;
 	case AWFSM_2016_WRITE_07:
-		if (sdev->read_reg_result != 0x10 && sdev->read_reg_result != 0x90)
-			fp_warn("odd reg7 value %x", sdev->read_reg_result);
-		sm_write_reg(ssm, dev, 0x07, sdev->read_reg_result);
+		if (self->read_reg_result != 0x10 && self->read_reg_result != 0x90)
+			fp_warn("odd reg7 value %x", self->read_reg_result);
+		sm_write_reg(ssm, dev, 0x07, self->read_reg_result);
 		break;
 	case AWFSM_2016_WRITEV_4:
 		sm_write_regs(ssm, _dev, awfsm_2016_writev_4, G_N_ELEMENTS(awfsm_2016_writev_4));
@@ -799,7 +784,8 @@ static void awfsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 	}
 }
 
-static void awfsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void awfsm_1000_run_state(FpiSsm *ssm, FpDevice *_dev,
+				 void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case AWFSM_1000_WRITEV_1:
@@ -841,52 +827,44 @@ enum capsm_1001_states {
 };
 
 static void
-capsm_fire_bulk(fpi_ssm       *ssm,
-		struct fp_dev *_dev)
+capsm_fire_bulk(FpiSsm   *ssm,
+		FpDevice *dev)
 {
-	struct fp_img_dev *dev = FP_IMG_DEV(_dev);
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 	int i;
-	for (i = 0; i < NUM_BULK_TRANSFERS; i++) {
-		int r = libusb_submit_transfer(sdev->img_transfer[i]);
-		if (r < 0) {
-			if (i == 0) {
-				/* first one failed: easy peasy */
-				fpi_ssm_mark_failed(ssm, r);
-				return;
-			}
 
-			/* cancel all flying transfers, and request that the SSM
-			 * gets aborted when the last transfer has dropped out of
-			 * the sky */
-			sdev->killing_transfers = ABORT_SSM;
-			sdev->kill_ssm = ssm;
-			sdev->kill_status_code = r;
-			cancel_img_transfers(dev);
-			return;
-		}
-		sdev->img_transfer_data[i].flying = TRUE;
-		sdev->num_flying++;
+	g_assert (self->capturing == FALSE);
+
+	g_clear_object (&self->img_cancellable);
+	self->img_cancellable = g_cancellable_new ();
+	for (i = 0; i < self->img_transfers->len; i++) {
+		fpi_usb_transfer_submit(g_ptr_array_index (self->img_transfers, i),
+					0,
+					self->img_cancellable,
+					img_data_cb,
+					NULL);
+		self->num_flying++;
 	}
-	sdev->capturing = TRUE;
+	self->capturing = TRUE;
 	fpi_ssm_next_state(ssm);
 }
 
-static void capsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void capsm_2016_run_state(FpiSsm *ssm, FpDevice *_dev,
+				 void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *dev = user_data;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPSM_2016_INIT:
-		sdev->rowbuf_offset = -1;
-		sdev->num_rows = 0;
-		sdev->wraparounds = -1;
-		sdev->num_blank = 0;
-		sdev->num_nonblank = 0;
-		sdev->finger_state = FINGER_DETECTED;
-		sdev->last_seqnum = 16383;
-		sdev->killing_transfers = 0;
+		self->rowbuf_offset = -1;
+		self->num_rows = 0;
+		self->wraparounds = -1;
+		self->num_blank = 0;
+		self->num_nonblank = 0;
+		self->finger_state = FINGER_DETECTED;
+		self->last_seqnum = 16383;
+		self->killing_transfers = 0;
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAPSM_2016_WRITE_15:
@@ -904,20 +882,21 @@ static void capsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 	}
 }
 
-static void capsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void capsm_1000_run_state(FpiSsm *ssm, FpDevice *_dev,
+				 void *user_data)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPSM_1000_INIT:
-		sdev->rowbuf_offset = -1;
-		sdev->num_rows = 0;
-		sdev->wraparounds = -1;
-		sdev->num_blank = 0;
-		sdev->num_nonblank = 0;
-		sdev->finger_state = FINGER_DETECTED;
-		sdev->last_seqnum = 16383;
-		sdev->killing_transfers = 0;
+		self->rowbuf_offset = -1;
+		self->num_rows = 0;
+		self->wraparounds = -1;
+		self->num_blank = 0;
+		self->num_nonblank = 0;
+		self->finger_state = FINGER_DETECTED;
+		self->last_seqnum = 16383;
+		self->killing_transfers = 0;
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAPSM_1000_FIRE_BULK: ;
@@ -929,20 +908,21 @@ static void capsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 	}
 }
 
-static void capsm_1001_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void capsm_1001_run_state(FpiSsm *ssm, FpDevice *_dev,
+				 void *user_data)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPSM_1001_INIT:
-		sdev->rowbuf_offset = -1;
-		sdev->num_rows = 0;
-		sdev->wraparounds = -1;
-		sdev->num_blank = 0;
-		sdev->num_nonblank = 0;
-		sdev->finger_state = AWAIT_FINGER;
-		sdev->last_seqnum = 16383;
-		sdev->killing_transfers = 0;
+		self->rowbuf_offset = -1;
+		self->num_rows = 0;
+		self->wraparounds = -1;
+		self->num_blank = 0;
+		self->num_nonblank = 0;
+		self->finger_state = AWAIT_FINGER;
+		self->last_seqnum = 16383;
+		self->killing_transfers = 0;
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAPSM_1001_FIRE_BULK: ;
@@ -983,7 +963,8 @@ enum deinitsm_1001_states {
 	DEINITSM_1001_NUM_STATES,
 };
 
-static void deinitsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void deinitsm_2016_run_state(FpiSsm *ssm, FpDevice *_dev,
+				    void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case DEINITSM_2016_WRITEV:
@@ -992,7 +973,8 @@ static void deinitsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *use
 	}
 }
 
-static void deinitsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void deinitsm_1000_run_state(FpiSsm *ssm, FpDevice *_dev,
+				    void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case DEINITSM_1000_WRITEV:
@@ -1001,7 +983,8 @@ static void deinitsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *use
 	}
 }
 
-static void deinitsm_1001_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void deinitsm_1001_run_state(FpiSsm *ssm, FpDevice *_dev,
+				    void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case DEINITSM_1001_WRITEV:
@@ -1037,10 +1020,11 @@ enum initsm_1001_states {
 	INITSM_1001_NUM_STATES,
 };
 
-static void initsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void initsm_2016_run_state(FpiSsm *ssm, FpDevice *_dev,
+				  void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *dev = user_data;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case INITSM_2016_WRITEV_1:
@@ -1050,13 +1034,13 @@ static void initsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_
 		sm_read_reg(ssm, dev, 0x09);
 		break;
 	case INITSM_2016_WRITE_09:
-		sm_write_reg(ssm, dev, 0x09, sdev->read_reg_result & ~0x08);
+		sm_write_reg(ssm, dev, 0x09, self->read_reg_result & ~0x08);
 		break;
 	case INITSM_2016_READ_13:
 		sm_read_reg(ssm, dev, 0x13);
 		break;
 	case INITSM_2016_WRITE_13:
-		sm_write_reg(ssm, dev, 0x13, sdev->read_reg_result & ~0x10);
+		sm_write_reg(ssm, dev, 0x13, self->read_reg_result & ~0x10);
 		break;
 	case INITSM_2016_WRITE_04:
 		sm_write_reg(ssm, dev, 0x04, 0x00);
@@ -1067,7 +1051,8 @@ static void initsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_
 	}
 }
 
-static void initsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void initsm_1000_run_state(FpiSsm *ssm, FpDevice *_dev,
+				  void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case INITSM_1000_WRITEV_1:
@@ -1076,7 +1061,8 @@ static void initsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_
 	}
 }
 
-static void initsm_1001_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void initsm_1001_run_state(FpiSsm *ssm, FpDevice *_dev,
+				  void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case INITSM_1001_WRITEV_1:
@@ -1109,34 +1095,38 @@ enum loopsm_states {
 	LOOPSM_NUM_STATES,
 };
 
-static void loopsm_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void loopsm_run_state(FpiSsm *ssm, FpDevice *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = user_data;
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
+	FpImageDevice *dev = user_data;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case LOOPSM_RUN_AWFSM: ;
-		switch (sdev->dev_model) {
+		switch (self->dev_model) {
 		case UPEKSONLY_1001:
-			if (sdev->deactivating) {
+			if (self->deactivating) {
 				fpi_ssm_mark_completed(ssm);
 			} else {
 				fpi_ssm_next_state(ssm);
 			}
 		break;
 		default:
-			if (sdev->deactivating) {
+			if (self->deactivating) {
 				fpi_ssm_mark_completed(ssm);
 			} else {
-				fpi_ssm *awfsm = NULL;
-				switch (sdev->dev_model) {
+				FpiSsm *awfsm = NULL;
+				switch (self->dev_model) {
 				case UPEKSONLY_2016:
-					awfsm = fpi_ssm_new(FP_DEV(dev), awfsm_2016_run_state,
-						AWFSM_2016_NUM_STATES, dev);
+					awfsm = fpi_ssm_new(FP_DEVICE(dev),
+							   awfsm_2016_run_state,
+							   AWFSM_2016_NUM_STATES,
+							   dev);
 					break;
 				case UPEKSONLY_1000:
-					awfsm = fpi_ssm_new(FP_DEV(dev), awfsm_1000_run_state,
-						AWFSM_1000_NUM_STATES, dev);
+					awfsm = fpi_ssm_new(FP_DEVICE(dev),
+							   awfsm_1000_run_state,
+							   AWFSM_1000_NUM_STATES,
+							   dev);
 					break;
 				}
 				fpi_ssm_start_subsm(ssm, awfsm);
@@ -1145,7 +1135,7 @@ static void loopsm_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 		}
 		break;
 	case LOOPSM_AWAIT_FINGER:
-		switch (sdev->dev_model) {
+		switch (self->dev_model) {
 		case UPEKSONLY_1001:
 			fpi_ssm_next_state(ssm);
 			break;
@@ -1155,19 +1145,22 @@ static void loopsm_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 		}
 		break;
 	case LOOPSM_RUN_CAPSM: ;
-		fpi_ssm *capsm = NULL;
-		switch (sdev->dev_model) {
+		FpiSsm *capsm = NULL;
+		switch (self->dev_model) {
 		case UPEKSONLY_2016:
-			capsm = fpi_ssm_new(FP_DEV(dev), capsm_2016_run_state,
-				CAPSM_2016_NUM_STATES, dev);
+			capsm = fpi_ssm_new(FP_DEVICE(dev),
+					   capsm_2016_run_state,
+					   CAPSM_2016_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1000:
-			capsm = fpi_ssm_new(FP_DEV(dev), capsm_1000_run_state,
-				CAPSM_1000_NUM_STATES, dev);
+			capsm = fpi_ssm_new(FP_DEVICE(dev),
+					   capsm_1000_run_state,
+					   CAPSM_1000_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1001:
-			capsm = fpi_ssm_new(FP_DEV(dev), capsm_1001_run_state,
-				CAPSM_1001_NUM_STATES, dev);
+			capsm = fpi_ssm_new(FP_DEVICE(dev),
+					   capsm_1001_run_state,
+					   CAPSM_1001_NUM_STATES, dev);
 			break;
 		}
 		fpi_ssm_start_subsm(ssm, capsm);
@@ -1175,22 +1168,25 @@ static void loopsm_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 	case LOOPSM_CAPTURE:
 		break;
 	case LOOPSM_RUN_DEINITSM: ;
-		fpi_ssm *deinitsm = NULL;
-		switch (sdev->dev_model) {
+		FpiSsm *deinitsm = NULL;
+		switch (self->dev_model) {
 		case UPEKSONLY_2016:
-			deinitsm = fpi_ssm_new(FP_DEV(dev), deinitsm_2016_run_state,
-				DEINITSM_2016_NUM_STATES, dev);
+			deinitsm = fpi_ssm_new(FP_DEVICE(dev),
+					      deinitsm_2016_run_state,
+					      DEINITSM_2016_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1000:
-			deinitsm = fpi_ssm_new(FP_DEV(dev), deinitsm_1000_run_state,
-				DEINITSM_1000_NUM_STATES, dev);
+			deinitsm = fpi_ssm_new(FP_DEVICE(dev),
+					      deinitsm_1000_run_state,
+					      DEINITSM_1000_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1001:
-			deinitsm = fpi_ssm_new(FP_DEV(dev), deinitsm_1001_run_state,
-				DEINITSM_1001_NUM_STATES, dev);
+			deinitsm = fpi_ssm_new(FP_DEVICE(dev),
+					      deinitsm_1001_run_state,
+					      DEINITSM_1001_NUM_STATES, dev);
 			break;
 		}
-		sdev->capturing = FALSE;
+		self->capturing = FALSE;
 		fpi_ssm_start_subsm(ssm, deinitsm);
 		break;
 	case LOOPSM_FINAL:
@@ -1202,206 +1198,213 @@ static void loopsm_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 
 /***** DRIVER STUFF *****/
 
-static void deactivate_done(struct fp_img_dev *dev)
+static void deactivate_done(FpImageDevice *dev, GError *error)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 
 	G_DEBUG_HERE();
-	free_img_transfers(sdev);
-	g_free(sdev->rowbuf);
-	sdev->rowbuf = NULL;
+	free_img_transfers(self);
+	g_free(self->rowbuf);
+	self->rowbuf = NULL;
 
-	if (sdev->rows) {
-		g_slist_foreach(sdev->rows, (GFunc) g_free, NULL);
-		sdev->rows = NULL;
-	}
+	g_slist_free_full (self->rows, g_free);
+	self->rows = NULL;
 
-	fpi_imgdev_deactivate_complete(dev);
+	fpi_image_device_deactivate_complete(dev, error);
 }
 
-static void dev_deactivate(struct fp_img_dev *dev)
+static void dev_deactivate(FpImageDevice *dev)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
 
-	if (!sdev->capturing) {
-		deactivate_done(dev);
+	if (!self->capturing) {
+		deactivate_done(dev, NULL);
 		return;
 	}
 
-	sdev->deactivating = TRUE;
-	sdev->killing_transfers = ITERATE_SSM;
-	sdev->kill_ssm = sdev->loopsm;
+	self->deactivating = TRUE;
+	self->killing_transfers = ITERATE_SSM;
+	self->kill_ssm = self->loopsm;
 	cancel_img_transfers(dev);
 }
 
-static void loopsm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void loopsm_complete(FpiSsm *ssm, FpDevice *_dev, void *user_data, GError *error)
 {
-	struct fp_img_dev *dev = user_data;
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
-	int r = fpi_ssm_get_error(ssm);
+	FpImageDevice *dev = user_data;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	fpi_ssm_free(ssm);
 
-	if (sdev->deactivating) {
-		deactivate_done(dev);
+	if (self->deactivating) {
+		deactivate_done(dev, error);
 		return;
 	}
 
-	if (r) {
-		fpi_imgdev_session_error(dev, r);
+	if (error) {
+		fpi_image_device_session_error(dev, error);
 		return;
 	}
 }
 
-static void initsm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
+static void initsm_complete(FpiSsm *ssm, FpDevice *_dev, void *user_data,
+			    GError *error)
 {
-	struct fp_img_dev *dev = user_data;
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
-	int r = fpi_ssm_get_error(ssm);
+	FpImageDevice *dev = user_data;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(_dev);
 
 	fpi_ssm_free(ssm);
-	fpi_imgdev_activate_complete(dev, r);
-	if (r != 0)
+	fpi_image_device_activate_complete(dev, error);
+	if (error)
 		return;
 
-	sdev->loopsm = fpi_ssm_new(FP_DEV(dev), loopsm_run_state, LOOPSM_NUM_STATES, dev);
-	fpi_ssm_start(sdev->loopsm, loopsm_complete);
+	self->loopsm = fpi_ssm_new(FP_DEVICE(dev), loopsm_run_state,
+				  LOOPSM_NUM_STATES, dev);
+	fpi_ssm_start(self->loopsm, loopsm_complete);
 }
 
-static int dev_activate(struct fp_img_dev *dev)
+static void dev_activate(FpImageDevice *dev)
 {
-	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
-	fpi_ssm *ssm = NULL;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY(dev);
+	FpiSsm *ssm = NULL;
 	int i;
 
-	sdev->deactivating = FALSE;
-	sdev->capturing = FALSE;
+	self->deactivating = FALSE;
+	self->capturing = FALSE;
 
-	memset(sdev->img_transfer, 0,
-		NUM_BULK_TRANSFERS * sizeof(struct libusb_transfer *));
-	sdev->img_transfer_data =
-		g_malloc0(sizeof(struct img_transfer_data) * NUM_BULK_TRANSFERS);
-	sdev->num_flying = 0;
-	for (i = 0; i < NUM_BULK_TRANSFERS; i++) {
-		unsigned char *data;
-		sdev->img_transfer[i] = fpi_usb_alloc();
-		sdev->img_transfer_data[i].idx = i;
-		sdev->img_transfer_data[i].dev = dev;
-		data = g_malloc(4096);
-		libusb_fill_bulk_transfer(sdev->img_transfer[i], fpi_dev_get_usb_dev(FP_DEV(dev)),
-			0x81, data,
-			4096, img_data_cb, &sdev->img_transfer_data[i], 0);
+	self->img_transfers = g_ptr_array_new_full(NUM_BULK_TRANSFERS, (GDestroyNotify) fpi_usb_transfer_unref);
+	self->num_flying = 0;
+
+	for (i = 0; i < self->img_transfers->len; i++) {
+		FpiUsbTransfer *transfer;
+
+		transfer = fpi_usb_transfer_new (FP_DEVICE (dev));
+		fpi_usb_transfer_fill_bulk (transfer, 0x81, 4096);
+
+		g_ptr_array_add (self->img_transfers, transfer);
 	}
 
-	switch (sdev->dev_model) {
+	switch (self->dev_model) {
 	case UPEKSONLY_2016:
-		ssm = fpi_ssm_new(FP_DEV(dev), initsm_2016_run_state, INITSM_2016_NUM_STATES, dev);
+		ssm = fpi_ssm_new(FP_DEVICE(dev), initsm_2016_run_state,
+				 INITSM_2016_NUM_STATES, dev);
 		break;
 	case UPEKSONLY_1000:
-		ssm = fpi_ssm_new(FP_DEV(dev), initsm_1000_run_state, INITSM_1000_NUM_STATES, dev);
+		ssm = fpi_ssm_new(FP_DEVICE(dev), initsm_1000_run_state,
+				 INITSM_1000_NUM_STATES, dev);
 		break;
 	case UPEKSONLY_1001:
-		ssm = fpi_ssm_new(FP_DEV(dev), initsm_1001_run_state, INITSM_1001_NUM_STATES, dev);
+		ssm = fpi_ssm_new(FP_DEVICE(dev), initsm_1001_run_state,
+				 INITSM_1001_NUM_STATES, dev);
 		break;
 	}
 	fpi_ssm_start(ssm, initsm_complete);
-	return 0;
 }
 
-static int dev_init(struct fp_img_dev *dev, unsigned long driver_data);
+static void dev_init(FpImageDevice *dev);
 
-static void dev_deinit(struct fp_img_dev *dev)
+static void dev_deinit(FpImageDevice *dev)
 {
-	void *user_data;
-	user_data = FP_INSTANCE_DATA(FP_DEV(dev));
-	g_free(user_data);
-	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	fpi_imgdev_close_complete(dev);
+	GError *error = NULL;
+
+	g_usb_device_release_interface(fpi_device_get_usb_device(FP_DEVICE(dev)),
+				       0, 0, &error);
+	fpi_image_device_close_complete(dev, error);
 }
 
-static int dev_discover(struct libusb_device_descriptor *dsc, uint32_t *devtype)
+static gint dev_discover(GUsbDevice *usb_device)
 {
-	if (dsc->idProduct == 0x2016) {
-		if (dsc->bcdDevice == 1) /* Revision 1 is what we're interested in */
+	guint16 pid = g_usb_device_get_pid (usb_device);
+	guint16 bcd = g_usb_device_get_release (usb_device);
+
+	if (pid == 0x2016) {
+		if (bcd == 1) /* Revision 1 is what we're interested in */
 			return 1;
 	}
-	if (dsc->idProduct == 0x1000) {
-		if (dsc->bcdDevice == 0x0033) /* Looking for revision 0.33 */
+	if (pid == 0x1000) {
+		if (bcd == 0x0033) /* Looking for revision 0.33 */
 			return 1;
 	}
 
-	if (dsc->idProduct == 0x1001)
+	if (pid == 0x1001)
 		return 1;
 
 	return 0;
 }
 
-static const struct usb_id id_table[] = {
-	{ .vendor = 0x147e, .product = 0x2016, .driver_data = UPEKSONLY_2016 },
-	{ .vendor = 0x147e, .product = 0x1000, .driver_data = UPEKSONLY_1000 },
-	{ .vendor = 0x147e, .product = 0x1001, .driver_data = UPEKSONLY_1001 },
-	{ 0, 0, 0, },
+static const FpIdEntry id_table [ ] = {
+	{ .vid = 0x147e,  .pid = 0x2016, .driver_data = UPEKSONLY_2016 },
+	{ .vid = 0x147e,  .pid = 0x1000, .driver_data = UPEKSONLY_1000 },
+	{ .vid = 0x147e,  .pid = 0x1001, .driver_data = UPEKSONLY_1001 },
+	{ .vid = 0,  .pid = 0,  .driver_data = 0 },
 };
 
-struct fp_img_driver upeksonly_driver = {
-	.driver = {
-		.id = UPEKSONLY_ID,
-		.name = FP_COMPONENT,
-		.full_name = "UPEK TouchStrip Sensor-Only",
-		.id_table = id_table,
-		.scan_type = FP_SCAN_TYPE_SWIPE,
-		.discover = dev_discover,
-	},
-	.flags = 0,
-	.img_width = -1,
-	.img_height = -1,
+static void fpi_device_upeksonly_init(FpiDeviceUpeksonly *self) {
+}
+static void fpi_device_upeksonly_class_init(FpiDeviceUpeksonlyClass *klass) {
+	FpDeviceClass *dev_class = FP_DEVICE_CLASS(klass);
+	FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS(klass);
 
-	.open = dev_init,
-	.close = dev_deinit,
-	.activate = dev_activate,
-	.deactivate = dev_deactivate,
-};
+	dev_class->id = "upeksonly";
+	dev_class->full_name = "UPEK TouchStrip Sensor-Only";
+	dev_class->type = FP_DEVICE_TYPE_USB;
+	dev_class->id_table = id_table;
+	dev_class->scan_type = FP_SCAN_TYPE_SWIPE;
 
-static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
+	dev_class->usb_discover = dev_discover;
+
+	img_class->img_open = dev_init;
+	img_class->img_close = dev_deinit;
+	img_class->activate = dev_activate;
+	img_class->deactivate = dev_deactivate;
+
+	img_class->img_width = -1;
+	img_class->img_height = -1;
+}
+
+static void dev_init(FpImageDevice *dev)
 {
-	int r;
-	struct sonly_dev *sdev;
+	GError *error = NULL;
+	FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (dev);
 
-	r = libusb_set_configuration(fpi_dev_get_usb_dev(FP_DEV(dev)), 1);
-	if (r < 0) {
+	if (!g_usb_device_set_configuration (fpi_device_get_usb_device(FP_DEVICE(dev)), 1, &error)) {
 		fp_err("could not set configuration 1");
-		return r;
+		fpi_image_device_open_complete(dev, error);
 	}
 
-	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
-	if (r < 0) {
-		fp_err("could not claim interface 0: %s", libusb_error_name(r));
-		return r;
+	if (!g_usb_device_claim_interface(fpi_device_get_usb_device(FP_DEVICE(dev)), 0, 0, &error)) {
+		fpi_image_device_open_complete(dev, error);
+		return;
 	}
 
-	sdev = g_malloc0(sizeof(struct sonly_dev));
-	fp_dev_set_instance_data(FP_DEV(dev), sdev);
-	sdev->dev_model = (int)driver_data;
-	switch (driver_data) {
+	self->assembling_ctx.max_height = 1024;
+	self->assembling_ctx.resolution = 8;
+	self->assembling_ctx.median_filter_size = 25;
+	self->assembling_ctx.max_search_offset = 30;
+	self->assembling_ctx.get_deviation = upeksonly_get_deviation2;
+	self->assembling_ctx.get_pixel = upeksonly_get_pixel;
+
+	self = FPI_DEVICE_UPEKSONLY(dev);
+	self->dev_model = (int)fpi_device_get_driver_data (FP_DEVICE (dev));
+	switch (self->dev_model) {
 	case UPEKSONLY_1000:
-		sdev->img_width = IMG_WIDTH_1000;
-		upeksonly_driver.img_width = IMG_WIDTH_1000;
-		assembling_ctx.line_width = IMG_WIDTH_1000;
+		self->img_width = IMG_WIDTH_1000;
+		self->assembling_ctx.line_width = IMG_WIDTH_1000;
 		break;
 	case UPEKSONLY_1001:
-		sdev->img_width = IMG_WIDTH_1001;
-		upeksonly_driver.img_width = IMG_WIDTH_1001;
-		upeksonly_driver.bz3_threshold = 25;
-		assembling_ctx.line_width = IMG_WIDTH_1001;
+		self->img_width = IMG_WIDTH_1001;
+		self->assembling_ctx.line_width = IMG_WIDTH_1001;
+
+		/* The sensor resolution is too low for the normal threshold. */
+		fpi_image_device_set_bz3_threshold (dev, 25);
 		break;
 	case UPEKSONLY_2016:
-		sdev->img_width = IMG_WIDTH_2016;
-		upeksonly_driver.img_width = IMG_WIDTH_2016;
-		assembling_ctx.line_width = IMG_WIDTH_2016;
+		self->img_width = IMG_WIDTH_2016;
+		self->assembling_ctx.line_width = IMG_WIDTH_2016;
 		break;
+	default:
+		g_assert_not_reached ();
 	}
-	fpi_imgdev_open_complete(dev, 0);
-	return 0;
+	fpi_image_device_open_complete(dev, NULL);
 }
 
 

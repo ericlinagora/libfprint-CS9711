@@ -28,8 +28,8 @@
 #define IMG_WIDTH_1001	216
 
 struct sonly_regwrite {
-	uint8_t reg;
-	uint8_t value;
+	guint8 reg;
+	guint8 value;
 };
 
 /***** AWAIT FINGER *****/
