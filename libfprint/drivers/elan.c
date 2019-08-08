@@ -424,7 +424,8 @@ elan_run_cmd(fpi_ssm               *ssm,
 		elandev->cmd_timeout = cmd_timeout;
 
 	if (cmd->devices != ELAN_ALL_DEV && !(cmd->devices & elandev->dev_type)) {
-		fp_dbg("skipping for this device");
+		fp_dbg("skipping command 0x%x 0x%x for this device (for devices 0x%x but device is 0x%x)",
+		       cmd->cmd[0], cmd->cmd[1], cmd->devices, elandev->dev_type);
 		elan_cmd_done(ssm);
 		return;
 	}
