@@ -1,6 +1,33 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2019-08-08: v1.0 release
+* Library:
+  - Add guards to the public API and require GLib 2.50
+  - Deprecate print storage API
+  - Better documentation for fp_discover_devs()
+  - Remove unused internal fpi_timeout_cancel_for_dev()
+  - Remove state from fp_img_driver activate handler
+  - Bug fixes related to restarting a failed verification immediately
+
+* Drivers:
+  - The Elan driver received a lot of bug fixes including a fix for a
+    hang when verifying prints with fprintd, quirks for some devices,
+    a memory leak fix and support for 04f3:0c42
+  - Fix a probable crash in all the AES drivers
+  - Add support for Lenovo Preferred Pro Keyboard (KUF1256) to vfs5011
+  - Prevent hang during enroll process in etes603 driver
+  - Fix possible integer overflow in uru4000
+  - Work-around SELinux AVC warnings when uru4000 driver starts
+  - Remove long-unmaintained and broken fdu2000 driver
+
+* Tools/Examples:
+  - Fix examples not working due to an overly strict check
+  - Fix crash in GTK demo when there's no supported devices
+  - Disable GTK demo until we have a USB Flatpak portal
+  - Remove sleep() in enroll example which caused a crash in some drivers
+  - Add a simple storage implementation example
+
 2018-12-14: v0.99.0 release
 * Library:
   - All the internal API for device driver writers is now covered by the
