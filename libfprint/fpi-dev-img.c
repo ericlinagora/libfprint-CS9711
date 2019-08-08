@@ -485,9 +485,15 @@ void fpi_imgdev_activate_complete(struct fp_img_dev *imgdev, int status)
  */
 void fpi_imgdev_deactivate_complete(struct fp_img_dev *imgdev)
 {
+	enum fp_imgdev_action action;
+
 	G_DEBUG_HERE();
 
-	switch (imgdev->action) {
+	action = imgdev->action;
+	imgdev->action = IMG_ACTION_NONE;
+	imgdev->action_state = 0;
+
+	switch (action) {
 	case IMG_ACTION_ENROLL:
 		fpi_drvcb_enroll_stopped(FP_DEV(imgdev));
 		break;
@@ -504,9 +510,6 @@ void fpi_imgdev_deactivate_complete(struct fp_img_dev *imgdev)
 		fp_err("unhandled action %d", imgdev->action);
 		break;
 	}
-
-	imgdev->action = IMG_ACTION_NONE;
-	imgdev->action_state = 0;
 }
 
 int fpi_imgdev_get_img_width(struct fp_img_dev *imgdev)
