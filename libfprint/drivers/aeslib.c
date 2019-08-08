@@ -53,12 +53,15 @@ static void write_regv_trf_complete(struct libusb_transfer *transfer)
 {
 	struct write_regv_data *wdata = transfer->user_data;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
+	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
 		wdata->callback(wdata->imgdev, -EIO, wdata->user_data);
-	else if (transfer->length != transfer->actual_length)
+		g_free(wdata);
+	} else if (transfer->length != transfer->actual_length) {
 		wdata->callback(wdata->imgdev, -EPROTO, wdata->user_data);
-	else
+		g_free(wdata);
+	} else {
 		continue_write_regv(wdata);
+	}
 
 	g_free(transfer->buffer);
 	libusb_free_transfer(transfer);
@@ -109,6 +112,7 @@ static void continue_write_regv(struct write_regv_data *wdata)
 		if (offset >= wdata->num_regs) {
 			fp_dbg("all registers written");
 			wdata->callback(wdata->imgdev, 0, wdata->user_data);
+			g_free(wdata);
 			return;
 		}
 		if (wdata->regs[offset].reg)
@@ -132,6 +136,7 @@ static void continue_write_regv(struct write_regv_data *wdata)
 	r = do_write_regv(wdata, upper_bound);
 	if (r < 0) {
 		wdata->callback(wdata->imgdev, r, wdata->user_data);
+		g_free(wdata);
 		return;
 	}
 
@@ -155,8 +160,6 @@ void aes_write_regv(struct fp_img_dev *dev, const struct aes_regwrite *regs,
 	wdata->callback = callback;
 	wdata->user_data = user_data;
 	continue_write_regv(wdata);
-
-	g_free(wdata);
 }
 
 unsigned char aes_get_pixel(struct fpi_frame_asmbl_ctx *ctx,
