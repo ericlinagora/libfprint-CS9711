@@ -207,7 +207,6 @@ struct _FpiDeviceEtes603 {
 	guint8 vrt;
 	guint8 vrb;
 
-	gboolean deactivating;
 	unsigned int is_active;
 };
 G_DECLARE_FINAL_TYPE(FpiDeviceEtes603, fpi_device_etes603, FPI, DEVICE_ETES603,
@@ -737,8 +736,11 @@ static void m_exit_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
 
 static void m_exit_start(FpImageDevice *idev)
 {
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(idev);
 	FpiSsm *ssm = fpi_ssm_new(FP_DEVICE(idev), m_exit_state,
 					  EXIT_NUM_STATES, idev);
+
+	self->is_active = FALSE;
 	fp_dbg("Switching device to idle mode");
 	fpi_ssm_start(ssm, m_exit_complete);
 }
@@ -842,6 +844,7 @@ static void m_capture_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
 		m_start_fingerdetect(idev);
 	} else {
 		fp_dbg("And it's over.");
+		m_exit_start(idev);
 	}
 }
 
@@ -950,6 +953,7 @@ static void m_finger_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
 				"(%s)", error->message);
 			fpi_image_device_session_error(idev, error);
 		} else {
+			m_exit_start(idev);
 			g_error_free (error);
 		}
 		self->is_active = FALSE;
@@ -1115,6 +1119,7 @@ err:
 static void m_tunevrb_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
 			       GError *error)
 {
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
 
 	fpi_image_device_activate_complete(idev, error);
@@ -1122,6 +1127,10 @@ static void m_tunevrb_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
 		fp_dbg("Tuning is done. Starting finger detection.");
 		m_start_fingerdetect(idev);
 	}
+
+	if (!self->is_active)
+		m_exit_start(idev);
+
 	fpi_ssm_free(ssm);
 }
 
@@ -1227,6 +1236,7 @@ err:
 static void m_tunedc_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
 			      GError *error)
 {
+	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(dev);
 	FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
 
 	if (!error) {
@@ -1239,6 +1249,10 @@ static void m_tunedc_complete(FpiSsm *ssm, FpDevice *dev, void *user_data,
 		reset_param(FPI_DEVICE_ETES603 (dev));
 		fpi_image_device_session_error(idev, error);
 	}
+
+	if (!self->is_active)
+		m_exit_start(idev);
+
 	fpi_ssm_free(ssm);
 }
 
@@ -1388,7 +1402,6 @@ static void dev_deactivate(FpImageDevice *idev)
 	FpiDeviceEtes603 *self = FPI_DEVICE_ETES603(idev);
 
 	fp_dbg("deactivating");
-	self->deactivating = TRUE;
 
 	/* this can be called even if still activated. */
 	if (self->is_active == TRUE) {
