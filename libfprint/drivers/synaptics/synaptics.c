@@ -34,25 +34,6 @@ static const FpIdEntry id_table [ ] = {
 };
 
 
-static gboolean rand_string(char *str, size_t size)
-{
-    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	srand(time(NULL));
-    if (size) {
-        --size;
-        for (size_t n = 0; n < size; n++) {
-            int key = rand() % (int) (sizeof charset - 1);
-            str[n] = charset[key];
-        }
-        str[size] = '\0';
-    }
-	else
-		return FALSE;
-    return TRUE;
-}
-
-
-
 static void
 cmd_recieve_cb (FpiUsbTransfer *transfer,
 		FpDevice *device,
@@ -470,6 +451,7 @@ list_msg_cb(FpiDeviceSynaptics *self,
 				GVariant *data = NULL;
 				GVariant *uid = NULL;
 				FpPrint *print;
+				gchar *userid;
 
 				if (get_enroll_templates_resp->templates[n].user_id_len == 0)
 					continue;
@@ -481,6 +463,8 @@ list_msg_cb(FpiDeviceSynaptics *self,
 					get_enroll_templates_resp->templates[n].template_status,
 					get_enroll_templates_resp->templates[n].user_id,
 					get_enroll_templates_resp->templates[n].finger_id);
+
+				userid = get_enroll_templates_resp->templates[n].user_id;
 
 				print = fp_print_new (FP_DEVICE (self));
 				uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
@@ -494,6 +478,41 @@ list_msg_cb(FpiDeviceSynaptics *self,
 				fpi_print_set_type (print, FP_PRINT_RAW);
 				g_object_set (print, "fp-data", data, NULL);
 				g_object_set (print, "description", get_enroll_templates_resp->templates[n].user_id, NULL);
+
+				/* The format has 24 bytes at the start and some dashes in the right places */
+				if (g_str_has_prefix (userid, "FP1-") && strlen(userid) >= 24 &&
+				    userid[12] == '-' && userid[14] == '-' && userid[23] == '-') {
+					g_autofree gchar *copy = g_strdup(userid);
+					gint32 date_ymd;
+					GDate *date = NULL;
+					gint32 finger;
+					gchar *username;
+					/* Try to parse information from the string. */
+
+					copy[12] = '\0';
+					date_ymd = g_ascii_strtod (copy + 4, NULL);
+					if (date_ymd > 0)
+						date = g_date_new_dmy (date_ymd % 100,
+						                       (date_ymd / 100) % 100,
+						                       date_ymd / 10000);
+					else
+						date = g_date_new ();
+
+					fp_print_set_enroll_date (print, date);
+					g_date_free (date);
+
+					copy[14] = '\0';
+					finger = g_ascii_strtoll (copy + 13, NULL, 16);
+					fp_print_set_finger (print, finger);
+
+					/* We ignore the next chunk, it is just random data.
+					 * Then comes the username; nobody is the default if the metadata
+					 * is unknown */
+					username = copy + 24;
+					if (strlen(username) > 0 && g_strcmp0 (username, "nobody") != 0)
+						fp_print_set_username (print, username);
+				}
+
 				g_ptr_array_add (self->list_result, g_object_ref_sink (print));
 			}
 
@@ -709,18 +728,50 @@ enroll(FpDevice *device)
 	FpPrint *print = NULL;
 	GVariant *data = NULL;
 	GVariant *uid = NULL;
-	guint8 finger;
-	char user_id[TEMPLATE_ID_SIZE + 1];
+	const gchar *username;
+	guint finger;
+	g_autofree gchar *user_id;
 	gssize user_id_len;
-	guint8 payload[TEMPLATE_ID_SIZE + 1 + 2];
+	g_autofree guint8 *payload = NULL;
+	const GDate *date;
+	gint y, m, d;
+	gint32 rand_id = 0;
 
 	fpi_device_get_enroll_data (device, &print);
 
 	G_DEBUG_HERE();
 
-	finger = 1;
-	rand_string (user_id, TEMPLATE_ID_SIZE);
+	date = fp_print_get_enroll_date (print);
+	if (date && g_date_valid (date)) {
+		y = date->year;
+		m = date->month;
+		d = date->day;
+	} else {
+		y = 0;
+		m = 0;
+		d = 0;
+	}
+
+	username = fp_print_get_username (print);
+	if (!username)
+		username = "nobody";
+
+	if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+		rand_id = 0;
+	else
+		rand_id = g_random_int();
+
+	user_id = g_strdup_printf ("FP1-%04d%02d%02d-%X-%08X-%s",
+	                           y, m, d,
+	                           fp_print_get_finger (print),
+	                           rand_id,
+	                           username);
+
 	user_id_len = strlen (user_id);
+	user_id_len = MIN(BMKT_MAX_USER_ID_LEN, user_id_len);
+
+	/* We currently always use finger 1 from the devices piont of view */
+	finger = 1;
 
 	uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
 					 user_id,
@@ -735,6 +786,8 @@ enroll(FpDevice *device)
 	g_object_set (print, "description", user_id, NULL);
 
 	g_debug("user_id: %s, finger: %d", user_id, finger);
+
+	payload = g_malloc0(user_id_len + 2);
 
 	/* Backup options are not supported for Prometheus */
 	payload[0] = 0;
