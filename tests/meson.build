@@ -15,3 +15,11 @@ if 'virtual_image' in drivers
     )
 endif
 
+if 'vfs5011' in drivers
+    test(
+        'vfs5011',
+        find_program('umockdev-test.py'),
+        args: join_paths(meson.current_source_dir(), 'vfs5011'),
+        env: envs,
+    )
+endif

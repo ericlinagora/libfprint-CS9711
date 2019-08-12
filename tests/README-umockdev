@@ -1,0 +1,21 @@
+To create a new umockdev test, you should:
+
+ 1. Decide on what to test, the easiest case is just using the existing
+    capture test case.
+ 2. Find the USB device you are testing with lsusb, e.g.:
+     Bus 001 Device 005: ID 138a:0090 Validity Sensors, Inc. VFS7500 Touch Fingerprint Sensor
+    This means we need to record USB device /dev/bus/usb/001/005
+ 3. Run "umockdev-record /dev/bus/usb/001/005 >device"
+    This records the information about device, it should be placed into test/DRIVER/device
+ 4. Run the test, for a capture test this would be:
+      umockdev-record -i /dev/bus/usb/001/005=capture.ioctl -- ./capture.py capture.png
+    This will create a capture.ioctl and capture.png file.
+ 5. Place all files into the driver subdirectory test/DRIVER,
+    i.e. device, capture.ioctl, capture.png
+ 6. Add glue to meson.build
+ 7. Test whether everything works as expected
+
+Please note, there is no need to use a real finger print in this case. If
+you would like to avoid submitting your own fingerprint then please just
+use e.g. the side of your finger, arm, or anything else that will produce
+an image with the device.

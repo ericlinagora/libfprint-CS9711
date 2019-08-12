@@ -7,7 +7,7 @@ stages:
 variables:
   DEPENDENCIES: libgusb-devel glib2-devel nss-devel pixman-devel systemd meson gtk-doc
                 gcc gcc-c++ glibc-devel libX11-devel libXv-devel gtk3-devel flatpak-builder
-                gobject-introspection-devel python3-cairo python3-gobject
+                gobject-introspection-devel python3-cairo python3-gobject umockdev
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
@@ -44,7 +44,7 @@ test:
   stage: test
   script:
     - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
-    - meson -Ddrivers=virtual_image . _build
+    - meson -Ddrivers=all . _build
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit
 
