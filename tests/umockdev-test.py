@@ -56,9 +56,24 @@ def capture():
         # Compare the images, they need to be identical
         cmp_pngs(os.path.join(tmpdir, "capture.png"), os.path.join(ddir, "capture.png"))
 
+def custom():
+    ioctl = os.path.join(ddir, "custom.ioctl")
+    device = os.path.join(ddir, "device")
+    dev = open(ioctl).readline().strip()
+    assert dev.startswith('@DEV ')
+    dev = dev[5:]
+
+    subprocess.check_call(['umockdev-run', '-d', device,
+                                           '-i', "%s=%s" % (dev, ioctl),
+                                           '--',
+                                           '%s' % os.path.join(ddir, "custom.py")])
+
 try:
     if os.path.exists(os.path.join(ddir, "capture.ioctl")):
         capture()
+
+    if os.path.exists(os.path.join(ddir, "custom.ioctl")):
+        custom()
 
 finally:
     shutil.rmtree(tmpdir)

@@ -476,6 +476,7 @@ list_msg_cb(FpiDeviceSynaptics *self,
 						      uid);
 
 				fpi_print_set_type (print, FP_PRINT_RAW);
+				fpi_print_set_device_stored (print, TRUE);
 				g_object_set (print, "fp-data", data, NULL);
 				g_object_set (print, "description", get_enroll_templates_resp->templates[n].user_id, NULL);
 
@@ -782,6 +783,7 @@ enroll(FpDevice *device)
 			      uid);
 
 	fpi_print_set_type (print, FP_PRINT_RAW);
+	fpi_print_set_device_stored (print, TRUE);
 	g_object_set (print, "fp-data", data, NULL);
 	g_object_set (print, "description", user_id, NULL);
 
@@ -974,9 +976,12 @@ dev_probe(FpDevice *device)
 
 	/* This is the same as the serial_number from above, hex encoded and somewhat reordered */
 	/* Should we add in more, e.g. the chip revision? */
-	serial = g_usb_device_get_string_descriptor (usb_dev,
-	                                             g_usb_device_get_serial_number_index (usb_dev),
-	                                             &error);
+	if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+		serial = g_strdup ("emulated-device");
+	else
+		serial = g_usb_device_get_string_descriptor (usb_dev,
+		                                             g_usb_device_get_serial_number_index (usb_dev),
+		                                             &error);
 
 	g_usb_device_close (usb_dev, NULL);
 

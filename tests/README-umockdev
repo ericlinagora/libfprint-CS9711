@@ -10,6 +10,9 @@ To create a new umockdev test, you should:
  4. Run the test, for a capture test this would be:
       umockdev-record -i /dev/bus/usb/001/005=capture.ioctl -- ./capture.py capture.png
     This will create a capture.ioctl and capture.png file.
+    Please set the FP_DEVICE_EMULATION=1 environment variable. You may need
+    to adjust the driver to adapt to the emulated environment (mainly if it
+    uses random numbers, see synaptics.c for an example).
  5. Place all files into the driver subdirectory test/DRIVER,
     i.e. device, capture.ioctl, capture.png
  6. Add glue to meson.build
