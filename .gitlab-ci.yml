@@ -34,7 +34,7 @@ build:
   stage: build
   <<: *build_one_driver
   <<: *build
-  <<: *check_abi
+#  <<: *check_abi
 
 .flatpak_script_template: &flatpak_script
     script:
