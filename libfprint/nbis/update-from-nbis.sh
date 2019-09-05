@@ -179,3 +179,5 @@ sed -i 's/[ \t]*$//' `find -name "*.[ch]"`
 # Remove usebsd.h
 sed -i '/usebsd.h/d' `find -name "*.[ch]"`
 
+# Use GLib memory management
+spatch --sp-file glib-memory.cocci --dir . --in-place
