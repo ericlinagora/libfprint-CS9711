@@ -591,8 +591,7 @@ static void capture_read_strip_cb(FpiUsbTransfer *transfer, FpDevice *device,
 		aes_write_regv(dev, capture_stop, G_N_ELEMENTS(capture_stop), stub_capture_stop_cb, NULL);
 		self->strips = g_slist_reverse(self->strips);
 		fpi_do_movement_estimation(&assembling_ctx, self->strips);
-		img = fpi_assemble_frames(&assembling_ctx, self->strips,
-					  self->strips_len);
+		img = fpi_assemble_frames(&assembling_ctx, self->strips);
 
 		g_slist_free_full(self->strips, g_free);
 		self->strips = NULL;

@@ -269,48 +269,37 @@ aes_blit_stripe (struct fpi_frame_asmbl_ctx *ctx,
  * fpi_assemble_frames:
  * @ctx: #fpi_frame_asmbl_ctx - frame assembling context
  * @stripes: linked list of #fpi_frame
- * @num_stripes: number of items in @stripes to process
  *
  * fpi_assemble_frames() assembles individual frames into a single image.
  * It expects @delta_x and @delta_y of #fpi_frame to be populated.
- *
- * Note that @num_stripes might be shorter than the length of the list,
- * if some stripes should be skipped.
  *
  * Returns: a newly allocated #fp_img.
  */
 FpImage *
 fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
-                     GSList *stripes, size_t num_stripes)
+                     GSList *stripes)
 {
-  GSList *stripe;
+  GSList *l;
   FpImage *img;
   int height = 0;
-  int i, y, x;
+  int y, x;
   gboolean reverse = FALSE;
   struct fpi_frame *fpi_frame;
 
   //FIXME g_return_if_fail
-  BUG_ON (num_stripes == 0);
+  g_return_val_if_fail (stripes != NULL, NULL);
   BUG_ON (ctx->image_width < ctx->frame_width);
 
-  /* Calculate height */
-  i = 0;
-  stripe = stripes;
-
   /* No offset for 1st image */
-  fpi_frame = stripe->data;
+  fpi_frame = stripes->data;
   fpi_frame->delta_x = 0;
   fpi_frame->delta_y = 0;
-  do
+  for (l = stripes; l != NULL; l = l->next)
     {
-      fpi_frame = stripe->data;
+      fpi_frame = l->data;
 
       height += fpi_frame->delta_y;
-      i++;
-      stripe = g_slist_next (stripe);
     }
-  while (i < num_stripes);
 
   fp_dbg ("height is %d", height);
 
@@ -331,14 +320,12 @@ fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
   img->height = height;
 
   /* Assemble stripes */
-  i = 0;
-  stripe = stripes;
   y = reverse ? (height - ctx->frame_height) : 0;
   x = (ctx->image_width - ctx->frame_width) / 2;
 
-  do
+  for (l = stripes; l != NULL; l = l->next)
     {
-      fpi_frame = stripe->data;
+      fpi_frame = l->data;
 
       if(reverse)
         {
@@ -353,11 +340,7 @@ fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
           y += fpi_frame->delta_y;
           x += fpi_frame->delta_x;
         }
-
-      stripe = g_slist_next (stripe);
-      i++;
     }
-  while (i < num_stripes);
 
   return img;
 }

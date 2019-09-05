@@ -288,14 +288,12 @@ static void elan_process_frame_thirds(unsigned short *raw_frame,
 static void elan_submit_image(FpImageDevice *dev)
 {
 	FpiDeviceElan *self = FPI_DEVICE_ELAN(dev);
-	int num_frames;
 	GSList *raw_frames;
 	GSList *frames = NULL;
 	FpImage *img;
 
 	G_DEBUG_HERE();
 
-	num_frames = self->num_frames - ELAN_SKIP_LAST_FRAMES;
 	raw_frames = g_slist_nth(self->frames, ELAN_SKIP_LAST_FRAMES);
 
 	assembling_ctx.frame_width = self->frame_width;
@@ -303,7 +301,7 @@ static void elan_submit_image(FpImageDevice *dev)
 	assembling_ctx.image_width = self->frame_width * 3 / 2;
 	g_slist_foreach(raw_frames, (GFunc) self->process_frame, &frames);
 	fpi_do_movement_estimation(&assembling_ctx, frames);
-	img = fpi_assemble_frames(&assembling_ctx, frames, num_frames);
+	img = fpi_assemble_frames(&assembling_ctx, frames);
 
 	fpi_image_device_image_captured(dev, img);
 }

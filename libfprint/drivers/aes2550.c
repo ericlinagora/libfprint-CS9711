@@ -227,8 +227,7 @@ static void capture_set_idle_reqs_cb(FpiUsbTransfer *transfer,
 		FpImage *img;
 
 		self->strips = g_slist_reverse(self->strips);
-		img = fpi_assemble_frames(&assembling_ctx,
-					  self->strips, self->strips_len);
+		img = fpi_assemble_frames(&assembling_ctx, self->strips);
 		g_slist_free_full(self->strips, g_free);
 		self->strips = NULL;
 		self->strips_len = 0;
