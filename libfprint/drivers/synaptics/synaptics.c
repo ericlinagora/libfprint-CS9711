@@ -1013,6 +1013,31 @@ fps_init_msg_cb(FpiDeviceSynaptics *self,
 					  fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
 	}
 }
+static void
+fps_deinit_cb(FpiDeviceSynaptics *self,
+		bmkt_response_t    *resp,
+		GError             *error)
+{
+	/* Release usb interface */
+	g_usb_device_release_interface(fpi_device_get_usb_device(FP_DEVICE (self)), 0, 0, &error);
+
+	g_clear_object (&self->interrupt_cancellable);
+
+	if (!error) {
+		switch (resp->response_id) {
+			case BMKT_RSP_POWER_DOWN_READY:
+				fp_info("Fingerprint sensor ready to be powered down");
+				break;
+			case BMKT_RSP_POWER_DOWN_FAIL:
+				fp_info("Failed to go to power down mode: %d", resp->result);
+				error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+				                                  "Power down failed");
+
+				break;
+		}
+	}
+	fpi_device_close_complete(FP_DEVICE (self), error);
+}
 
 static void
 dev_init (FpDevice *device)
@@ -1043,16 +1068,10 @@ static void
 dev_exit(FpDevice *device)
 {
 	FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
-	GError *error = NULL;
 
 	G_DEBUG_HERE();
 
-	/* Release usb interface */
-	g_usb_device_release_interface(fpi_device_get_usb_device(device), 0, 0, &error);
-
-	g_clear_object (&self->interrupt_cancellable);
-
-	fpi_device_close_complete(device, error);
+	synaptics_sensor_cmd (self, 0, BMKT_CMD_POWER_DOWN_NOTIFY, NULL, 0, fps_deinit_cb);
 }
 
 static void

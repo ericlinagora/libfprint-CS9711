@@ -405,6 +405,9 @@ int bmkt_parse_message_payload(bmkt_msg_resp_t *msg_resp, bmkt_response_t *resp)
 			ret = parse_get_version_report(msg_resp, resp);
 			resp->complete = 1;
 			break;
+		case BMKT_RSP_POWER_DOWN_READY:
+			resp->complete = 1;
+			break;
 	}
 
 	return ret;
