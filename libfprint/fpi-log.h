@@ -80,19 +80,19 @@
  *
  * Uses fp_err() to print an error if the @condition is true.
  */
-#define BUG_ON(condition) G_STMT_START		\
-	if (condition) {			\
-		char *s;			\
-		s = g_strconcat ("BUG: (", #condition, ")", NULL); \
-		fp_err ("%s: %s() %s:%d", s, G_STRFUNC, __FILE__, __LINE__); \
-		g_free (s);			\
-	} G_STMT_END
+#define BUG_ON(condition) G_STMT_START          \
+  if (condition) {                        \
+      char *s;                        \
+      s = g_strconcat ("BUG: (", #condition, ")", NULL); \
+      fp_err ("%s: %s() %s:%d", s, G_STRFUNC, __FILE__, __LINE__); \
+      g_free (s);                     \
+    } G_STMT_END
 
 /**
  * BUG:
  *
  * Same as BUG_ON() but is always true.
  */
-#define BUG() BUG_ON(1)
+#define BUG() BUG_ON (1)
 
 #endif

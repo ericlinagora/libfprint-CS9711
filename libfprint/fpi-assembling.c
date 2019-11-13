@@ -183,7 +183,7 @@ do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
  */
 void
 fpi_do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
-                            GSList *stripes)
+                            GSList                     *stripes)
 {
   int err, rev_err;
 
@@ -277,7 +277,7 @@ aes_blit_stripe (struct fpi_frame_asmbl_ctx *ctx,
  */
 FpImage *
 fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
-                     GSList *stripes)
+                     GSList                     *stripes)
 {
   GSList *l;
   FpImage *img;
