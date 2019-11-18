@@ -10,6 +10,18 @@ import subprocess
 if len(sys.argv) != 2:
     print("You need to specify exactly one argument, the directory with test data")
 
+# Check that umockdev is available
+try:
+    umockdev_version = subprocess.check_output(['umockdev-run', '--version'])
+    version = tuple(int(_) for _ in umockdev_version.split(b'.'))
+    if version < (0, 13, 2):
+        print('umockdev is too old for test to be reliable, expect random failures!')
+        print('Please update umockdev to at least 0.13.2.')
+except FileNotFoundError:
+    print('umockdev-run not found, skipping test!')
+    print('Please install umockdev.')
+    sys.exit(77)
+
 edir = os.path.dirname(sys.argv[0])
 ddir = sys.argv[1]
 
