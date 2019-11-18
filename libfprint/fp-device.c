@@ -72,6 +72,7 @@ typedef struct
   GAsyncReadyCallback current_user_cb;
   gulong              current_cancellable_id;
   GSource            *current_idle_cancel_source;
+  GSource            *current_task_idle_return_source;
 
   /* State for tasks */
   gboolean wait_for_finger;
@@ -312,8 +313,8 @@ maybe_cancel_on_cancelled (FpDevice     *device,
                                                         NULL);
 }
 
-static GTask*
-reset_device_state (FpDevice *device)
+static void
+clear_device_cancel_action (FpDevice *device)
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
@@ -325,10 +326,6 @@ reset_device_state (FpDevice *device)
                                 priv->current_cancellable_id);
       priv->current_cancellable_id = 0;
     }
-
-  priv->current_action = FP_DEVICE_ACTION_NONE;
-
-  return g_steal_pointer (&priv->current_task);
 }
 
 static void
@@ -360,6 +357,9 @@ fp_device_finalize (GObject *object)
     g_warning ("User destroyed open device! Not cleaning up properly!");
 
   g_slist_free_full (priv->sources, (GDestroyNotify) g_source_destroy);
+
+  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
+  g_clear_pointer (&priv->current_task_idle_return_source, g_source_destroy);
 
   g_clear_pointer (&priv->device_id, g_free);
   g_clear_pointer (&priv->device_name, g_free);
@@ -1792,6 +1792,97 @@ fpi_device_action_error (FpDevice *device,
     }
 }
 
+typedef enum _FpDeviceTaskReturnType {
+  FP_DEVICE_TASK_RETURN_INT,
+  FP_DEVICE_TASK_RETURN_BOOL,
+  FP_DEVICE_TASK_RETURN_OBJECT,
+  FP_DEVICE_TASK_RETURN_PTR_ARRAY,
+  FP_DEVICE_TASK_RETURN_ERROR,
+} FpDeviceTaskReturnType;
+
+typedef struct _FpDeviceTaskReturnData
+{
+  FpDevice              *device;
+  FpDeviceTaskReturnType type;
+  gpointer               result;
+} FpDeviceTaskReturnData;
+
+static gboolean
+fp_device_task_return_in_idle_cb (gpointer user_data)
+{
+  FpDeviceTaskReturnData *data = user_data;
+  FpDevicePrivate *priv = fp_device_get_instance_private (data->device);
+
+  g_autoptr(GTask) task = NULL;
+
+  g_debug ("Completing action %d in idle!", priv->current_action);
+
+  task = g_steal_pointer (&priv->current_task);
+  priv->current_action = FP_DEVICE_ACTION_NONE;
+  priv->current_task_idle_return_source = NULL;
+
+  switch (data->type)
+    {
+    case FP_DEVICE_TASK_RETURN_INT:
+      g_task_return_int (task, GPOINTER_TO_INT (data->result));
+      break;
+
+    case FP_DEVICE_TASK_RETURN_BOOL:
+      g_task_return_boolean (task, GPOINTER_TO_UINT (data->result));
+      break;
+
+    case FP_DEVICE_TASK_RETURN_OBJECT:
+      g_task_return_pointer (task, data->result, g_object_unref);
+      break;
+
+    case FP_DEVICE_TASK_RETURN_PTR_ARRAY:
+      g_task_return_pointer (task, data->result,
+                             (GDestroyNotify) g_ptr_array_unref);
+      break;
+
+    case FP_DEVICE_TASK_RETURN_ERROR:
+      g_task_return_error (task, data->result);
+      break;
+
+    default:
+      g_assert_not_reached ();
+    }
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+fp_device_task_return_data_free (FpDeviceTaskReturnData *data)
+{
+  g_object_unref (data->device);
+  g_free (data);
+}
+
+static void
+fp_device_return_task_in_idle (FpDevice              *device,
+                               FpDeviceTaskReturnType return_type,
+                               gpointer               return_data)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpDeviceTaskReturnData *data;
+
+  data = g_new0 (FpDeviceTaskReturnData, 1);
+  data->device = g_object_ref (device);
+  data->type = return_type;
+  data->result = return_data;
+
+  priv->current_task_idle_return_source = g_idle_source_new ();
+  g_source_set_priority (priv->current_task_idle_return_source,
+                         g_task_get_priority (priv->current_task));
+  g_source_set_callback (priv->current_task_idle_return_source,
+                         fp_device_task_return_in_idle_cb,
+                         data,
+                         (GDestroyNotify) fp_device_task_return_data_free);
+
+  g_source_attach (priv->current_task_idle_return_source, NULL);
+  g_source_unref (priv->current_task_idle_return_source);
+}
+
 /**
  * fpi_device_probe_complete:
  * @device: The #FpDevice
@@ -1809,14 +1900,12 @@ fpi_device_probe_complete (FpDevice    *device,
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_autoptr(GTask) task = NULL;
-
   g_return_if_fail (FP_IS_DEVICE (device));
   g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_PROBE);
 
   g_debug ("Device reported probe completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
   if (!error)
     {
@@ -1832,11 +1921,12 @@ fpi_device_probe_complete (FpDevice    *device,
           priv->device_name = g_strdup (device_name);
           g_object_notify_by_pspec (G_OBJECT (device), properties[PROP_NAME]);
         }
-      g_task_return_boolean (task, TRUE);
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                     GUINT_TO_POINTER (TRUE));
     }
   else
     {
-      g_task_return_error (task, error);
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
     }
 }
 
@@ -1852,22 +1942,21 @@ fpi_device_open_complete (FpDevice *device, GError *error)
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_autoptr(GTask) task = NULL;
-
   g_return_if_fail (FP_IS_DEVICE (device));
   g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_OPEN);
 
   g_debug ("Device reported open completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
   if (!error)
     priv->is_open = TRUE;
 
   if (!error)
-    g_task_return_boolean (task, TRUE);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                   GUINT_TO_POINTER (TRUE));
   else
-    g_task_return_error (task, error);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
 }
 
 /**
@@ -1880,7 +1969,6 @@ fpi_device_open_complete (FpDevice *device, GError *error)
 void
 fpi_device_close_complete (FpDevice *device, GError *error)
 {
-  g_autoptr(GTask) task = NULL;
   GError *nested_error = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
@@ -1889,7 +1977,7 @@ fpi_device_close_complete (FpDevice *device, GError *error)
 
   g_debug ("Device reported close completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
   priv->is_open = FALSE;
 
   switch (priv->type)
@@ -1899,7 +1987,7 @@ fpi_device_close_complete (FpDevice *device, GError *error)
         {
           if (error == NULL)
             error = nested_error;
-          g_task_return_error (task, error);
+          fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
           return;
         }
       break;
@@ -1909,14 +1997,16 @@ fpi_device_close_complete (FpDevice *device, GError *error)
 
     default:
       g_assert_not_reached ();
-      g_task_return_error (task, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR,
+                                     fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
       return;
     }
 
   if (!error)
-    g_task_return_boolean (task, TRUE);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                   GUINT_TO_POINTER (TRUE));
   else
-    g_task_return_error (task, error);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
 }
 
 /**
@@ -1933,33 +2023,30 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_autoptr(GTask) task = NULL;
-
   g_return_if_fail (FP_IS_DEVICE (device));
   g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_ENROLL);
 
   g_debug ("Device reported enroll completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
   if (!error)
     {
       if (FP_IS_PRINT (print))
         {
-          g_task_return_pointer (task, print, g_object_unref);
+          fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_OBJECT, print);
         }
       else
         {
           g_warning ("Driver did not provide a valid print and failed to provide an error!");
-          g_task_return_new_error (task,
-                                   FP_DEVICE_ERROR,
-                                   FP_DEVICE_ERROR_GENERAL,
-                                   "Driver failed to provide print data!");
+          error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                            "Driver failed to provide print data!");
+          fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
         }
     }
   else
     {
-      g_task_return_error (task, error);
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
       if (FP_IS_PRINT (print))
         {
           g_warning ("Driver passed an error but also provided a print, returning error!");
@@ -1986,16 +2073,14 @@ fpi_device_verify_complete (FpDevice      *device,
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_autoptr(GTask) task = NULL;
-
   g_return_if_fail (FP_IS_DEVICE (device));
   g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_VERIFY);
 
   g_debug ("Device reported verify completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
-  g_object_set_data_full (G_OBJECT (task),
+  g_object_set_data_full (G_OBJECT (priv->current_task),
                           "print",
                           print,
                           g_object_unref);
@@ -2004,20 +2089,20 @@ fpi_device_verify_complete (FpDevice      *device,
     {
       if (result != FPI_MATCH_ERROR)
         {
-          g_task_return_int (task, result);
+          fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_INT,
+                                         GINT_TO_POINTER (result));
         }
       else
         {
           g_warning ("Driver did not provide an error for a failed verify operation!");
-          g_task_return_new_error (task,
-                                   FP_DEVICE_ERROR,
-                                   FP_DEVICE_ERROR_GENERAL,
-                                   "Driver failed to provide an error!");
+          error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                            "Driver failed to provide an error!");
+          fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
         }
     }
   else
     {
-      g_task_return_error (task, error);
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
       if (result != FPI_MATCH_ERROR)
         {
           g_warning ("Driver passed an error but also provided a match result, returning error!");
@@ -2045,30 +2130,29 @@ fpi_device_identify_complete (FpDevice *device,
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_autoptr(GTask) task = NULL;
-
   g_return_if_fail (FP_IS_DEVICE (device));
   g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_IDENTIFY);
 
   g_debug ("Device reported identify completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
-  g_object_set_data_full (G_OBJECT (task),
+  g_object_set_data_full (G_OBJECT (priv->current_task),
                           "print",
                           print,
                           g_object_unref);
-  g_object_set_data_full (G_OBJECT (task),
+  g_object_set_data_full (G_OBJECT (priv->current_task),
                           "match",
                           match,
                           g_object_unref);
   if (!error)
     {
-      g_task_return_boolean (task, TRUE);
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                     GUINT_TO_POINTER (TRUE));
     }
   else
     {
-      g_task_return_error (task, error);
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
       if (match)
         {
           g_warning ("Driver passed an error but also provided a match result, returning error!");
@@ -2093,33 +2177,30 @@ fpi_device_capture_complete (FpDevice *device,
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_autoptr(GTask) task = NULL;
-
   g_return_if_fail (FP_IS_DEVICE (device));
   g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_CAPTURE);
 
   g_debug ("Device reported capture completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
   if (!error)
     {
       if (image)
         {
-          g_task_return_pointer (task, image, g_object_unref);
+          fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_OBJECT, image);
         }
       else
         {
           g_warning ("Driver did not provide an error for a failed capture operation!");
-          g_task_return_new_error (task,
-                                   FP_DEVICE_ERROR,
-                                   FP_DEVICE_ERROR_GENERAL,
-                                   "Driver failed to provide an error!");
+          error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                            "Driver failed to provide an error!");
+          fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
         }
     }
   else
     {
-      g_task_return_error (task, error);
+      fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
       if (image)
         {
           g_warning ("Driver passed an error but also provided an image, returning error!");
@@ -2141,19 +2222,18 @@ fpi_device_delete_complete (FpDevice *device,
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_autoptr(GTask) task = NULL;
-
   g_return_if_fail (FP_IS_DEVICE (device));
   g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_DELETE);
 
   g_debug ("Device reported deletion completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
   if (!error)
-    g_task_return_boolean (task, TRUE);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                   GUINT_TO_POINTER (TRUE));
   else
-    g_task_return_error (task, error);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
 }
 
 /**
@@ -2174,7 +2254,6 @@ fpi_device_list_complete (FpDevice  *device,
                           GPtrArray *prints,
                           GError    *error)
 {
-  g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
@@ -2182,7 +2261,7 @@ fpi_device_list_complete (FpDevice  *device,
 
   g_debug ("Device reported listing completion");
 
-  task = reset_device_state (device);
+  clear_device_cancel_action (device);
 
   if (prints && error)
     {
@@ -2197,9 +2276,9 @@ fpi_device_list_complete (FpDevice  *device,
     }
 
   if (!error)
-    g_task_return_pointer (task, prints, (GDestroyNotify) g_ptr_array_unref);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_PTR_ARRAY, prints);
   else
-    g_task_return_error (task, error);
+    fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
 }
 
 /**
