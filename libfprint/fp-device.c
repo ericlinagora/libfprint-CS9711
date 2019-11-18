@@ -285,19 +285,50 @@ fp_device_cancel_in_idle_cb (gpointer user_data)
 static void
 fp_device_cancelled_cb (GCancellable *cancellable, FpDevice *self)
 {
-  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (self);
   FpDevicePrivate *priv = fp_device_get_instance_private (self);
 
-  if (cls->cancel)
+  priv->current_idle_cancel_source = g_idle_source_new ();
+  g_source_set_callback (priv->current_idle_cancel_source,
+                         fp_device_cancel_in_idle_cb,
+                         self,
+                         NULL);
+  g_source_attach (priv->current_idle_cancel_source, NULL);
+  g_source_unref (priv->current_idle_cancel_source);
+}
+
+static void
+maybe_cancel_on_cancelled (FpDevice     *device,
+                           GCancellable *cancellable)
+{
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (device);
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  if (!cancellable || !cls->cancel)
+    return;
+
+  priv->current_cancellable_id = g_cancellable_connect (cancellable,
+                                                        G_CALLBACK (fp_device_cancelled_cb),
+                                                        device,
+                                                        NULL);
+}
+
+static GTask*
+reset_device_state (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
+
+  if (priv->current_cancellable_id)
     {
-      priv->current_idle_cancel_source = g_idle_source_new ();
-      g_source_set_callback (priv->current_idle_cancel_source,
-                             fp_device_cancel_in_idle_cb,
-                             self,
-                             NULL);
-      g_source_attach (priv->current_idle_cancel_source, NULL);
-      g_source_unref (priv->current_idle_cancel_source);
+      g_cancellable_disconnect (g_task_get_cancellable (priv->current_task),
+                                priv->current_cancellable_id);
+      priv->current_cancellable_id = 0;
     }
+
+  priv->current_action = FP_DEVICE_ACTION_NONE;
+
+  return g_steal_pointer (&priv->current_task);
 }
 
 static void
@@ -435,13 +466,7 @@ fp_device_async_initable_init_async (GAsyncInitable     *initable,
 
   priv->current_action = FP_DEVICE_ACTION_PROBE;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            self,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (self, cancellable);
 
   FP_DEVICE_GET_CLASS (self)->probe (self);
 }
@@ -735,13 +760,7 @@ fp_device_open (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_OPEN;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   FP_DEVICE_GET_CLASS (device)->open (device);
 }
@@ -805,13 +824,7 @@ fp_device_close (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_CLOSE;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   FP_DEVICE_GET_CLASS (device)->close (device);
 }
@@ -909,13 +922,7 @@ fp_device_enroll (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_ENROLL;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   data = g_new0 (FpEnrollData, 1);
   data->print = g_object_ref_sink (template_print);
@@ -991,13 +998,7 @@ fp_device_verify (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_VERIFY;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   g_task_set_task_data (priv->current_task,
                         g_object_ref (enrolled_print),
@@ -1090,13 +1091,7 @@ fp_device_identify (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_IDENTIFY;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   g_task_set_task_data (priv->current_task,
                         g_ptr_array_ref (prints),
@@ -1189,13 +1184,7 @@ fp_device_capture (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_CAPTURE;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   priv->wait_for_finger = wait_for_finger;
 
@@ -1276,13 +1265,7 @@ fp_device_delete_print (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_DELETE;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   g_task_set_task_data (priv->current_task,
                         g_object_ref (enrolled_print),
@@ -1352,13 +1335,7 @@ fp_device_list_prints (FpDevice           *device,
 
   priv->current_action = FP_DEVICE_ACTION_LIST;
   priv->current_task = g_steal_pointer (&task);
-  if (cancellable)
-    {
-      priv->current_cancellable_id = g_cancellable_connect (cancellable,
-                                                            G_CALLBACK (fp_device_cancelled_cb),
-                                                            device,
-                                                            NULL);
-    }
+  maybe_cancel_on_cancelled (device, cancellable);
 
   FP_DEVICE_GET_CLASS (device)->list (device);
 }
@@ -1839,12 +1816,7 @@ fpi_device_probe_complete (FpDevice    *device,
 
   g_debug ("Device reported probe completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   if (!error)
     {
@@ -1887,12 +1859,7 @@ fpi_device_open_complete (FpDevice *device, GError *error)
 
   g_debug ("Device reported open completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   if (!error)
     priv->is_open = TRUE;
@@ -1922,12 +1889,7 @@ fpi_device_close_complete (FpDevice *device, GError *error)
 
   g_debug ("Device reported close completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
   priv->is_open = FALSE;
 
   switch (priv->type)
@@ -1978,12 +1940,7 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
 
   g_debug ("Device reported enroll completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   if (!error)
     {
@@ -2036,12 +1993,7 @@ fpi_device_verify_complete (FpDevice      *device,
 
   g_debug ("Device reported verify completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   g_object_set_data_full (G_OBJECT (task),
                           "print",
@@ -2100,12 +2052,7 @@ fpi_device_identify_complete (FpDevice *device,
 
   g_debug ("Device reported identify completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   g_object_set_data_full (G_OBJECT (task),
                           "print",
@@ -2153,12 +2100,7 @@ fpi_device_capture_complete (FpDevice *device,
 
   g_debug ("Device reported capture completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   if (!error)
     {
@@ -2206,12 +2148,7 @@ fpi_device_delete_complete (FpDevice *device,
 
   g_debug ("Device reported deletion completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   if (!error)
     g_task_return_boolean (task, TRUE);
@@ -2245,12 +2182,7 @@ fpi_device_list_complete (FpDevice  *device,
 
   g_debug ("Device reported listing completion");
 
-  task = g_steal_pointer (&priv->current_task);
-  g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
-  if (priv->current_cancellable_id)
-    g_cancellable_disconnect (g_task_get_cancellable (task), priv->current_cancellable_id);
-  priv->current_cancellable_id = 0;
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  task = reset_device_state (device);
 
   if (prints && error)
     {
