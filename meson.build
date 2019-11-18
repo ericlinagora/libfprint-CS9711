@@ -6,7 +6,7 @@ project('libfprint', [ 'c', 'cpp' ],
           'warning_level=1',
           'c_std=c99',
         ],
-        meson_version: '>= 0.45.0')
+        meson_version: '>= 0.46.0')
 
 gnome = import('gnome')
 

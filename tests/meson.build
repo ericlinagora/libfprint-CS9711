@@ -14,31 +14,36 @@ envs.set('FP_DEVICE_EMULATION', '1')
 
 envs.set('NO_AT_BRIDGE', '1')
 
-if 'virtual_image' in drivers
-    test(
-        'virtual-image',
-        find_program('virtual-image.py'),
-        args: '--verbose',
-        env: envs,
-    )
-endif
+if get_option('introspection')
+    if 'virtual_image' in drivers
+        test(
+            'virtual-image',
+            find_program('virtual-image.py'),
+            args: '--verbose',
+            env: envs,
+            depends: libfprint_typelib,
+        )
+    endif
 
-if 'vfs5011' in drivers
-    test(
-        'vfs5011',
-        find_program('umockdev-test.py'),
-        args: join_paths(meson.current_source_dir(), 'vfs5011'),
-        env: envs,
-        timeout: 10,
-    )
-endif
+    if 'vfs5011' in drivers
+        test(
+            'vfs5011',
+            find_program('umockdev-test.py'),
+            args: join_paths(meson.current_source_dir(), 'vfs5011'),
+            env: envs,
+            timeout: 10,
+            depends: libfprint_typelib,
+        )
+    endif
 
-if 'synaptics' in drivers
-    test(
-        'synaptics',
-        find_program('umockdev-test.py'),
-        args: join_paths(meson.current_source_dir(), 'synaptics'),
-        env: envs,
-        timeout: 10,
-    )
+    if 'synaptics' in drivers
+        test(
+            'synaptics',
+            find_program('umockdev-test.py'),
+            args: join_paths(meson.current_source_dir(), 'synaptics'),
+            env: envs,
+            timeout: 10,
+            depends: libfprint_typelib,
+        )
+    endif
 endif
