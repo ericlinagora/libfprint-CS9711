@@ -48,6 +48,12 @@ test:
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit
 
+test_indent:
+  stage: test
+  script:
+    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck git uncrustify
+    - scripts/uncrustify.sh --check
+
 .flatpak_script_template: &flatpak_script
     script:
         - flatpak-builder --stop-at=${FLATPAK_MODULE} app ${MANIFEST_PATH}
