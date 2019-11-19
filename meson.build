@@ -111,14 +111,6 @@ if get_option('udev_rules')
     endif
 endif
 
-# if get_option('x11-examples')
-#     x11_dep = cc.find_library('X11')
-#     xv_dep = dependency('xv', required: false)
-#     if not xv_dep.found()
-#         error('XV is required for X11 examples')
-#     endif
-# endif
-
 if get_option('gtk-examples')
     gnome = import('gnome')
 
