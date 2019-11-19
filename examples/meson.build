@@ -1,22 +1,22 @@
 
-examples = [ 'verify_live', 'enroll', 'verify', 'img_capture' ]
+examples = [ 'enroll', 'verify', 'manage-prints' ]
 foreach example: examples
     executable(example,
                [example + '.c', 'storage.c'],
-               dependencies: [libfprint_dep],
+               dependencies: [libfprint_dep, glib_dep],
                include_directories: [
                  root_inc,
                ],
                c_args: common_cflags)
 endforeach
 
-# executable('cpp-test',
-#            'cpp-test.cpp',
-#            dependencies: libfprint_dep,
-#            include_directories: [
-#              root_inc,
-#            ],
-#            c_args: common_cflags)
+executable('cpp-test',
+           'cpp-test.cpp',
+           dependencies: libfprint_dep,
+           include_directories: [
+             root_inc,
+           ],
+           c_args: common_cflags)
 
 # if get_option('x11-examples')
 #     executable('img_capture_continuous',

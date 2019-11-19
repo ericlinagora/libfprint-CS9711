@@ -2,6 +2,7 @@
  * Trivial storage driver for example programs
  *
  * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
+ * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,41 +19,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <glib.h>
+#include <libfprint/fprint.h>
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <libfprint/fprint.h>
-
 #define STORAGE_FILE "test-storage.variant"
 
 static char *
-get_print_data_descriptor (struct fp_print_data *data, struct fp_dev *dev, enum fp_finger finger)
+get_print_data_descriptor (FpPrint *print, FpDevice *dev, FpFinger finger)
 {
-	gint drv_id;
-	gint devtype;
+	const char *driver;
+	const char *dev_id;
 
-	if (data) {
-		drv_id = fp_print_data_get_driver_id (data);
-		devtype = fp_print_data_get_devtype (data);
+	if (print) {
+		driver = fp_print_get_driver (print);
+		dev_id = fp_print_get_device_id (print);
 	} else {
-		drv_id = fp_driver_get_driver_id(fp_dev_get_driver (dev));
-		devtype = fp_dev_get_devtype (dev);
+		driver = fp_device_get_driver (dev);
+		dev_id = fp_device_get_device_id (dev);
 	}
 
-	return g_strdup_printf("%x/%08x/%x",
-			       drv_id,
-			       devtype,
+	return g_strdup_printf("%s/%s/%x",
+			       driver,
+			       dev_id,
 			       finger);
 }
 
-static GVariantDict*
+static GVariantDict *
 load_data(void)
 {
 	GVariantDict *res;
 	GVariant *var;
-	gchar *contents = NULL;
+	g_autofree gchar *contents = NULL;
 	gssize length = 0;
 
 	if (!g_file_get_contents (STORAGE_FILE, &contents, &length, NULL)) {
@@ -88,49 +89,125 @@ save_data(GVariant *data)
 }
 
 int
-print_data_save(struct fp_print_data *fp_data, enum fp_finger finger)
+print_data_save(FpPrint *print, FpFinger finger)
 {
-	gchar *descr = get_print_data_descriptor (fp_data, NULL, finger);
-	GVariantDict *dict;
+	g_autofree gchar *descr = get_print_data_descriptor (print, NULL, finger);
+	g_autoptr (GError) error = NULL;
+	g_autoptr (GVariantDict) dict = NULL;
+	g_autofree guchar *data = NULL;
 	GVariant *val;
-	guchar *data;
 	gsize size;
 	int res;
 
 	dict = load_data();
 
-	size = fp_print_data_get_data(fp_data, &data);
+	fp_print_serialize (print, &data, &size, &error);
+	if (error) {
+		g_warning ("Error serializing data: %s", error->message);
+		return -1;
+	}
 	val = g_variant_new_fixed_array (G_VARIANT_TYPE("y"), data, size, 1);
 	g_variant_dict_insert_value (dict, descr, val);
 
 	res = save_data(g_variant_dict_end(dict));
-	g_variant_dict_unref(dict);
 
 	return res;
 }
 
-struct fp_print_data*
-print_data_load(struct fp_dev *dev, enum fp_finger finger)
+FpPrint *
+print_data_load(FpDevice *dev, FpFinger finger)
 {
-	gchar *descr = get_print_data_descriptor (NULL, dev, finger);
-	GVariantDict *dict;
-	guchar *stored_data;
+	g_autofree gchar *descr = get_print_data_descriptor (NULL, dev, finger);
+	g_autoptr (GVariant) val = NULL;
+	g_autoptr (GVariantDict) dict = NULL;
+	g_autofree guchar *stored_data = NULL;
 	gsize stored_len;
-	GVariant *val;
-	struct fp_print_data *res = NULL;
 
 	dict = load_data();
 	val = g_variant_dict_lookup_value (dict, descr, G_VARIANT_TYPE ("ay"));
 
 	if (val) {
-		stored_data = (guchar*) g_variant_get_fixed_array (val, &stored_len, 1);
-		res = fp_print_data_from_data(stored_data, stored_len);
+		FpPrint *print;
+		g_autoptr (GError) error = NULL;
 
-		g_variant_unref(val);
+		stored_data = (guchar*) g_variant_get_fixed_array (val, &stored_len, 1);
+		print = fp_print_deserialize (stored_data, stored_len, &error);
+
+		if (error)
+			g_warning ("Error deserializing data: %s", error->message);
+
+		return print;
 	}
 
-	g_variant_dict_unref(dict);
-	g_free(descr);
+	return NULL;
+}
 
-	return res;
+FpPrint *
+print_create_template (FpDevice *dev, FpFinger finger)
+{
+	g_autoptr(GDateTime) datetime = NULL;
+	FpPrint *template = NULL;
+	GDate *date = NULL;
+	gint year, month, day;
+
+	template = fp_print_new (dev);
+	fp_print_set_finger (template, finger);
+	fp_print_set_username (template, g_get_user_name ());
+	datetime = g_date_time_new_now_local ();
+	g_date_time_get_ymd (datetime, &year, &month, &day);
+	date = g_date_new_dmy (day, month, year);
+	fp_print_set_enroll_date (template, date);
+	g_date_free (date);
+
+	return template;
+}
+
+
+static gboolean
+save_image_to_pgm (FpImage *img, const char *path)
+{
+	FILE *fd = fopen (path, "w");
+	size_t write_size;
+	const guchar *data = fp_image_get_data (img, &write_size);
+	int r;
+
+	if (!fd) {
+		g_warning("could not open '%s' for writing: %d", path, errno);
+		return FALSE;
+	}
+
+	r = fprintf (fd, "P5 %d %d 255\n",
+		     fp_image_get_width (img), fp_image_get_height (img));
+	if (r < 0) {
+		fclose(fd);
+		g_critical("pgm header write failed, error %d", r);
+		return FALSE;
+	}
+
+	r = fwrite (data, 1, write_size, fd);
+	if (r < write_size) {
+		fclose(fd);
+		g_critical("short write (%d)", r);
+		return FALSE;
+	}
+
+	fclose (fd);
+	g_debug ("written to '%s'", path);
+
+	return TRUE;
+}
+
+gboolean print_image_save (FpPrint *print, const char *path)
+{
+	g_autoptr(FpImage) img = NULL;
+
+	g_return_val_if_fail (FP_IS_PRINT (print), FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
+
+	img = fp_print_get_image (print);
+
+	if (img)
+		return save_image_to_pgm (img, path);
+
+	return FALSE;
 }
