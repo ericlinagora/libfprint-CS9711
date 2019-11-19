@@ -22,25 +22,28 @@
 
 #include <fprint.h>
 
-struct aes_regwrite {
-	unsigned char reg;
-	unsigned char value;
+struct aes_regwrite
+{
+  unsigned char reg;
+  unsigned char value;
 };
 
 struct fpi_frame;
 struct fpi_frame_asmbl_ctx;
 
-typedef void (*aes_write_regv_cb)(FpImageDevice *dev, GError *error,
-				  void *user_data);
+typedef void (*aes_write_regv_cb)(FpImageDevice *dev,
+                                  GError        *error,
+                                  void          *user_data);
 
-void aes_write_regv(FpImageDevice *dev, const struct aes_regwrite *regs,
-		    unsigned int num_regs, aes_write_regv_cb callback,
-		    void *user_data);
+void aes_write_regv (FpImageDevice             *dev,
+                     const struct aes_regwrite *regs,
+                     unsigned int               num_regs,
+                     aes_write_regv_cb          callback,
+                     void                      *user_data);
 
-unsigned char aes_get_pixel(struct fpi_frame_asmbl_ctx *ctx,
-			    struct fpi_frame *frame,
-			    unsigned int x,
-			    unsigned int y);
+unsigned char aes_get_pixel (struct fpi_frame_asmbl_ctx *ctx,
+                             struct fpi_frame           *frame,
+                             unsigned int                x,
+                             unsigned int                y);
 
 #endif
-

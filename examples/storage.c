@@ -31,183 +31,196 @@
 static char *
 get_print_data_descriptor (FpPrint *print, FpDevice *dev, FpFinger finger)
 {
-	const char *driver;
-	const char *dev_id;
+  const char *driver;
+  const char *dev_id;
 
-	if (print) {
-		driver = fp_print_get_driver (print);
-		dev_id = fp_print_get_device_id (print);
-	} else {
-		driver = fp_device_get_driver (dev);
-		dev_id = fp_device_get_device_id (dev);
-	}
+  if (print)
+    {
+      driver = fp_print_get_driver (print);
+      dev_id = fp_print_get_device_id (print);
+    }
+  else
+    {
+      driver = fp_device_get_driver (dev);
+      dev_id = fp_device_get_device_id (dev);
+    }
 
-	return g_strdup_printf("%s/%s/%x",
-			       driver,
-			       dev_id,
-			       finger);
+  return g_strdup_printf ("%s/%s/%x",
+                          driver,
+                          dev_id,
+                          finger);
 }
 
 static GVariantDict *
-load_data(void)
+load_data (void)
 {
-	GVariantDict *res;
-	GVariant *var;
-	g_autofree gchar *contents = NULL;
-	gssize length = 0;
+  GVariantDict *res;
+  GVariant *var;
+  g_autofree gchar *contents = NULL;
+  gssize length = 0;
 
-	if (!g_file_get_contents (STORAGE_FILE, &contents, &length, NULL)) {
-		g_warning ("Error loading storage, assuming it is empty");
-		return g_variant_dict_new(NULL);
-	}
+  if (!g_file_get_contents (STORAGE_FILE, &contents, &length, NULL))
+    {
+      g_warning ("Error loading storage, assuming it is empty");
+      return g_variant_dict_new (NULL);
+    }
 
-	var = g_variant_new_from_data (G_VARIANT_TYPE_VARDICT, contents, length, FALSE, NULL, NULL);
+  var = g_variant_new_from_data (G_VARIANT_TYPE_VARDICT, contents, length, FALSE, NULL, NULL);
 
-	res = g_variant_dict_new(var);
-	g_variant_unref(var);
-	return res;
+  res = g_variant_dict_new (var);
+  g_variant_unref (var);
+  return res;
 }
 
 static int
-save_data(GVariant *data)
+save_data (GVariant *data)
 {
-	const gchar *contents = NULL;
-	gsize length;
+  const gchar *contents = NULL;
+  gsize length;
 
-	length = g_variant_get_size(data);
-	contents = (gchar*) g_variant_get_data (data);
+  length = g_variant_get_size (data);
+  contents = (gchar *) g_variant_get_data (data);
 
-	if (!g_file_set_contents (STORAGE_FILE, contents, length, NULL)) {
-		g_warning ("Error saving storage,!");
-		return -1;
-	}
+  if (!g_file_set_contents (STORAGE_FILE, contents, length, NULL))
+    {
+      g_warning ("Error saving storage,!");
+      return -1;
+    }
 
-	g_variant_ref_sink(data);
-	g_variant_unref(data);
+  g_variant_ref_sink (data);
+  g_variant_unref (data);
 
-	return 0;
+  return 0;
 }
 
 int
-print_data_save(FpPrint *print, FpFinger finger)
+print_data_save (FpPrint *print, FpFinger finger)
 {
-	g_autofree gchar *descr = get_print_data_descriptor (print, NULL, finger);
-	g_autoptr (GError) error = NULL;
-	g_autoptr (GVariantDict) dict = NULL;
-	g_autofree guchar *data = NULL;
-	GVariant *val;
-	gsize size;
-	int res;
+  g_autofree gchar *descr = get_print_data_descriptor (print, NULL, finger);
 
-	dict = load_data();
+  g_autoptr(GError) error = NULL;
+  g_autoptr(GVariantDict) dict = NULL;
+  g_autofree guchar *data = NULL;
+  GVariant *val;
+  gsize size;
+  int res;
 
-	fp_print_serialize (print, &data, &size, &error);
-	if (error) {
-		g_warning ("Error serializing data: %s", error->message);
-		return -1;
-	}
-	val = g_variant_new_fixed_array (G_VARIANT_TYPE("y"), data, size, 1);
-	g_variant_dict_insert_value (dict, descr, val);
+  dict = load_data ();
 
-	res = save_data(g_variant_dict_end(dict));
+  fp_print_serialize (print, &data, &size, &error);
+  if (error)
+    {
+      g_warning ("Error serializing data: %s", error->message);
+      return -1;
+    }
+  val = g_variant_new_fixed_array (G_VARIANT_TYPE ("y"), data, size, 1);
+  g_variant_dict_insert_value (dict, descr, val);
 
-	return res;
+  res = save_data (g_variant_dict_end (dict));
+
+  return res;
 }
 
 FpPrint *
-print_data_load(FpDevice *dev, FpFinger finger)
+print_data_load (FpDevice *dev, FpFinger finger)
 {
-	g_autofree gchar *descr = get_print_data_descriptor (NULL, dev, finger);
-	g_autoptr (GVariant) val = NULL;
-	g_autoptr (GVariantDict) dict = NULL;
-	g_autofree guchar *stored_data = NULL;
-	gsize stored_len;
+  g_autofree gchar *descr = get_print_data_descriptor (NULL, dev, finger);
 
-	dict = load_data();
-	val = g_variant_dict_lookup_value (dict, descr, G_VARIANT_TYPE ("ay"));
+  g_autoptr(GVariant) val = NULL;
+  g_autoptr(GVariantDict) dict = NULL;
+  g_autofree guchar *stored_data = NULL;
+  gsize stored_len;
 
-	if (val) {
-		FpPrint *print;
-		g_autoptr (GError) error = NULL;
+  dict = load_data ();
+  val = g_variant_dict_lookup_value (dict, descr, G_VARIANT_TYPE ("ay"));
 
-		stored_data = (guchar*) g_variant_get_fixed_array (val, &stored_len, 1);
-		print = fp_print_deserialize (stored_data, stored_len, &error);
+  if (val)
+    {
+      FpPrint *print;
+      g_autoptr(GError) error = NULL;
 
-		if (error)
-			g_warning ("Error deserializing data: %s", error->message);
+      stored_data = (guchar *) g_variant_get_fixed_array (val, &stored_len, 1);
+      print = fp_print_deserialize (stored_data, stored_len, &error);
 
-		return print;
-	}
+      if (error)
+        g_warning ("Error deserializing data: %s", error->message);
 
-	return NULL;
+      return print;
+    }
+
+  return NULL;
 }
 
 FpPrint *
 print_create_template (FpDevice *dev, FpFinger finger)
 {
-	g_autoptr(GDateTime) datetime = NULL;
-	FpPrint *template = NULL;
-	GDate *date = NULL;
-	gint year, month, day;
+  g_autoptr(GDateTime) datetime = NULL;
+  FpPrint *template = NULL;
+  GDate *date = NULL;
+  gint year, month, day;
 
-	template = fp_print_new (dev);
-	fp_print_set_finger (template, finger);
-	fp_print_set_username (template, g_get_user_name ());
-	datetime = g_date_time_new_now_local ();
-	g_date_time_get_ymd (datetime, &year, &month, &day);
-	date = g_date_new_dmy (day, month, year);
-	fp_print_set_enroll_date (template, date);
-	g_date_free (date);
+  template = fp_print_new (dev);
+  fp_print_set_finger (template, finger);
+  fp_print_set_username (template, g_get_user_name ());
+  datetime = g_date_time_new_now_local ();
+  g_date_time_get_ymd (datetime, &year, &month, &day);
+  date = g_date_new_dmy (day, month, year);
+  fp_print_set_enroll_date (template, date);
+  g_date_free (date);
 
-	return template;
+  return template;
 }
 
 
 static gboolean
 save_image_to_pgm (FpImage *img, const char *path)
 {
-	FILE *fd = fopen (path, "w");
-	size_t write_size;
-	const guchar *data = fp_image_get_data (img, &write_size);
-	int r;
+  FILE *fd = fopen (path, "w");
+  size_t write_size;
+  const guchar *data = fp_image_get_data (img, &write_size);
+  int r;
 
-	if (!fd) {
-		g_warning("could not open '%s' for writing: %d", path, errno);
-		return FALSE;
-	}
+  if (!fd)
+    {
+      g_warning ("could not open '%s' for writing: %d", path, errno);
+      return FALSE;
+    }
 
-	r = fprintf (fd, "P5 %d %d 255\n",
-		     fp_image_get_width (img), fp_image_get_height (img));
-	if (r < 0) {
-		fclose(fd);
-		g_critical("pgm header write failed, error %d", r);
-		return FALSE;
-	}
+  r = fprintf (fd, "P5 %d %d 255\n",
+               fp_image_get_width (img), fp_image_get_height (img));
+  if (r < 0)
+    {
+      fclose (fd);
+      g_critical ("pgm header write failed, error %d", r);
+      return FALSE;
+    }
 
-	r = fwrite (data, 1, write_size, fd);
-	if (r < write_size) {
-		fclose(fd);
-		g_critical("short write (%d)", r);
-		return FALSE;
-	}
+  r = fwrite (data, 1, write_size, fd);
+  if (r < write_size)
+    {
+      fclose (fd);
+      g_critical ("short write (%d)", r);
+      return FALSE;
+    }
 
-	fclose (fd);
-	g_debug ("written to '%s'", path);
+  fclose (fd);
+  g_debug ("written to '%s'", path);
 
-	return TRUE;
+  return TRUE;
 }
 
-gboolean print_image_save (FpPrint *print, const char *path)
+gboolean
+print_image_save (FpPrint *print, const char *path)
 {
-	g_autoptr(FpImage) img = NULL;
+  g_autoptr(FpImage) img = NULL;
 
-	g_return_val_if_fail (FP_IS_PRINT (print), FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
+  g_return_val_if_fail (FP_IS_PRINT (print), FALSE);
+  g_return_val_if_fail (path != NULL, FALSE);
 
-	img = fp_print_get_image (print);
+  img = fp_print_get_image (print);
 
-	if (img)
-		return save_image_to_pgm (img, path);
+  if (img)
+    return save_image_to_pgm (img, path);
 
-	return FALSE;
+  return FALSE;
 }

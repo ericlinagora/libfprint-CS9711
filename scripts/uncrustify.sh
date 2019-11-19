@@ -13,7 +13,7 @@ case "$1" in
 esac
 
 pushd "$SRCROOT"
-uncrustify -c "$CFG" $OPTS `git ls-tree --name-only -r HEAD | grep -E '(fp|fpi)-.*\.[ch]$' | grep -v nbis | grep -v fpi-byte | grep -v build/`
+uncrustify -c "$CFG" $OPTS `git ls-tree --name-only -r HEAD | grep -E '.*\.[ch]$' | grep -v nbis | grep -v fpi-byte | grep -v build/`
 RES=$?
 popd
 exit $RES

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Red Hat <mjg@redhat.com> 
+ * Copyright (C) 2009 Red Hat <mjg@redhat.com>
  * Copyright (C) 2008 Bastien Nocera <hadess@hadess.net>
  * Copyright (C) 2008 Timo Hoenig <thoenig@suse.de>, <thoenig@nouse.net>
  * Coypright (C) 2019 Benjamin Berg <bberg@redhat.com>
@@ -28,9 +28,10 @@
 
 GHashTable *printed = NULL;
 
-static GList *insert_drivers (GList *list)
+static GList *
+insert_drivers (GList *list)
 {
-  g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof(GType));
+  g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof (GType));
   gint i;
 
   fpi_get_driver_types (drivers);
@@ -42,10 +43,11 @@ static GList *insert_drivers (GList *list)
       FpDeviceClass *cls = FP_DEVICE_CLASS (g_type_class_ref (driver));
       const FpIdEntry *entry;
 
-      if (cls->type != FP_DEVICE_TYPE_USB) {
-        g_type_class_unref (cls);
-        continue;
-      }
+      if (cls->type != FP_DEVICE_TYPE_USB)
+        {
+          g_type_class_unref (cls);
+          continue;
+        }
 
       for (entry = cls->id_table; entry->vid; entry++)
         {
@@ -53,53 +55,55 @@ static GList *insert_drivers (GList *list)
 
           key = g_strdup_printf ("%04x:%04x", entry->vid, entry->pid);
 
-	  if (g_hash_table_lookup (printed, key) != NULL) {
-	    g_free (key);
-	    continue;
-	  }
+          if (g_hash_table_lookup (printed, key) != NULL)
+            {
+              g_free (key);
+              continue;
+            }
 
-	  g_hash_table_insert (printed, key, GINT_TO_POINTER (1));
+          g_hash_table_insert (printed, key, GINT_TO_POINTER (1));
 
-	  list = g_list_prepend (list, g_strdup_printf ("%s | %s\n", key, cls->full_name));
+          list = g_list_prepend (list, g_strdup_printf ("%s | %s\n", key, cls->full_name));
         }
 
       g_type_class_unref (cls);
     }
 
-    return list;
+  return list;
 }
 
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
-    GList *list, *l;
+  GList *list, *l;
 
-    setlocale (LC_ALL, "");
+  setlocale (LC_ALL, "");
 
-    printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
-    g_print ("%% lifprint — Supported Devices\n");
-    g_print ("%% Bastien Nocera, Daniel Drake\n");
-    g_print ("%% 2018\n");
-    g_print ("\n");
+  g_print ("%% lifprint — Supported Devices\n");
+  g_print ("%% Bastien Nocera, Daniel Drake\n");
+  g_print ("%% 2018\n");
+  g_print ("\n");
 
-    g_print ("# Supported Devices\n");
-    g_print ("\n");
-    g_print ("This is a list of supported devices in libfprint's development version. Those drivers might not all be available in the stable, released version. If in doubt, contact your distribution or systems integrator for details.\n");
-    g_print ("\n");
-    g_print ("## USB devices\n");
-    g_print ("\n");
-    g_print ("USB ID | Driver\n");
-    g_print ("------------ | ------------\n");
+  g_print ("# Supported Devices\n");
+  g_print ("\n");
+  g_print ("This is a list of supported devices in libfprint's development version. Those drivers might not all be available in the stable, released version. If in doubt, contact your distribution or systems integrator for details.\n");
+  g_print ("\n");
+  g_print ("## USB devices\n");
+  g_print ("\n");
+  g_print ("USB ID | Driver\n");
+  g_print ("------------ | ------------\n");
 
-    list = NULL;
-    list = insert_drivers (list);
+  list = NULL;
+  list = insert_drivers (list);
 
-    list = g_list_sort (list, (GCompareFunc) g_strcmp0);
-    for (l = list; l != NULL; l = l->next)
-        g_print ("%s", (char *) l->data);
+  list = g_list_sort (list, (GCompareFunc) g_strcmp0);
+  for (l = list; l != NULL; l = l->next)
+    g_print ("%s", (char *) l->data);
 
-    g_list_free_full (list, g_free);
-    g_hash_table_destroy (printed);
+  g_list_free_full (list, g_free);
+  g_hash_table_destroy (printed);
 
-    return 0;
+  return 0;
 }

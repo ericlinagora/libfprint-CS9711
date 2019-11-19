@@ -24,155 +24,171 @@
 
 #include "storage.h"
 
-typedef struct _EnrollData {
-	GMainLoop *loop;
-	int ret_value;
+typedef struct _EnrollData
+{
+  GMainLoop *loop;
+  int        ret_value;
 } EnrollData;
 
 static void
 enroll_data_free (EnrollData *enroll_data)
 {
-	g_main_loop_unref (enroll_data->loop);
-	g_free (enroll_data);
+  g_main_loop_unref (enroll_data->loop);
+  g_free (enroll_data);
 }
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (EnrollData, enroll_data_free)
 
-FpDevice *discover_device (GPtrArray *devices)
+FpDevice *discover_device (GPtrArray * devices)
 {
-	FpDevice *dev;
-	if (!devices->len)
-		return NULL;
+  FpDevice *dev;
 
-	dev = g_ptr_array_index (devices, 0);
-	printf("Found device claimed by %s driver\n", fp_device_get_driver (dev));
-	return dev;
+  if (!devices->len)
+    return NULL;
+
+  dev = g_ptr_array_index (devices, 0);
+  printf ("Found device claimed by %s driver\n", fp_device_get_driver (dev));
+  return dev;
 }
 
 static void
-on_device_closed (FpDevice *dev, GAsyncResult *res, void *user_data) {
-	EnrollData *enroll_data = user_data;
-	g_autoptr(GError) error = NULL;
+on_device_closed (FpDevice *dev, GAsyncResult *res, void *user_data)
+{
+  EnrollData *enroll_data = user_data;
 
-	fp_device_close_finish (dev, res, &error);
+  g_autoptr(GError) error = NULL;
 
-	if (error)
-		g_warning ("Failed closing device %s\n", error->message);
+  fp_device_close_finish (dev, res, &error);
 
-	g_main_loop_quit (enroll_data->loop);
+  if (error)
+    g_warning ("Failed closing device %s\n", error->message);
+
+  g_main_loop_quit (enroll_data->loop);
 }
 
 static void
-on_enroll_completed (FpDevice *dev, GAsyncResult *res, void *user_data) {
-	EnrollData *enroll_data = user_data;
-	g_autoptr(FpPrint) print = NULL;
-	g_autoptr(GError) error = NULL;
+on_enroll_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
+{
+  EnrollData *enroll_data = user_data;
 
-	print = fp_device_enroll_finish (dev, res, &error);
+  g_autoptr(FpPrint) print = NULL;
+  g_autoptr(GError) error = NULL;
 
-	if (!error) {
-		enroll_data->ret_value = EXIT_SUCCESS;
+  print = fp_device_enroll_finish (dev, res, &error);
 
-		if (!fp_device_has_storage (dev)) {
-			g_debug("Device has not storage, saving locally");
-			int r = print_data_save(print, FP_FINGER_RIGHT_INDEX);
-			if (r < 0) {
-				g_warning("Data save failed, code %d", r);
-				enroll_data->ret_value = EXIT_FAILURE;
-			}
-		}
-	} else {
-		g_warning("Enroll failed with error %s\n", error->message);
-	}
+  if (!error)
+    {
+      enroll_data->ret_value = EXIT_SUCCESS;
 
-	fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
-			 enroll_data);
+      if (!fp_device_has_storage (dev))
+        {
+          g_debug ("Device has not storage, saving locally");
+          int r = print_data_save (print, FP_FINGER_RIGHT_INDEX);
+          if (r < 0)
+            {
+              g_warning ("Data save failed, code %d", r);
+              enroll_data->ret_value = EXIT_FAILURE;
+            }
+        }
+    }
+  else
+    {
+      g_warning ("Enroll failed with error %s\n", error->message);
+    }
+
+  fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
+                   enroll_data);
 }
 
 static void
 on_enroll_progress (FpDevice *device,
-		    gint      completed_stages,
-		    FpPrint  *print,
-		    gpointer  user_data,
-		    GError   *error)
+                    gint      completed_stages,
+                    FpPrint  *print,
+                    gpointer  user_data,
+                    GError   *error)
 {
-	if (error) {
-		g_warning ("Enroll stage %d of %d failed with error %s",
-			   completed_stages,
-			   fp_device_get_nr_enroll_stages (device),
-			   error->message);
-		return;
-	}
+  if (error)
+    {
+      g_warning ("Enroll stage %d of %d failed with error %s",
+                 completed_stages,
+                 fp_device_get_nr_enroll_stages (device),
+                 error->message);
+      return;
+    }
 
-	if (fp_device_supports_capture (device) &&
-	    print_image_save (print, "enrolled.pgm")) {
-		printf ("Wrote scanned image to enrolled.pgm\n");
-	}
+  if (fp_device_supports_capture (device) &&
+      print_image_save (print, "enrolled.pgm"))
+    printf ("Wrote scanned image to enrolled.pgm\n");
 
-	printf ("Enroll stage %d of %d passed. Yay!\n", completed_stages,
-	        fp_device_get_nr_enroll_stages (device));
+  printf ("Enroll stage %d of %d passed. Yay!\n", completed_stages,
+          fp_device_get_nr_enroll_stages (device));
 }
 
 static void
 on_device_opened (FpDevice *dev, GAsyncResult *res, void *user_data)
 {
-	EnrollData *enroll_data = user_data;
-	FpPrint *print_template;
-	g_autoptr(GError) error = NULL;
+  EnrollData *enroll_data = user_data;
+  FpPrint *print_template;
 
-	if (!fp_device_open_finish (dev, res, &error)) {
-		g_warning ("Failed to open device: %s", error->message);
-		g_main_loop_quit (enroll_data->loop);
-		return;
-	}
+  g_autoptr(GError) error = NULL;
 
-	printf ("Opened device. It's now time to enroll your finger.\n\n");
-	printf ("You will need to successfully scan your finger %d times to "
-		"complete the process.\n\n", fp_device_get_nr_enroll_stages (dev));
-	printf ("Scan your finger now.\n");
+  if (!fp_device_open_finish (dev, res, &error))
+    {
+      g_warning ("Failed to open device: %s", error->message);
+      g_main_loop_quit (enroll_data->loop);
+      return;
+    }
 
-	print_template = print_create_template (dev, FP_FINGER_RIGHT_INDEX);
-	fp_device_enroll (dev, print_template, NULL, on_enroll_progress, NULL,
-			  NULL, (GAsyncReadyCallback) on_enroll_completed,
-			  enroll_data);
+  printf ("Opened device. It's now time to enroll your finger.\n\n");
+  printf ("You will need to successfully scan your finger %d times to "
+          "complete the process.\n\n", fp_device_get_nr_enroll_stages (dev));
+  printf ("Scan your finger now.\n");
+
+  print_template = print_create_template (dev, FP_FINGER_RIGHT_INDEX);
+  fp_device_enroll (dev, print_template, NULL, on_enroll_progress, NULL,
+                    NULL, (GAsyncReadyCallback) on_enroll_completed,
+                    enroll_data);
 }
 
-int main(void)
+int
+main (void)
 {
-	g_autoptr (FpContext) ctx = NULL;
-	g_autoptr (EnrollData) enroll_data = NULL;
-	GPtrArray *devices;
-	FpDevice *dev;
+  g_autoptr(FpContext) ctx = NULL;
+  g_autoptr(EnrollData) enroll_data = NULL;
+  GPtrArray *devices;
+  FpDevice *dev;
 
-	printf("This program will enroll your right index finger, "
-		"unconditionally overwriting any right-index print that was enrolled "
-		"previously. If you want to continue, press enter, otherwise hit "
-		"Ctrl+C\n");
-	getchar();
+  printf ("This program will enroll your right index finger, "
+          "unconditionally overwriting any right-index print that was enrolled "
+          "previously. If you want to continue, press enter, otherwise hit "
+          "Ctrl+C\n");
+  getchar ();
 
-	setenv ("G_MESSAGES_DEBUG", "all", 0);
+  setenv ("G_MESSAGES_DEBUG", "all", 0);
 
-	ctx = fp_context_new ();
+  ctx = fp_context_new ();
 
-	devices = fp_context_get_devices (ctx);
-	if (!devices) {
-		g_warning("Impossible to get devices");
-		return EXIT_FAILURE;
-	}
+  devices = fp_context_get_devices (ctx);
+  if (!devices)
+    {
+      g_warning ("Impossible to get devices");
+      return EXIT_FAILURE;
+    }
 
-	dev = discover_device (devices);
-	if (!dev) {
-		g_warning("No devices detected.");
-		return EXIT_FAILURE;
-	}
+  dev = discover_device (devices);
+  if (!dev)
+    {
+      g_warning ("No devices detected.");
+      return EXIT_FAILURE;
+    }
 
-	enroll_data = g_new0 (EnrollData, 1);
-	enroll_data->ret_value = EXIT_FAILURE;
-	enroll_data->loop = g_main_loop_new (NULL, FALSE);
+  enroll_data = g_new0 (EnrollData, 1);
+  enroll_data->ret_value = EXIT_FAILURE;
+  enroll_data->loop = g_main_loop_new (NULL, FALSE);
 
-	fp_device_open (dev, NULL, (GAsyncReadyCallback) on_device_opened,
-	                enroll_data);
+  fp_device_open (dev, NULL, (GAsyncReadyCallback) on_device_opened,
+                  enroll_data);
 
-	g_main_loop_run (enroll_data->loop);
+  g_main_loop_run (enroll_data->loop);
 
-	return enroll_data->ret_value;
+  return enroll_data->ret_value;
 }

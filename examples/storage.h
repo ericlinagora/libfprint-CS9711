@@ -22,9 +22,13 @@
 #define __STORAGE_H
 
 
-int print_data_save(FpPrint *print, FpFinger finger);
-FpPrint * print_data_load(FpDevice *dev, FpFinger finger);
-FpPrint * print_create_template(FpDevice *dev, FpFinger finger);
-gboolean print_image_save(FpPrint *print, const char *path);
+int print_data_save (FpPrint *print,
+                     FpFinger finger);
+FpPrint * print_data_load (FpDevice *dev,
+                           FpFinger  finger);
+FpPrint * print_create_template (FpDevice *dev,
+                                 FpFinger  finger);
+gboolean print_image_save (FpPrint    *print,
+                           const char *path);
 
 #endif /* __STORAGE_H */

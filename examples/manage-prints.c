@@ -122,8 +122,9 @@ delete_data_free (DeleteData *delete_data)
 }
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DeleteData, delete_data_free);
 
-static void
-on_print_deleted (FpDevice *dev, GAsyncResult *res, gpointer user_data);
+static void on_print_deleted (FpDevice     *dev,
+                              GAsyncResult *res,
+                              gpointer      user_data);
 
 static void
 delete_next_print (FpDevice *dev,
@@ -145,6 +146,7 @@ on_print_deleted (FpDevice     *dev,
                   gpointer      user_data)
 {
   ListData *list_data = user_data;
+
   g_autoptr(GError) error = NULL;
   g_autoptr(FpPrint) print = NULL;
   GList *deleted_link;
@@ -157,12 +159,14 @@ on_print_deleted (FpDevice     *dev,
 
   if (error)
     {
-      g_warning("Failed to remove print %s: %s",
-                fp_print_get_description (print), error->message);
+      g_warning ("Failed to remove print %s: %s",
+                 fp_print_get_description (print), error->message);
       list_data->any_failed = TRUE;
     }
   else
-    g_debug ("Deleted print %s from device", fp_print_get_description (print));
+    {
+      g_debug ("Deleted print %s from device", fp_print_get_description (print));
+    }
 
   if (list_data->to_delete != NULL)
     {
@@ -184,6 +188,7 @@ on_list_completed (FpDevice     *dev,
                    gpointer      user_data)
 {
   ListData *list_data = user_data;
+
   g_autoptr(GPtrArray) prints = NULL;
   g_autoptr(GError) error = NULL;
 
@@ -198,7 +203,7 @@ on_list_completed (FpDevice     *dev,
 
       for (i = 0; i < prints->len; ++i)
         {
-          FpPrint* print = prints->pdata[i];
+          FpPrint * print = prints->pdata[i];
 
           g_date_strftime (buf, G_N_ELEMENTS (buf), "%Y-%m-%d",
                            fp_print_get_enroll_date (print));
@@ -247,10 +252,8 @@ on_list_completed (FpDevice     *dev,
       if (list_data->to_delete)
         delete_next_print (dev, list_data);
       else
-        {
-          fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
-                           list_data);
-        }
+        fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
+                         list_data);
     }
   else
     {

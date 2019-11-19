@@ -38,22 +38,23 @@
 #include "fpi-image-device.h"
 #include "aeslib.h"
 
-#define AES3K_FRAME_HEIGHT	16
+#define AES3K_FRAME_HEIGHT 16
 
-G_DECLARE_DERIVABLE_TYPE(FpiDeviceAes3k, fpi_device_aes3k, FPI,
-			 DEVICE_AES3K, FpImageDevice)
+G_DECLARE_DERIVABLE_TYPE (FpiDeviceAes3k, fpi_device_aes3k, FPI,
+                          DEVICE_AES3K, FpImageDevice)
 
 #define FPI_TYPE_DEVICE_AES3K (fpi_device_aes3k_get_type ())
 
-struct _FpiDeviceAes3kClass {
-	FpImageDeviceClass parent;
+struct _FpiDeviceAes3kClass
+{
+  FpImageDeviceClass   parent;
 
-	gsize frame_width;  /* image size = frame_width x frame_width */
-	gsize frame_size;   /* 4 bits/pixel: frame_width x AES3K_FRAME_HEIGHT / 2 */
-	gsize frame_number; /* number of frames */
-	gsize enlarge_factor;
+  gsize                frame_width; /* image size = frame_width x frame_width */
+  gsize                frame_size; /* 4 bits/pixel: frame_width x AES3K_FRAME_HEIGHT / 2 */
+  gsize                frame_number; /* number of frames */
+  gsize                enlarge_factor;
 
-	gsize data_buflen;             /* buffer length of usb bulk transfer */
-	struct aes_regwrite *init_reqs; /* initial values sent to device */
-	gsize init_reqs_len;
+  gsize                data_buflen;    /* buffer length of usb bulk transfer */
+  struct aes_regwrite *init_reqs;       /* initial values sent to device */
+  gsize                init_reqs_len;
 };

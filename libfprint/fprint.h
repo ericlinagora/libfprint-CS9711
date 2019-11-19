@@ -22,4 +22,3 @@
 #include "fp-context.h"
 #include "fp-device.h"
 #include "fp-image.h"
-

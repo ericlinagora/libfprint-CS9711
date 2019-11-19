@@ -21,4 +21,5 @@
 #include <stdint.h>
 #include <stddef.h>
 
-uint16_t udf_crc(unsigned char *buffer, size_t size);
+uint16_t udf_crc (unsigned char *buffer,
+                  size_t         size);
