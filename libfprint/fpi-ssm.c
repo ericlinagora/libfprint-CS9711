@@ -110,7 +110,7 @@ fpi_ssm_new (FpDevice             *dev,
 
   BUG_ON (nr_states < 1);
 
-  machine = g_malloc0 (sizeof (*machine));
+  machine = g_new0 (FpiSsm, 1);
   machine->handler = handler;
   machine->nr_states = nr_states;
   machine->dev = dev;

@@ -426,7 +426,7 @@ fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,
   GSList *row1, *row2;
   float y = 0.0;
   int line_ind = 0;
-  int *offsets = (int *) g_malloc0 ((num_lines / 2) * sizeof (int));
+  int *offsets = g_new0 (int, num_lines / 2);
   unsigned char *output = g_malloc0 (ctx->line_width * ctx->max_height);
   FpImage *img;
 

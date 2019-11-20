@@ -806,8 +806,7 @@ dev_open (FpImageDevice *dev)
   FpDeviceVfs5011 *self;
 
   self = FPI_DEVICE_VFS5011 (dev);
-  self->capture_buffer =
-    (unsigned char *) g_malloc0 (CAPTURE_LINES * VFS5011_LINE_SIZE);
+  self->capture_buffer = g_new0 (unsigned char, CAPTURE_LINES * VFS5011_LINE_SIZE);
 
   if (!g_usb_device_claim_interface (fpi_device_get_usb_device (FP_DEVICE (dev)), 0, 0, &error))
     {
