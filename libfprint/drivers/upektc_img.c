@@ -338,9 +338,9 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+capture_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -382,9 +382,9 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data, GError *error_arg)
+capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error_arg)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (_dev);
 
   g_autoptr(GError) error = error_arg;
@@ -409,7 +409,7 @@ start_capture (FpImageDevice *dev)
   self->image_size = 0;
 
   ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state,
-                     CAPTURE_NUM_STATES, dev);
+                     CAPTURE_NUM_STATES);
   fpi_ssm_start (ssm, capture_sm_complete);
 }
 
@@ -443,10 +443,9 @@ deactivate_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-deactivate_run_state (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data)
+deactivate_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -465,10 +464,9 @@ deactivate_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-deactivate_sm_complete (FpiSsm *ssm, FpDevice *_dev,
-                        void *user_data, GError *error)
+deactivate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (_dev);
 
   fp_dbg ("Deactivate completed");
@@ -487,7 +485,7 @@ start_deactivation (FpImageDevice *dev)
   self->image_size = 0;
 
   ssm = fpi_ssm_new (FP_DEVICE (dev), deactivate_run_state,
-                     DEACTIVATE_NUM_STATES, dev);
+                     DEACTIVATE_NUM_STATES);
   fpi_ssm_start (ssm, deactivate_sm_complete);
 }
 
@@ -539,10 +537,10 @@ init_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+activate_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiUsbTransfer *transfer;
-  FpImageDevice *idev = user_data;
+  FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -599,10 +597,9 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-activate_sm_complete (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data, GError *error)
+activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
   fpi_ssm_free (ssm);
   fpi_image_device_activate_complete (dev, error);
@@ -616,7 +613,7 @@ dev_activate (FpImageDevice *dev)
 {
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (dev);
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
-                             ACTIVATE_NUM_STATES, dev);
+                             ACTIVATE_NUM_STATES);
 
   self->seq = 0;
   fpi_ssm_start (ssm, activate_sm_complete);

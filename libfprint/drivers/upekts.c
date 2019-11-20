@@ -679,7 +679,7 @@ initsm_send_msg28_handler (FpiSsm              *ssm,
 }
 
 static void
-initsm_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+initsm_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceUpekts *upekdev = FPI_DEVICE_UPEKTS (dev);
   FpiUsbTransfer *transfer;
@@ -763,7 +763,7 @@ initsm_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 static FpiSsm *
 initsm_new (FpDevice *dev)
 {
-  return fpi_ssm_new (dev, initsm_run_state, INITSM_NUM_STATES, NULL);
+  return fpi_ssm_new (dev, initsm_run_state, INITSM_NUM_STATES);
 }
 
 enum deinitsm_states {
@@ -806,8 +806,7 @@ read_msg01_cb (FpDevice *dev, enum read_msg_type type,
 }
 
 static void
-deinitsm_state_handler (FpiSsm *ssm, FpDevice *dev,
-                        void *user_data)
+deinitsm_state_handler (FpiSsm *ssm, FpDevice *dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -829,7 +828,7 @@ deinitsm_state_handler (FpiSsm *ssm, FpDevice *dev,
 }
 
 static void
-initsm_done (FpiSsm *ssm, FpDevice *dev, void *user_data, GError *error)
+initsm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   if (error)
     g_usb_device_release_interface (fpi_device_get_usb_device (dev), 0, 0, NULL);
@@ -840,7 +839,7 @@ initsm_done (FpiSsm *ssm, FpDevice *dev, void *user_data, GError *error)
 static FpiSsm *
 deinitsm_new (FpDevice *dev, void *user_data)
 {
-  return fpi_ssm_new (dev, deinitsm_state_handler, DEINITSM_NUM_STATES, user_data);
+  return fpi_ssm_new (dev, deinitsm_state_handler, DEINITSM_NUM_STATES);
 }
 
 static void
@@ -858,12 +857,12 @@ dev_init (FpDevice *dev)
 
   upekdev->seq = 0xf0;       /* incremented to 0x00 before first cmd */
 
-  ssm = fpi_ssm_new (dev, initsm_run_state, INITSM_NUM_STATES, NULL);
+  ssm = fpi_ssm_new (dev, initsm_run_state, INITSM_NUM_STATES);
   fpi_ssm_start (ssm, initsm_done);
 }
 
 static void
-deinitsm_done (FpiSsm *ssm, FpDevice *dev, void *user_data, GError *error)
+deinitsm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   g_usb_device_release_interface (fpi_device_get_usb_device (dev), 0, 0, NULL);
 
@@ -875,7 +874,7 @@ dev_exit (FpDevice *dev)
 {
   FpiSsm *ssm;
 
-  ssm = fpi_ssm_new (dev, deinitsm_state_handler, DEINITSM_NUM_STATES, NULL);
+  ssm = fpi_ssm_new (dev, deinitsm_state_handler, DEINITSM_NUM_STATES);
   fpi_ssm_start (ssm, deinitsm_done);
 }
 
@@ -936,8 +935,7 @@ enroll_start_sm_cb_msg28 (FpDevice *dev,
 }
 
 static void
-enroll_start_sm_run_state (FpiSsm *ssm, FpDevice *dev,
-                           void *user_data)
+enroll_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -973,20 +971,23 @@ typedef struct
 } EnrollStopData;
 
 static void
-enroll_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev,
-                       void *user_data, GError *error)
+enroll_stop_data_free (EnrollStopData *data)
 {
-  EnrollStopData *data = user_data;
+  g_clear_object (&data->print);
+  g_clear_error (&data->error);
+  g_free (data);
+}
+
+static void
+enroll_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
+{
+  EnrollStopData *data = fpi_ssm_get_data (ssm);
 
   /* don't really care about errors */
   if (error)
-    {
-      fp_warn ("Error deinitializing: %s", error->message);
-      g_error_free (error);
-    }
+    fp_warn ("Error deinitializing: %s", error->message);
 
   fpi_device_enroll_complete (dev, data->print, data->error);
-  g_free (data);
   fpi_ssm_free (ssm);
 }
 
@@ -996,10 +997,11 @@ do_enroll_stop (FpDevice *dev, FpPrint *print, GError *error)
   EnrollStopData *data = g_new0 (EnrollStopData, 1);
   FpiSsm *ssm = deinitsm_new (dev, data);
 
-  data->print = print;
+  data->print = g_object_ref (print);
   data->error = error;
 
   fpi_ssm_start (ssm, enroll_stop_deinit_cb);
+  fpi_ssm_set_data (ssm, data, (GDestroyNotify) enroll_stop_data_free);
 }
 
 static void enroll_iterate (FpDevice *dev);
@@ -1206,8 +1208,7 @@ enroll_iterate (FpDevice *dev)
 }
 
 static void
-enroll_started (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                GError *error)
+enroll_started (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   if (error)
     do_enroll_stop (dev, NULL, error);
@@ -1224,7 +1225,7 @@ enroll (FpDevice *dev)
 
   /* do_init state machine first */
   FpiSsm *ssm = fpi_ssm_new (dev, enroll_start_sm_run_state,
-                             ENROLL_START_NUM_STATES, NULL);
+                             ENROLL_START_NUM_STATES);
 
   upekdev->enroll_passed = FALSE;
   upekdev->enroll_stage = 0;
@@ -1238,19 +1239,21 @@ typedef struct
 } VerifyStopData;
 
 static void
-verify_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev,
-                       void *user_data, GError *error)
+verify_stop_data_free (VerifyStopData *data)
 {
-  VerifyStopData *data = user_data;
+  g_clear_error (&data->error);
+  g_free (data);
+}
+
+static void
+verify_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
+{
+  VerifyStopData *data = fpi_ssm_get_data (ssm);
 
   if (error)
-    {
-      fp_warn ("Error deinitializing: %s", error->message);
-      g_error_free (error);
-    }
+    fp_warn ("Error deinitializing: %s", error->message);
 
   fpi_device_verify_complete (dev, data->res, NULL, data->error);
-  g_free (data);
   fpi_ssm_free (ssm);
 }
 
@@ -1264,6 +1267,7 @@ do_verify_stop (FpDevice *dev, FpiMatchResult res, GError *error)
   data->error = error;
 
   fpi_ssm_start (ssm, verify_stop_deinit_cb);
+  fpi_ssm_set_data (ssm, data, (GDestroyNotify) verify_stop_data_free);
 }
 
 static const unsigned char verify_hdr[] = {
@@ -1279,8 +1283,7 @@ enum {
 };
 
 static void
-verify_start_sm_run_state (FpiSsm *ssm, FpDevice *dev,
-                           void *user_data)
+verify_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpPrint *print;
 
@@ -1522,8 +1525,7 @@ verify_iterate (FpDevice *dev)
 }
 
 static void
-verify_started (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                GError *error)
+verify_started (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpiDeviceUpekts *upekdev = FPI_DEVICE_UPEKTS (dev);
 
@@ -1542,8 +1544,7 @@ verify_started (FpiSsm *ssm, FpDevice *dev, void *user_data,
 static void
 verify (FpDevice *dev)
 {
-  FpiSsm *ssm = fpi_ssm_new (dev, verify_start_sm_run_state,
-                             VERIFY_NUM_STATES, NULL);
+  FpiSsm *ssm = fpi_ssm_new (dev, verify_start_sm_run_state, VERIFY_NUM_STATES);
 
   fpi_ssm_start (ssm, verify_started);
 }

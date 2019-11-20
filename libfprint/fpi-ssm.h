@@ -38,7 +38,6 @@ typedef struct _FpiSsm FpiSsm;
  * FpiSsmCompletedCallback:
  * @ssm: a #FpiSsm state machine
  * @dev: the #fp_dev fingerprint device
- * @user_data: the user data passed to fpi_ssm_new()
  * @error: The #GError or %NULL on successful completion
  *
  * The callback called when a state machine completes successfully,
@@ -46,27 +45,23 @@ typedef struct _FpiSsm FpiSsm;
  */
 typedef void (*FpiSsmCompletedCallback)(FpiSsm   *ssm,
                                         FpDevice *dev,
-                                        void     *user_data,
                                         GError   *error);
 
 /**
  * FpiSsmHandlerCallback:
  * @ssm: a #FpiSsm state machine
  * @dev: the #fp_dev fingerprint device
- * @user_data: the user data passed to fpi_ssm_new()
  *
  * The callback called when a state machine transitions from one
- * state to the next, as set when calling fpi_ssm_new().
+ * state to the next, as set when calling fpi_ssm_new ().
  */
 typedef void (*FpiSsmHandlerCallback)(FpiSsm   *ssm,
-                                      FpDevice *dev,
-                                      void     *user_data);
+                                      FpDevice *dev);
 
 /* for library and drivers */
 FpiSsm *fpi_ssm_new (FpDevice             *dev,
                      FpiSsmHandlerCallback handler,
-                     int                   nr_states,
-                     void                 *user_data);
+                     int                   nr_states);
 void fpi_ssm_free (FpiSsm *machine);
 void fpi_ssm_start (FpiSsm                 *ssm,
                     FpiSsmCompletedCallback callback);
@@ -80,7 +75,10 @@ void fpi_ssm_jump_to_state (FpiSsm *machine,
 void fpi_ssm_mark_completed (FpiSsm *machine);
 void fpi_ssm_mark_failed (FpiSsm *machine,
                           GError *error);
-void *fpi_ssm_get_user_data (FpiSsm *machine);
+void fpi_ssm_set_data (FpiSsm        *machine,
+                       gpointer       ssm_data,
+                       GDestroyNotify ssm_data_destroy);
+gpointer fpi_ssm_get_data (FpiSsm *machine);
 GError * fpi_ssm_get_error (FpiSsm *machine);
 GError * fpi_ssm_dup_error (FpiSsm *machine);
 int fpi_ssm_get_cur_state (FpiSsm *machine);

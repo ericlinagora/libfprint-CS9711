@@ -121,7 +121,7 @@ finger_det_reqs_cb (FpiUsbTransfer *t, FpDevice *device,
                     gpointer user_data, GError *error)
 {
   FpiUsbTransfer *transfer;
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (device);
 
   if (error)
     {
@@ -321,7 +321,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-capture_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+capture_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -371,11 +371,10 @@ capture_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                     GError *error)
+capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
   FpiDeviceAes2550 *self = FPI_DEVICE_AES2550 (_dev);
+  FpImageDevice *dev = FP_IMAGE_DEVICE (self);
 
   fp_dbg ("Capture completed");
 
@@ -408,8 +407,7 @@ start_capture (FpImageDevice *dev)
     }
 
   self->heartbeat_cnt = 0;
-  ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state,
-                     CAPTURE_NUM_STATES, dev);
+  ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state, CAPTURE_NUM_STATES);
   G_DEBUG_HERE ();
   fpi_ssm_start (ssm, capture_sm_complete);
 }
@@ -471,7 +469,7 @@ calibrate_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+activate_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -531,10 +529,9 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-activate_sm_complete (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data, GError *error)
+activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
   fpi_image_device_activate_complete (dev, error);
 
@@ -547,7 +544,7 @@ static void
 dev_activate (FpImageDevice *dev)
 {
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
-                             ACTIVATE_NUM_STATES, dev);
+                             ACTIVATE_NUM_STATES);
 
   fpi_ssm_start (ssm, activate_sm_complete);
 }

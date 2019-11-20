@@ -81,7 +81,7 @@ static void
 async_send_cb (FpiUsbTransfer *transfer, FpDevice *device,
                gpointer user_data, GError *error)
 {
-  struct usbexchange_data *data = fpi_ssm_get_user_data (transfer->ssm);
+  struct usbexchange_data *data = fpi_ssm_get_data (transfer->ssm);
   struct usb_action *action;
 
   g_assert (!(fpi_ssm_get_cur_state (transfer->ssm) >= data->stepcount));
@@ -104,7 +104,7 @@ static void
 async_recv_cb (FpiUsbTransfer *transfer, FpDevice *device,
                gpointer user_data, GError *error)
 {
-  struct usbexchange_data *data = fpi_ssm_get_user_data (transfer->ssm);
+  struct usbexchange_data *data = fpi_ssm_get_data (transfer->ssm);
   struct usb_action *action;
 
   if (error)
@@ -148,9 +148,9 @@ async_recv_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-usbexchange_loop (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+usbexchange_loop (FpiSsm *ssm, FpDevice *_dev)
 {
-  struct usbexchange_data *data = user_data;
+  struct usbexchange_data *data = fpi_ssm_get_data (ssm);
   struct usb_action *action = &data->actions[fpi_ssm_get_cur_state (ssm)];
   FpiUsbTransfer *transfer;
 
@@ -196,9 +196,9 @@ usb_exchange_async (FpiSsm                  *ssm,
 {
   FpiSsm *subsm = fpi_ssm_new (FP_DEVICE (data->device),
                                usbexchange_loop,
-                               data->stepcount,
-                               data);
+                               data->stepcount);
 
+  fpi_ssm_set_data (subsm, data, NULL);
   fpi_ssm_start_subsm (ssm, subsm);
 }
 
@@ -658,11 +658,11 @@ struct usb_action vfs5011_initiate_capture[] = {
 /* ====================== lifprint interface ======================= */
 
 static void
-activate_loop (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+activate_loop (FpiSsm *ssm, FpDevice *_dev)
 {
   enum {READ_TIMEOUT = 0};
 
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpDeviceVfs5011 *self;
 
   self = FPI_DEVICE_VFS5011 (_dev);
@@ -729,10 +729,9 @@ activate_loop (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-activate_loop_complete (FpiSsm *ssm, FpDevice *_dev,
-                        void *user_data, GError *error)
+activate_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpDeviceVfs5011 *self;
 
   self = FPI_DEVICE_VFS5011 (_dev);
@@ -760,9 +759,9 @@ activate_loop_complete (FpiSsm *ssm, FpDevice *_dev,
 
 
 static void
-open_loop (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+open_loop (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpDeviceVfs5011 *self;
 
   self = FPI_DEVICE_VFS5011 (_dev);
@@ -784,10 +783,9 @@ open_loop (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-open_loop_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                    GError *error)
+open_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpDeviceVfs5011 *self;
 
   self = FPI_DEVICE_VFS5011 (_dev);
@@ -814,7 +812,7 @@ dev_open (FpImageDevice *dev)
       return;
     }
 
-  ssm = fpi_ssm_new (FP_DEVICE (dev), open_loop, DEV_OPEN_NUM_STATES, dev);
+  ssm = fpi_ssm_new (FP_DEVICE (dev), open_loop, DEV_OPEN_NUM_STATES);
   fpi_ssm_start (ssm, open_loop_complete);
 }
 
@@ -844,8 +842,7 @@ start_scan (FpImageDevice *dev)
   self = FPI_DEVICE_VFS5011 (dev);
   self->loop_running = TRUE;
   fp_dbg ("creating ssm");
-  ssm = fpi_ssm_new (FP_DEVICE (dev), activate_loop,
-                     DEV_ACTIVATE_NUM_STATES, dev);
+  ssm = fpi_ssm_new (FP_DEVICE (dev), activate_loop, DEV_ACTIVATE_NUM_STATES);
   fp_dbg ("starting ssm");
   fpi_ssm_start (ssm, activate_loop_complete);
   fp_dbg ("ssm done, getting out");

@@ -256,7 +256,7 @@ enum loop_states {
 };
 
 static void
-loop_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+loop_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpDeviceVcom5s *self = FPI_DEVICE_VCOM5S (dev);
 
@@ -296,8 +296,7 @@ loop_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-loopsm_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                 GError *error)
+loopsm_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpImageDevice *imgdev = FP_IMAGE_DEVICE (dev);
   FpDeviceVcom5s *self = FPI_DEVICE_VCOM5S (dev);
@@ -320,8 +319,7 @@ static void
 dev_activate (FpImageDevice *dev)
 {
   FpDeviceVcom5s *self = FPI_DEVICE_VCOM5S (dev);
-  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), loop_run_state,
-                             LOOP_NUM_STATES, dev);
+  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), loop_run_state, LOOP_NUM_STATES);
 
   self->deactivating = FALSE;
   fpi_ssm_start (ssm, loopsm_complete);

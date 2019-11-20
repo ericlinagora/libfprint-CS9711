@@ -45,7 +45,7 @@
  * implicit edges linking one state to every other state.
  *
  * To create an #fpi_ssm, you pass a state handler function and the total number of
- * states (4 in the above example) to fpi_ssm_new(). Note that the state numbers
+ * states (4 in the above example) to fpi_ssm_new (). Note that the state numbers
  * start at zero, making them match the first value in a C enumeration.
  *
  * To start a ssm, you pass in a completion callback function to fpi_ssm_start()
@@ -79,7 +79,8 @@ struct _FpiSsm
 {
   FpDevice               *dev;
   FpiSsm                 *parentsm;
-  void                   *user_data;
+  gpointer                ssm_data;
+  GDestroyNotify          ssm_data_destroy;
   int                     nr_states;
   int                     cur_state;
   gboolean                completed;
@@ -93,7 +94,6 @@ struct _FpiSsm
  * @dev: a #fp_dev fingerprint device
  * @handler: the callback function
  * @nr_states: the number of states
- * @user_data: the user data to pass to callbacks
  *
  * Allocate a new ssm, with @nr_states states. The @handler callback
  * will be called after each state transition.
@@ -103,8 +103,7 @@ struct _FpiSsm
 FpiSsm *
 fpi_ssm_new (FpDevice             *dev,
              FpiSsmHandlerCallback handler,
-             int                   nr_states,
-             void                 *user_data)
+             int                   nr_states)
 {
   FpiSsm *machine;
 
@@ -115,23 +114,42 @@ fpi_ssm_new (FpDevice             *dev,
   machine->nr_states = nr_states;
   machine->dev = dev;
   machine->completed = TRUE;
-  machine->user_data = user_data;
   return machine;
 }
 
 /**
- * fpi_ssm_get_user_data:
+ * fpi_ssm_set_data:
+ * @machine: an #FpiSsm state machine
+ * @ssm_data: (nullable): a pointer to machine data
+ * @ssm_data_destroy: (nullable): #GDestroyNotify for @ssm_data
+ *
+ * Sets @machine's data (freeing the existing data, if any).
+ *
+ */
+void
+fpi_ssm_set_data (FpiSsm        *machine,
+                  gpointer       ssm_data,
+                  GDestroyNotify ssm_data_destroy)
+{
+  if (machine->ssm_data_destroy && machine->ssm_data)
+    machine->ssm_data_destroy (machine->ssm_data);
+
+  machine->ssm_data = ssm_data;
+  machine->ssm_data_destroy = ssm_data_destroy;
+}
+
+/**
+ * fpi_ssm_get_data:
  * @machine: an #FpiSsm state machine
  *
- * Retrieve the pointer to user data set when fpi_ssm_new()
- * is called.
+ * Retrieve the pointer to SSM data set with fpi_ssm_set_ssm_data()
  *
  * Returns: a pointer
  */
 void *
-fpi_ssm_get_user_data (FpiSsm *machine)
+fpi_ssm_get_data (FpiSsm *machine)
 {
-  return machine->user_data;
+  return machine->ssm_data;
 }
 
 /**
@@ -147,6 +165,8 @@ fpi_ssm_free (FpiSsm *machine)
   if (!machine)
     return;
 
+  if (machine->ssm_data_destroy)
+    g_clear_pointer (&machine->ssm_data, machine->ssm_data_destroy);
   g_clear_pointer (&machine->error, g_error_free);
   g_free (machine);
 }
@@ -156,7 +176,7 @@ static void
 __ssm_call_handler (FpiSsm *machine)
 {
   fp_dbg ("%p entering state %d", machine, machine->cur_state);
-  machine->handler (machine, machine->dev, machine->user_data);
+  machine->handler (machine, machine->dev);
 }
 
 /**
@@ -180,7 +200,7 @@ fpi_ssm_start (FpiSsm *ssm, FpiSsmCompletedCallback callback)
 }
 
 static void
-__subsm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data, GError *error)
+__subsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
   FpiSsm *parent = ssm->parentsm;
 
@@ -215,7 +235,7 @@ fpi_ssm_start_subsm (FpiSsm *parent, FpiSsm *child)
  * @machine: an #FpiSsm state machine
  *
  * Mark a ssm as completed successfully. The callback set when creating
- * the state machine with fpi_ssm_new() will be called synchronously.
+ * the state machine with fpi_ssm_new () will be called synchronously.
  */
 void
 fpi_ssm_mark_completed (FpiSsm *machine)
@@ -230,7 +250,7 @@ fpi_ssm_mark_completed (FpiSsm *machine)
     {
       GError *error = machine->error ? g_error_copy (machine->error) : NULL;
 
-      machine->callback (machine, machine->dev, machine->user_data, error);
+      machine->callback (machine, machine->dev, error);
     }
 }
 
@@ -349,7 +369,7 @@ fpi_ssm_dup_error (FpiSsm *machine)
  * for an fpi_timeout_add() callback, when the state change needs
  * to happen after a timeout.
  *
- * Make sure to pass the #FpiSsm as the `user_data` argument
+ * Make sure to pass the #FpiSsm as the `ssm_data` argument
  * for that fpi_timeout_add() call.
  */
 void
@@ -366,7 +386,7 @@ fpi_ssm_next_state_timeout_cb (FpDevice *dev,
  * fpi_ssm_usb_transfer_cb:
  * @transfer: a #FpiUsbTransfer
  * @device: a #FpDevice
- * @user_data: User data (unused)
+ * @ssm_data: User data (unused)
  * @error: The #GError or %NULL
  *
  * Can be used in as a #FpiUsbTransfer callback handler to automatically
@@ -376,7 +396,7 @@ fpi_ssm_next_state_timeout_cb (FpDevice *dev,
  */
 void
 fpi_ssm_usb_transfer_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                         gpointer user_data, GError *error)
+                         gpointer ssm_data, GError *error)
 {
   g_return_if_fail (transfer->ssm);
 

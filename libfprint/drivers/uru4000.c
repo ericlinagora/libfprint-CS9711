@@ -650,9 +650,9 @@ calc_dev2 (struct uru4k_image *img)
 }
 
 static void
-imaging_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+imaging_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (_dev);
   struct uru4k_image *img = self->img_data;
   FpImage *fpimg;
@@ -785,8 +785,7 @@ imaging_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-imaging_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                  GError *error)
+imaging_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (dev);
 
@@ -855,9 +854,9 @@ rebootpwr_pause_cb (FpDevice *dev,
 }
 
 static void
-rebootpwr_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+rebootpwr_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -946,9 +945,9 @@ powerup_pause_cb (FpDevice *dev,
 }
 
 static void
-powerup_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+powerup_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -1073,9 +1072,9 @@ init_scanpwr_timeout (FpDevice *dev,
 }
 
 static void
-init_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+init_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -1095,7 +1094,7 @@ init_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
     case INIT_REBOOT_POWER:;
       FpiSsm *rebootsm = fpi_ssm_new (FP_DEVICE (dev),
                                       rebootpwr_run_state,
-                                      REBOOTPWR_NUM_STATES, dev);
+                                      REBOOTPWR_NUM_STATES);
       fpi_ssm_start_subsm (ssm, rebootsm);
       break;
 
@@ -1118,7 +1117,7 @@ init_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 
       FpiSsm *powerupsm = fpi_ssm_new (FP_DEVICE (dev),
                                        powerup_run_state,
-                                       POWERUP_NUM_STATES, dev);
+                                       POWERUP_NUM_STATES);
       fpi_ssm_start_subsm (ssm, powerupsm);
       break;
 
@@ -1165,8 +1164,7 @@ init_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-activate_initsm_complete (FpiSsm *ssm, FpDevice *dev,
-                          void *user_data, GError *error)
+activate_initsm_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   fpi_image_device_activate_complete (FP_IMAGE_DEVICE (dev), error);
 }
@@ -1180,7 +1178,7 @@ dev_activate (FpImageDevice *dev)
   start_irq_handler (dev);
 
   self->scanpwr_irq_timeouts = 0;
-  ssm = fpi_ssm_new (FP_DEVICE (dev), init_run_state, INIT_NUM_STATES, NULL);
+  ssm = fpi_ssm_new (FP_DEVICE (dev), init_run_state, INIT_NUM_STATES);
   fpi_ssm_start (ssm, activate_initsm_complete);
 }
 
@@ -1240,7 +1238,7 @@ execute_state_change (FpImageDevice *dev)
       self->irq_cb = NULL;
 
       ssm = fpi_ssm_new (FP_DEVICE (dev), imaging_run_state,
-                         IMAGING_NUM_STATES, dev);
+                         IMAGING_NUM_STATES);
       self->img_enc_seed = rand ();
       self->img_transfer = fpi_usb_transfer_new (FP_DEVICE (dev));
       self->img_transfer->ssm = ssm;

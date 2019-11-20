@@ -648,9 +648,9 @@ capture_read_strip_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+capture_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceAes1610 *self = FPI_DEVICE_AES1610 (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -690,10 +690,9 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                     GError *error)
+capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceAes1610 *self = FPI_DEVICE_AES1610 (_dev);
 
   G_DEBUG_HERE ();
@@ -727,7 +726,7 @@ start_capture (FpImageDevice *dev)
     }
 
   ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state,
-                     CAPTURE_NUM_STATES, dev);
+                     CAPTURE_NUM_STATES);
   G_DEBUG_HERE ();
   fpi_ssm_start (ssm, capture_sm_complete);
 }
@@ -750,9 +749,9 @@ enum activate_states {
 };
 
 static void
-activate_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+activate_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
   /* activation on aes1610 seems much more straightforward compared to aes2501 */
   /* verify there's anything missing here */
@@ -767,10 +766,9 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 
 /* jump to finger detection */
 static void
-activate_sm_complete (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data, GError *error)
+activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
   fpi_image_device_activate_complete (dev, error);
 
@@ -784,7 +782,7 @@ dev_activate (FpImageDevice *dev)
 {
   FpiDeviceAes1610 *self = FPI_DEVICE_AES1610 (dev);
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
-                             ACTIVATE_NUM_STATES, dev);
+                             ACTIVATE_NUM_STATES);
 
   self->read_regs_retry_count = 0;
   fpi_ssm_start (ssm, activate_sm_complete);

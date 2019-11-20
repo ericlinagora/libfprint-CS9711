@@ -505,9 +505,9 @@ capture_read_strip_cb (FpiUsbTransfer *transfer, FpDevice *_dev,
 }
 
 static void
-capture_run_state (FpiSsm *ssm, FpDevice *device, void *user_data)
+capture_run_state (FpiSsm *ssm, FpDevice *device)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (device);
   FpiDeviceAes2501 *self = FPI_DEVICE_AES2501 (device);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -555,10 +555,9 @@ capture_run_state (FpiSsm *ssm, FpDevice *device, void *user_data)
 }
 
 static void
-capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                     GError *error)
+capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceAes2501 *self = FPI_DEVICE_AES2501 (_dev);
 
   G_DEBUG_HERE ();
@@ -595,7 +594,7 @@ start_capture (FpImageDevice *dev)
   /* Reset gain */
   strip_scan_reqs[4].value = AES2501_ADREFHI_MAX_VALUE;
   ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state,
-                     CAPTURE_NUM_STATES, dev);
+                     CAPTURE_NUM_STATES);
   G_DEBUG_HERE ();
   fpi_ssm_start (ssm, capture_sm_complete);
 }
@@ -739,9 +738,9 @@ activate_init3_cb (FpImageDevice *dev, GError *error,
 }
 
 static void
-activate_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+activate_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
   /* This state machine isn't as linear as it may appear. After doing init1
    * and init2 register configuration writes, we have to poll a register
@@ -801,8 +800,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-activate_sm_complete (FpiSsm *ssm, FpDevice *dev,
-                      void *user_data, GError *error)
+activate_sm_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   fpi_image_device_activate_complete (FP_IMAGE_DEVICE (dev), error);
 
@@ -816,7 +814,7 @@ dev_activate (FpImageDevice *dev)
 {
   FpiDeviceAes2501 *self = FPI_DEVICE_AES2501 (dev);
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
-                             ACTIVATE_NUM_STATES, dev);
+                             ACTIVATE_NUM_STATES);
 
   self->read_regs_retry_count = 0;
   fpi_ssm_start (ssm, activate_sm_complete);

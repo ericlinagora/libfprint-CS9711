@@ -457,8 +457,7 @@ enum stop_capture_states {
 };
 
 static void
-stop_capture_run_state (FpiSsm *ssm, FpDevice *dev,
-                        void *user_data)
+stop_capture_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   G_DEBUG_HERE ();
 
@@ -472,10 +471,9 @@ stop_capture_run_state (FpiSsm *ssm, FpDevice *dev,
 }
 
 static void
-stop_capture_complete (FpiSsm *ssm, FpDevice *_dev,
-                       void *user_data, GError *error)
+stop_capture_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceElan *self = FPI_DEVICE_ELAN (dev);
 
   G_DEBUG_HERE ();
@@ -510,8 +508,7 @@ elan_stop_capture (FpDevice *dev)
   elan_dev_reset_state (self);
 
   FpiSsm *ssm =
-    fpi_ssm_new (dev, stop_capture_run_state,
-                 STOP_CAPTURE_NUM_STATES, dev);
+    fpi_ssm_new (dev, stop_capture_run_state, STOP_CAPTURE_NUM_STATES);
   fpi_ssm_start (ssm, stop_capture_complete);
 }
 
@@ -524,7 +521,7 @@ enum capture_states {
 };
 
 static void
-capture_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+capture_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
   FpiDeviceElan *self = FPI_DEVICE_ELAN (dev);
@@ -577,10 +574,9 @@ capture_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-capture_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                  GError *error)
+capture_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceElan *self = FPI_DEVICE_ELAN (_dev);
 
   G_DEBUG_HERE ();
@@ -621,8 +617,7 @@ elan_capture (FpDevice *dev)
 
   elan_dev_reset_state (self);
   FpiSsm *ssm =
-    fpi_ssm_new (dev, capture_run_state, CAPTURE_NUM_STATES,
-                 dev);
+    fpi_ssm_new (dev, capture_run_state, CAPTURE_NUM_STATES);
   fpi_ssm_start (ssm, capture_complete);
 }
 
@@ -684,7 +679,7 @@ elan_supports_calibration (FpiDeviceElan *elandev)
 }
 
 static void
-calibrate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+calibrate_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceElan *self = FPI_DEVICE_ELAN (dev);
 
@@ -776,8 +771,7 @@ calibrate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-calibrate_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                    GError *error)
+calibrate_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpiDeviceElan *self = FPI_DEVICE_ELAN (dev);
 
@@ -808,7 +802,7 @@ elan_calibrate (FpDevice *dev)
   self->calib_atts_left = ELAN_CALIBRATION_ATTEMPTS;
 
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), calibrate_run_state,
-                             CALIBRATE_NUM_STATES, dev);
+                             CALIBRATE_NUM_STATES);
   fpi_ssm_start (ssm, calibrate_complete);
 }
 
@@ -822,7 +816,7 @@ enum activate_states {
 };
 
 static void
-activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+activate_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceElan *self = FPI_DEVICE_ELAN (dev);
 
@@ -883,8 +877,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-activate_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                   GError *error)
+activate_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
 
@@ -905,7 +898,7 @@ elan_activate (FpImageDevice *dev)
 
   FpiSsm *ssm =
     fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
-                 ACTIVATE_NUM_STATES, dev);
+                 ACTIVATE_NUM_STATES);
   fpi_ssm_start (ssm, activate_complete);
 }
 

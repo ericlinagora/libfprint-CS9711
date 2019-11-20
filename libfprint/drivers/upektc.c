@@ -109,7 +109,7 @@ read_init_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+activate_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC (dev);
 
@@ -149,8 +149,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
 }
 
 static void
-activate_sm_complete (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data, GError *error)
+activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
@@ -294,7 +293,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+capture_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC (_dev);
 
@@ -333,10 +332,9 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                     GError *error)
+capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC (_dev);
 
   fp_dbg ("Capture completed");
@@ -362,8 +360,7 @@ start_capture (FpImageDevice *dev)
       return;
     }
 
-  ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state,
-                     CAPTURE_NUM_STATES, dev);
+  ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state, CAPTURE_NUM_STATES);
   G_DEBUG_HERE ();
   fpi_ssm_start (ssm, capture_sm_complete);
 }
@@ -373,7 +370,7 @@ dev_activate (FpImageDevice *dev)
 {
   FpiDeviceUpektc *self = FPI_DEVICE_UPEKTC (dev);
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
-                             ACTIVATE_NUM_STATES, dev);
+                             ACTIVATE_NUM_STATES);
 
   self->init_idx = 0;
   fpi_ssm_start (ssm, activate_sm_complete);

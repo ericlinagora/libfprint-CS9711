@@ -204,8 +204,7 @@ finger_det_set_idle_cmd_cb (FpiUsbTransfer *transfer,
 }
 
 static void
-finger_det_sm_complete (FpiSsm *ssm, FpDevice *_dev,
-                        void *user_data, GError *error)
+finger_det_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceAesX660 *self = FPI_DEVICE_AES_X660 (_dev);
@@ -233,7 +232,7 @@ finger_det_sm_complete (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-finger_det_run_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+finger_det_run_state (FpiSsm *ssm, FpDevice *dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -272,7 +271,7 @@ start_finger_detection (FpImageDevice *dev)
     }
 
   ssm = fpi_ssm_new (FP_DEVICE (dev), finger_det_run_state,
-                     FINGER_DET_NUM_STATES, dev);
+                     FINGER_DET_NUM_STATES);
   fpi_ssm_start (ssm, finger_det_sm_complete);
 }
 
@@ -424,7 +423,7 @@ capture_read_stripe_data_cb (FpiUsbTransfer *transfer,
 }
 
 static void
-capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+capture_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   FpiDeviceAesX660 *self = FPI_DEVICE_AES_X660 (_dev);
   FpiDeviceAesX660Private *priv = fpi_device_aes_x660_get_instance_private (self);
@@ -458,8 +457,7 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-capture_sm_complete (FpiSsm *ssm, FpDevice *device, void *user_data,
-                     GError *error)
+capture_sm_complete (FpiSsm *ssm, FpDevice *device, GError *error)
 {
   FpiDeviceAesX660 *self = FPI_DEVICE_AES_X660 (device);
   FpiDeviceAesX660Private *priv = fpi_device_aes_x660_get_instance_private (self);
@@ -496,8 +494,7 @@ start_capture (FpImageDevice *dev)
       return;
     }
 
-  ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state,
-                     CAPTURE_NUM_STATES, dev);
+  ssm = fpi_ssm_new (FP_DEVICE (dev), capture_run_state, CAPTURE_NUM_STATES);
   G_DEBUG_HERE ();
   fpi_ssm_start (ssm, capture_sm_complete);
 }
@@ -615,7 +612,7 @@ activate_read_init_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-activate_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+activate_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   FpiDeviceAesX660 *self = FPI_DEVICE_AES_X660 (_dev);
   FpiDeviceAesX660Private *priv = fpi_device_aes_x660_get_instance_private (self);
@@ -666,8 +663,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 }
 
 static void
-activate_sm_complete (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data, GError *error)
+activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
   fpi_image_device_activate_complete (FP_IMAGE_DEVICE (_dev), error);
   fpi_ssm_free (ssm);
@@ -680,7 +676,7 @@ static void
 aesX660_dev_activate (FpImageDevice *dev)
 {
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
-                             ACTIVATE_NUM_STATES, dev);
+                             ACTIVATE_NUM_STATES);
 
   fpi_ssm_start (ssm, activate_sm_complete);
 }

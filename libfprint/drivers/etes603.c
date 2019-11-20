@@ -751,7 +751,7 @@ async_tx_cb (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 static void
-m_exit_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+m_exit_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
 
@@ -780,8 +780,7 @@ err:
 }
 
 static void
-m_exit_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                 GError *error)
+m_exit_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
 
@@ -797,8 +796,7 @@ static void
 m_exit_start (FpImageDevice *idev)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (idev);
-  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), m_exit_state,
-                             EXIT_NUM_STATES, idev);
+  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), m_exit_state, EXIT_NUM_STATES);
 
   self->is_active = FALSE;
   fp_dbg ("Switching device to idle mode");
@@ -806,7 +804,7 @@ m_exit_start (FpImageDevice *idev)
 }
 
 static void
-m_capture_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+m_capture_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
@@ -895,8 +893,7 @@ err:
 }
 
 static void
-m_capture_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                    GError *error)
+m_capture_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
@@ -929,7 +926,7 @@ m_capture_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
 }
 
 static void
-m_finger_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+m_finger_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
 
@@ -1037,8 +1034,7 @@ err:
 }
 
 static void
-m_finger_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                   GError *error)
+m_finger_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
@@ -1046,8 +1042,7 @@ m_finger_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
   if (!error)
     {
       FpiSsm *ssm_cap;
-      ssm_cap = fpi_ssm_new (dev, m_capture_state,
-                             CAP_NUM_STATES, NULL);
+      ssm_cap = fpi_ssm_new (dev, m_capture_state, CAP_NUM_STATES);
       fpi_ssm_start (ssm_cap, m_capture_complete);
     }
   else
@@ -1074,8 +1069,7 @@ m_start_fingerdetect (FpImageDevice *idev)
 {
   FpiSsm *ssmf;
 
-  ssmf = fpi_ssm_new (FP_DEVICE (idev), m_finger_state, FGR_NUM_STATES,
-                      idev);
+  ssmf = fpi_ssm_new (FP_DEVICE (idev), m_finger_state, FGR_NUM_STATES);
   fpi_ssm_start (ssmf, m_finger_complete);
 }
 
@@ -1083,7 +1077,7 @@ m_start_fingerdetect (FpImageDevice *idev)
  * Tune value of VRT and VRB for contrast and brightness.
  */
 static void
-m_tunevrb_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+m_tunevrb_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
   float hist[5];
@@ -1256,8 +1250,7 @@ err:
 }
 
 static void
-m_tunevrb_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                    GError *error)
+m_tunevrb_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
@@ -1280,7 +1273,7 @@ m_tunevrb_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
  * required.
  */
 static void
-m_tunedc_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+m_tunedc_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
 
@@ -1394,8 +1387,7 @@ err:
 }
 
 static void
-m_tunedc_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                   GError *error)
+m_tunedc_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
@@ -1404,7 +1396,7 @@ m_tunedc_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
     {
       FpiSsm *ssm_tune;
       ssm_tune = fpi_ssm_new (FP_DEVICE (idev), m_tunevrb_state,
-                              TUNEVRB_NUM_STATES, idev);
+                              TUNEVRB_NUM_STATES);
       fpi_ssm_start (ssm_tune, m_tunevrb_complete);
     }
   else
@@ -1421,7 +1413,7 @@ m_tunedc_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
 }
 
 static void
-m_init_state (FpiSsm *ssm, FpDevice *dev, void *user_data)
+m_init_state (FpiSsm *ssm, FpDevice *dev)
 {
   FpiDeviceEtes603 *self = FPI_DEVICE_ETES603 (dev);
 
@@ -1534,8 +1526,7 @@ err:
 }
 
 static void
-m_init_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                 GError *error)
+m_init_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
 
@@ -1543,7 +1534,7 @@ m_init_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
     {
       FpiSsm *ssm_tune;
       ssm_tune = fpi_ssm_new (FP_DEVICE (idev), m_tunedc_state,
-                              TUNEDC_NUM_STATES, idev);
+                              TUNEDC_NUM_STATES);
       fpi_ssm_start (ssm_tune, m_tunedc_complete);
     }
   else
@@ -1569,8 +1560,7 @@ dev_activate (FpImageDevice *idev)
   if (self->dcoffset == 0)
     {
       fp_dbg ("Tuning device...");
-      ssm = fpi_ssm_new (FP_DEVICE (idev), m_init_state,
-                         INIT_NUM_STATES, idev);
+      ssm = fpi_ssm_new (FP_DEVICE (idev), m_init_state, INIT_NUM_STATES);
       fpi_ssm_start (ssm, m_init_complete);
     }
   else
@@ -1579,8 +1569,7 @@ dev_activate (FpImageDevice *idev)
               "VRB=0x%02X,GAIN=0x%02X).", self->dcoffset, self->vrt,
               self->vrb, self->gain);
       fpi_image_device_activate_complete (idev, NULL);
-      ssm = fpi_ssm_new (FP_DEVICE (idev), m_finger_state,
-                         FGR_NUM_STATES, idev);
+      ssm = fpi_ssm_new (FP_DEVICE (idev), m_finger_state, FGR_NUM_STATES);
       fpi_ssm_start (ssm, m_finger_complete);
     }
 }

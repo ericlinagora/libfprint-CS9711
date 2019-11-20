@@ -391,18 +391,18 @@ enum {
 
 /* Exec swap sequential state machine */
 static void
-m_swap_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+m_swap_state (FpiSsm *ssm, FpDevice *dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
     case M_SWAP_SEND:
       /* Send data */
-      async_send (ssm, user_data);
+      async_send (ssm, FP_IMAGE_DEVICE (dev));
       break;
 
     case M_SWAP_RECV:
       /* Recv response */
-      async_recv (ssm, user_data);
+      async_recv (ssm, FP_IMAGE_DEVICE (dev));
       break;
     }
 }
@@ -423,8 +423,7 @@ m_swap (FpiSsm        *ssm,
   self->length = length;
 
   /* Start swap ssm */
-  subsm = fpi_ssm_new (FP_DEVICE (dev), m_swap_state, M_SWAP_NUM_STATES,
-                       dev);
+  subsm = fpi_ssm_new (FP_DEVICE (dev), m_swap_state, M_SWAP_NUM_STATES);
   fpi_ssm_start_subsm (ssm, subsm);
 }
 
@@ -778,9 +777,9 @@ enum {
 
 /* Exec loop sequential state machine */
 static void
-m_loop_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpDeviceVfs101 *self = FPI_DEVICE_VFS101 (_dev);
 
   /* Complete if deactivation was requested */
@@ -950,8 +949,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 
 /* Complete loop sequential state machine */
 static void
-m_loop_complete (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                 GError *error)
+m_loop_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpDeviceVfs101 *self = FPI_DEVICE_VFS101 (dev);
 
@@ -1015,9 +1013,9 @@ enum {
 
 /* Exec init sequential state machine */
 static void
-m_init_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+m_init_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpDeviceVfs101 *self = FPI_DEVICE_VFS101 (_dev);
 
   /* Mark as cancelled when activation collides with deactivation. */
@@ -1253,10 +1251,9 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
 
 /* Complete init sequential state machine */
 static void
-m_init_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                 GError *error)
+m_init_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
   /* Notify activate complete */
   fpi_image_device_activate_complete (dev, error);
@@ -1266,8 +1263,7 @@ m_init_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
       FpiSsm *ssm_loop;
 
       /* Start loop ssm */
-      ssm_loop = fpi_ssm_new (FP_DEVICE (dev), m_loop_state,
-                              M_LOOP_NUM_STATES, dev);
+      ssm_loop = fpi_ssm_new (FP_DEVICE (dev), m_loop_state, M_LOOP_NUM_STATES);
       fpi_ssm_start (ssm_loop, m_loop_complete);
     }
 
@@ -1297,7 +1293,7 @@ dev_activate (FpImageDevice *dev)
   self->counter = 0;
 
   /* Start init ssm */
-  ssm = fpi_ssm_new (FP_DEVICE (dev), m_init_state, M_INIT_NUM_STATES, dev);
+  ssm = fpi_ssm_new (FP_DEVICE (dev), m_init_state, M_INIT_NUM_STATES);
   fpi_ssm_start (ssm, m_init_complete);
 }
 

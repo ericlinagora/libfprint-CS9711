@@ -808,10 +808,9 @@ enum awfsm_1000_states {
 };
 
 static void
-awfsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data)
+awfsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -867,8 +866,7 @@ awfsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-awfsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data)
+awfsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -936,10 +934,9 @@ capsm_fire_bulk (FpiSsm   *ssm,
 }
 
 static void
-capsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data)
+capsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -975,8 +972,7 @@ capsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-capsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data)
+capsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
@@ -1005,8 +1001,7 @@ capsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-capsm_1001_run_state (FpiSsm *ssm, FpDevice *_dev,
-                      void *user_data)
+capsm_1001_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
@@ -1068,8 +1063,7 @@ enum deinitsm_1001_states {
 };
 
 static void
-deinitsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
-                         void *user_data)
+deinitsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -1080,8 +1074,7 @@ deinitsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-deinitsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev,
-                         void *user_data)
+deinitsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -1092,8 +1085,7 @@ deinitsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-deinitsm_1001_run_state (FpiSsm *ssm, FpDevice *_dev,
-                         void *user_data)
+deinitsm_1001_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -1131,10 +1123,9 @@ enum initsm_1001_states {
 };
 
 static void
-initsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
-                       void *user_data)
+initsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -1170,8 +1161,7 @@ initsm_2016_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-initsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev,
-                       void *user_data)
+initsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -1182,8 +1172,7 @@ initsm_1000_run_state (FpiSsm *ssm, FpDevice *_dev,
 }
 
 static void
-initsm_1001_run_state (FpiSsm *ssm, FpDevice *_dev,
-                       void *user_data)
+initsm_1001_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   switch (fpi_ssm_get_cur_state (ssm))
     {
@@ -1222,9 +1211,9 @@ enum loopsm_states {
 };
 
 static void
-loopsm_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
+loopsm_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -1252,15 +1241,13 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
                 case UPEKSONLY_2016:
                   awfsm = fpi_ssm_new (FP_DEVICE (dev),
                                        awfsm_2016_run_state,
-                                       AWFSM_2016_NUM_STATES,
-                                       dev);
+                                       AWFSM_2016_NUM_STATES);
                   break;
 
                 case UPEKSONLY_1000:
                   awfsm = fpi_ssm_new (FP_DEVICE (dev),
                                        awfsm_1000_run_state,
-                                       AWFSM_1000_NUM_STATES,
-                                       dev);
+                                       AWFSM_1000_NUM_STATES);
                   break;
                 }
               fpi_ssm_start_subsm (ssm, awfsm);
@@ -1289,19 +1276,19 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
         case UPEKSONLY_2016:
           capsm = fpi_ssm_new (FP_DEVICE (dev),
                                capsm_2016_run_state,
-                               CAPSM_2016_NUM_STATES, dev);
+                               CAPSM_2016_NUM_STATES);
           break;
 
         case UPEKSONLY_1000:
           capsm = fpi_ssm_new (FP_DEVICE (dev),
                                capsm_1000_run_state,
-                               CAPSM_1000_NUM_STATES, dev);
+                               CAPSM_1000_NUM_STATES);
           break;
 
         case UPEKSONLY_1001:
           capsm = fpi_ssm_new (FP_DEVICE (dev),
                                capsm_1001_run_state,
-                               CAPSM_1001_NUM_STATES, dev);
+                               CAPSM_1001_NUM_STATES);
           break;
         }
       fpi_ssm_start_subsm (ssm, capsm);
@@ -1317,19 +1304,19 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev, void *user_data)
         case UPEKSONLY_2016:
           deinitsm = fpi_ssm_new (FP_DEVICE (dev),
                                   deinitsm_2016_run_state,
-                                  DEINITSM_2016_NUM_STATES, dev);
+                                  DEINITSM_2016_NUM_STATES);
           break;
 
         case UPEKSONLY_1000:
           deinitsm = fpi_ssm_new (FP_DEVICE (dev),
                                   deinitsm_1000_run_state,
-                                  DEINITSM_1000_NUM_STATES, dev);
+                                  DEINITSM_1000_NUM_STATES);
           break;
 
         case UPEKSONLY_1001:
           deinitsm = fpi_ssm_new (FP_DEVICE (dev),
                                   deinitsm_1001_run_state,
-                                  DEINITSM_1001_NUM_STATES, dev);
+                                  DEINITSM_1001_NUM_STATES);
           break;
         }
       self->capturing = FALSE;
@@ -1379,9 +1366,9 @@ dev_deactivate (FpImageDevice *dev)
 }
 
 static void
-loopsm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data, GError *error)
+loopsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
   fpi_ssm_free (ssm);
@@ -1400,10 +1387,9 @@ loopsm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data, GError *error)
 }
 
 static void
-initsm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
-                 GError *error)
+initsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
-  FpImageDevice *dev = user_data;
+  FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
   fpi_ssm_free (ssm);
@@ -1412,7 +1398,7 @@ initsm_complete (FpiSsm *ssm, FpDevice *_dev, void *user_data,
     return;
 
   self->loopsm = fpi_ssm_new (FP_DEVICE (dev), loopsm_run_state,
-                              LOOPSM_NUM_STATES, dev);
+                              LOOPSM_NUM_STATES);
   fpi_ssm_start (self->loopsm, loopsm_complete);
 }
 
@@ -1443,17 +1429,17 @@ dev_activate (FpImageDevice *dev)
     {
     case UPEKSONLY_2016:
       ssm = fpi_ssm_new (FP_DEVICE (dev), initsm_2016_run_state,
-                         INITSM_2016_NUM_STATES, dev);
+                         INITSM_2016_NUM_STATES);
       break;
 
     case UPEKSONLY_1000:
       ssm = fpi_ssm_new (FP_DEVICE (dev), initsm_1000_run_state,
-                         INITSM_1000_NUM_STATES, dev);
+                         INITSM_1000_NUM_STATES);
       break;
 
     case UPEKSONLY_1001:
       ssm = fpi_ssm_new (FP_DEVICE (dev), initsm_1001_run_state,
-                         INITSM_1001_NUM_STATES, dev);
+                         INITSM_1001_NUM_STATES);
       break;
     }
   fpi_ssm_start (ssm, initsm_complete);

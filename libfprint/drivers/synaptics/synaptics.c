@@ -202,8 +202,7 @@ cmd_interrupt_cb (FpiUsbTransfer *transfer,
 
 static void
 synaptics_cmd_run_state (FpiSsm   *ssm,
-                         FpDevice *dev,
-                         void     *user_data)
+                         FpDevice *dev)
 {
   g_autoptr(FpiUsbTransfer) transfer = NULL;
   FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (dev);
@@ -235,7 +234,7 @@ synaptics_cmd_run_state (FpiSsm   *ssm,
                                5000,
                                NULL,
                                cmd_recieve_cb,
-                               user_data);
+                               fpi_ssm_get_data (ssm));
 
       break;
 
@@ -271,13 +270,10 @@ synaptics_cmd_run_state (FpiSsm   *ssm,
 }
 
 static void
-cmd_ssm_done (FpiSsm   *ssm,
-              FpDevice *dev,
-              void     *user_data,
-              GError   *error)
+cmd_ssm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (dev);
-  SynCmdMsgCallback callback = user_data;
+  SynCmdMsgCallback callback = fpi_ssm_get_data (ssm);
 
   self->cmd_ssm = NULL;
 
@@ -399,8 +395,8 @@ synaptics_sensor_cmd (FpiDeviceSynaptics *self,
 
           self->cmd_ssm = fpi_ssm_new (FP_DEVICE (self),
                                        synaptics_cmd_run_state,
-                                       SYNAPTICS_CMD_NUM_STATES,
-                                       callback);
+                                       SYNAPTICS_CMD_NUM_STATES);
+          fpi_ssm_set_data (self->cmd_ssm, callback, NULL);
 
           fpi_ssm_start (self->cmd_ssm, cmd_ssm_done);
         }

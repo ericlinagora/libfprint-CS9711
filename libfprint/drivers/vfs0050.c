@@ -278,7 +278,7 @@ submit_image (FpDeviceVfs0050 *self)
 
 /* SSM loop for clear_ep2 */
 static void
-clear_ep2_ssm (FpiSsm *ssm, FpDevice *dev, void *user_data)
+clear_ep2_ssm (FpiSsm *ssm, FpDevice *dev)
 {
   char command04 = 0x04;
 
@@ -307,15 +307,13 @@ static void
 clear_ep2 (FpDevice *dev,
            FpiSsm   *ssm)
 {
-  FpiSsm *subsm =
-    fpi_ssm_new (dev, clear_ep2_ssm, SUBSM1_STATES, NULL);
+  FpiSsm *subsm = fpi_ssm_new (dev, clear_ep2_ssm, SUBSM1_STATES);
 
   fpi_ssm_start_subsm (ssm, subsm);
 }
 
 static void
-send_control_packet_ssm (FpiSsm *ssm, FpDevice *dev,
-                         void *user_data)
+send_control_packet_ssm (FpiSsm *ssm, FpDevice *dev)
 {
   FpDeviceVfs0050 *self = FPI_DEVICE_VFS0050 (dev);
 
@@ -384,8 +382,7 @@ send_control_packet (FpiSsm   *ssm,
                      FpDevice *dev)
 {
   FpiSsm *subsm =
-    fpi_ssm_new (dev, send_control_packet_ssm,
-                 SUBSM2_STATES, NULL);
+    fpi_ssm_new (dev, send_control_packet_ssm, SUBSM2_STATES);
 
   fpi_ssm_start_subsm (ssm, subsm);
 }
@@ -497,7 +494,7 @@ another_scan (FpDevice *dev,
 
 /* Main SSM loop */
 static void
-activate_ssm (FpiSsm *ssm, FpDevice *dev, void *user_data)
+activate_ssm (FpiSsm *ssm, FpDevice *dev)
 {
   FpImageDevice *idev = FP_IMAGE_DEVICE (dev);
   FpDeviceVfs0050 *self = FPI_DEVICE_VFS0050 (dev);
@@ -660,8 +657,7 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev, void *user_data)
 
 /* Callback for dev_activate ssm */
 static void
-dev_activate_callback (FpiSsm *ssm, FpDevice *dev,
-                       void *user_data, GError *error)
+dev_activate_callback (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpDeviceVfs0050 *self = FPI_DEVICE_VFS0050 (dev);
 
@@ -687,8 +683,7 @@ dev_activate (FpImageDevice *idev)
   self->need_report = 1;
   self->ssm_active = 1;
 
-  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), activate_ssm, SSM_STATES,
-                             idev);
+  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), activate_ssm, SSM_STATES);
   fpi_ssm_start (ssm, dev_activate_callback);
 }
 
@@ -711,8 +706,7 @@ dev_deactivate (FpImageDevice *idev)
 
 /* Callback for dev_open ssm */
 static void
-dev_open_callback (FpiSsm *ssm, FpDevice *dev, void *user_data,
-                   GError *error)
+dev_open_callback (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   /* Notify open complete */
   fpi_image_device_open_complete (FP_IMAGE_DEVICE (dev), error);
@@ -733,7 +727,7 @@ dev_open (FpImageDevice *idev)
     }
 
   /* Clearing previous device state */
-  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), activate_ssm, SSM_STATES, NULL);
+  FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), activate_ssm, SSM_STATES);
   fpi_ssm_start (ssm, dev_open_callback);
 }
 
