@@ -21,6 +21,7 @@
 #include <stdio.h>
 
 #include <libfprint/fprint.h>
+#include "utilities.h"
 
 typedef struct _ListData
 {
@@ -66,46 +67,6 @@ on_device_closed (FpDevice     *dev,
     g_warning ("Failed closing device %s\n", error->message);
 
   g_main_loop_quit (list_data->loop);
-}
-
-const char *
-finger_to_string (FpFinger finger)
-{
-  switch (finger)
-    {
-    case FP_FINGER_LEFT_THUMB:
-      return "left thumb";
-
-    case FP_FINGER_LEFT_INDEX:
-      return "left index";
-
-    case FP_FINGER_LEFT_MIDDLE:
-      return "left middle";
-
-    case FP_FINGER_LEFT_RING:
-      return "left ring";
-
-    case FP_FINGER_LEFT_LITTLE:
-      return "left little";
-
-    case FP_FINGER_RIGHT_THUMB:
-      return "right thumb";
-
-    case FP_FINGER_RIGHT_INDEX:
-      return "right index";
-
-    case FP_FINGER_RIGHT_MIDDLE:
-      return "right middle";
-
-    case FP_FINGER_RIGHT_RING:
-      return "right ring";
-
-    case FP_FINGER_RIGHT_LITTLE:
-      return "right little";
-
-    default:
-      return "unknown";
-    }
 }
 
 typedef struct _DeleteData
@@ -218,7 +179,7 @@ on_list_completed (FpDevice     *dev,
         {
           gint64 idx = 0;
 
-          g_print ("Want to delete saved print? [<number>/A/n]\n");
+          g_print ("Want to delete saved print? [<number>/A/n]\n> ");
           if (fgets (buf, 3, stdin))
             idx = g_ascii_strtoll (buf, NULL, 10);
 

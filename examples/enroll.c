@@ -1,6 +1,6 @@
 /*
  * Example fingerprint enrollment program
- * Enrolls your right index finger and saves the print to disk
+ * Enrolls your choosen finger and saves the print to disk
  * Copyright (C) 2007 Daniel Drake <dsd@gentoo.org>
  * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
  *
@@ -23,10 +23,12 @@
 #include <libfprint/fprint.h>
 
 #include "storage.h"
+#include "utilities.h"
 
 typedef struct _EnrollData
 {
   GMainLoop *loop;
+  FpFinger   finger;
   int        ret_value;
 } EnrollData;
 
@@ -82,7 +84,7 @@ on_enroll_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
       if (!fp_device_has_storage (dev))
         {
           g_debug ("Device has not storage, saving locally");
-          int r = print_data_save (print, FP_FINGER_RIGHT_INDEX);
+          int r = print_data_save (print, enroll_data->finger);
           if (r < 0)
             {
               g_warning ("Data save failed, code %d", r);
@@ -139,11 +141,12 @@ on_device_opened (FpDevice *dev, GAsyncResult *res, void *user_data)
     }
 
   printf ("Opened device. It's now time to enroll your finger.\n\n");
-  printf ("You will need to successfully scan your finger %d times to "
-          "complete the process.\n\n", fp_device_get_nr_enroll_stages (dev));
+  printf ("You will need to successfully scan your %s finger %d times to "
+          "complete the process.\n\n", finger_to_string (enroll_data->finger),
+          fp_device_get_nr_enroll_stages (dev));
   printf ("Scan your finger now.\n");
 
-  print_template = print_create_template (dev, FP_FINGER_RIGHT_INDEX);
+  print_template = print_create_template (dev, enroll_data->finger);
   fp_device_enroll (dev, print_template, NULL, on_enroll_progress, NULL,
                     NULL, (GAsyncReadyCallback) on_enroll_completed,
                     enroll_data);
@@ -156,12 +159,22 @@ main (void)
   g_autoptr(EnrollData) enroll_data = NULL;
   GPtrArray *devices;
   FpDevice *dev;
+  FpFinger finger;
 
-  printf ("This program will enroll your right index finger, "
-          "unconditionally overwriting any right-index print that was enrolled "
-          "previously. If you want to continue, press enter, otherwise hit "
-          "Ctrl+C\n");
+  g_print ("This program will enroll the selected finger, unconditionally "
+           "overwriting any print for the same finger that was enrolled "
+           "previously. If you want to continue, press enter, otherwise hit "
+           "Ctrl+C\n");
   getchar ();
+
+  g_print ("Choose the finger to enroll:\n");
+  finger = finger_chooser ();
+
+  if (finger == FP_FINGER_UNKNOWN)
+    {
+      g_warning ("Unknown finger selected");
+      return EXIT_FAILURE;
+    }
 
   setenv ("G_MESSAGES_DEBUG", "all", 0);
 
@@ -182,6 +195,7 @@ main (void)
     }
 
   enroll_data = g_new0 (EnrollData, 1);
+  enroll_data->finger = finger;
   enroll_data->ret_value = EXIT_FAILURE;
   enroll_data->loop = g_main_loop_new (NULL, FALSE);
 

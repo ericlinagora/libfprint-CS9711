@@ -1,5 +1,5 @@
 /*
- * Example fingerprint verification program, which verifies the right index
+ * Example fingerprint verification program, which verifies the
  * finger which has been previously enrolled to disk.
  * Copyright (C) 2007 Daniel Drake <dsd@gentoo.org>
  * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
@@ -23,10 +23,12 @@
 #include <libfprint/fprint.h>
 
 #include "storage.h"
+#include "utilities.h"
 
 typedef struct _VerifyData
 {
   GMainLoop *loop;
+  FpFinger   finger;
   int        ret_value;
 } VerifyData;
 
@@ -134,7 +136,7 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
         {
           FpPrint *print = prints->pdata[i];
 
-          if (fp_print_get_finger (print) == FP_FINGER_RIGHT_INDEX &&
+          if (fp_print_get_finger (print) == verify_data->finger &&
               g_strcmp0 (fp_print_get_username (print), g_get_user_name ()) == 0)
             {
               if (!verify_print ||
@@ -146,8 +148,8 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
 
       if (!verify_print)
         {
-          g_warning ("Did you remember to enroll your right index "
-                     "finger first?");
+          g_warning ("Did you remember to enroll your %s finger first?",
+                     finger_to_string (verify_data->finger));
           g_main_loop_quit (verify_data->loop);
           return;
         }
@@ -170,6 +172,17 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
 static void
 start_verification (FpDevice *dev, VerifyData *verify_data)
 {
+  g_print ("Choose the finger to verify:\n");
+  verify_data->finger = finger_chooser ();
+
+  if (verify_data->finger == FP_FINGER_UNKNOWN)
+    {
+      g_warning ("Unknown finger selected");
+      verify_data->ret_value = EXIT_FAILURE;
+      g_main_loop_quit (verify_data->loop);
+      return;
+    }
+
   if (fp_device_has_storage (dev))
     {
       g_print ("Creating finger template, using device storage...\n");
@@ -179,16 +192,17 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
     }
   else
     {
-      g_print ("Loading previously enrolled right index finger data...\n");
+      g_print ("Loading previously enrolled %s finger data...\n",
+               finger_to_string (verify_data->finger));
       g_autoptr(FpPrint) verify_print;
 
-      verify_print = print_data_load (dev, FP_FINGER_RIGHT_INDEX);
+      verify_print = print_data_load (dev, verify_data->finger);
 
       if (!verify_print)
         {
           g_warning ("Failed to load fingerprint data");
-          g_warning ("Did you remember to enroll your right index "
-                     "finger first?");
+          g_warning ("Did you remember to enroll your %s finger first?",
+                     finger_to_string (verify_data->finger));
           g_main_loop_quit (verify_data->loop);
           return;
         }
