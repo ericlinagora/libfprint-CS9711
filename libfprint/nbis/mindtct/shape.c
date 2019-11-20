@@ -86,7 +86,7 @@ int alloc_shape(SHAPE **oshape, const int xmin, const int ymin,
 {
    SHAPE *shape;
    int alloc_rows, alloc_pts;
-   int i, j, y;
+   int i, y;
 
    /* Compute allocation parameters. */
    /* First, compute the number of scanlines spanned by the shape. */

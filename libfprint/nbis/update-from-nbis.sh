@@ -181,3 +181,7 @@ sed -i '/usebsd.h/d' `find -name "*.[ch]"`
 
 # Use GLib memory management
 spatch --sp-file glib-memory.cocci --dir . --in-place
+
+# The above leaves an unused variable around, triggering a warning
+# remove it.
+patch -p0 < glib-mem-warning.patch
