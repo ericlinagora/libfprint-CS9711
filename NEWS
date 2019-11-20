@@ -1,6 +1,27 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2019-11-20: v1.90.0 release
+
+This release updates the core of the library to use GLib routines and Gio
+style APIs. While the API both for library users remain similar in most
+ways, there are some changes and all users will need to be ported.
+
+A large motivation for the in-depth changes was the requirement to add
+new API to support sensors that store the prints on the sensor. This
+support is already used by the new synaptics driver, which will support
+the current generation of the Prometheus MIS (match-in-sensor) chipset
+by Synaptics (USB ID 06cb:00bd).
+
+The current codebase is considered stable at this point. However, due to
+the lack of wider testing it is only released as a 1.90.0 release which
+can be considered a beta-release for 2.0.
+
+With the rewrite, it is now also possible to support devices that are not
+connected through USB (e.g. I2C). Another major improvement is that the
+library has now a test suite, testing both the library core and allowing
+tests of the drivers using umockdev.
+
 2019-08-08: v1.0 release
 * Library:
   - Add guards to the public API and require GLib 2.50
