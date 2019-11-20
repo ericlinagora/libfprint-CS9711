@@ -23,6 +23,21 @@
 
 #include "utilities.h"
 
+FpDevice *
+discover_device (GPtrArray * devices)
+{
+  FpDevice *dev;
+
+  if (!devices->len)
+    return NULL;
+
+  dev = g_ptr_array_index (devices, 0);
+  g_print ("Found device %s (%s) claimed by %s driver\n",
+           fp_device_get_device_id (dev), fp_device_get_name (dev),
+           fp_device_get_driver (dev));
+  return dev;
+}
+
 const char *
 finger_to_string (FpFinger finger)
 {
@@ -81,7 +96,7 @@ finger_chooser (void)
   };
 
   for (i = all_fingers[0]; i <= G_N_ELEMENTS (all_fingers); ++i)
-    g_print("  [%d] %s\n", (i - all_fingers[0]), finger_to_string (i));
+    g_print ("  [%d] %s\n", (i - all_fingers[0]), finger_to_string (i));
 
   g_print ("> ");
   if (!scanf ("%d%*c", &i))

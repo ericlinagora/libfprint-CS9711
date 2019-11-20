@@ -40,18 +40,6 @@ list_data_free (ListData *list_data)
 }
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ListData, list_data_free)
 
-FpDevice *discover_device (GPtrArray * devices)
-{
-  FpDevice *dev;
-
-  if (!devices->len)
-    return NULL;
-
-  dev = g_ptr_array_index (devices, 0);
-  g_print ("Found device claimed by %s driver\n", fp_device_get_driver (dev));
-  return dev;
-}
-
 static void
 on_device_closed (FpDevice     *dev,
                   GAsyncResult *res,

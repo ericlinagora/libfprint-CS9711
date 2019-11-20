@@ -21,6 +21,7 @@
 #ifndef __UTILITIES_H
 #define __UTILITIES_H
 
+FpDevice * discover_device (GPtrArray *devices);
 FpFinger finger_chooser (void);
 const char * finger_to_string (FpFinger finger);
 
