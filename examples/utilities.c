@@ -27,14 +27,40 @@ FpDevice *
 discover_device (GPtrArray * devices)
 {
   FpDevice *dev;
+  int i;
 
   if (!devices->len)
     return NULL;
 
-  dev = g_ptr_array_index (devices, 0);
-  g_print ("Found device %s (%s) claimed by %s driver\n",
+  if (devices->len == 1)
+    {
+      i = 0;
+    }
+  else
+    {
+      g_print ("Multiple devices found, choose one\n");
+
+      for (i = 0; i < devices->len; ++i)
+        {
+          dev = g_ptr_array_index (devices, i);
+          g_print ("[%d] %s (%s) - driver %s\n", i,
+                   fp_device_get_device_id (dev), fp_device_get_name (dev),
+                   fp_device_get_driver (dev));
+        }
+
+      g_print ("> ");
+      if (!scanf ("%d%*c", &i))
+        return NULL;
+
+      if (i < 0 || i >= devices->len)
+        return NULL;
+    }
+
+  dev = g_ptr_array_index (devices, i);
+  g_print ("Selected device %s (%s) claimed by %s driver\n",
            fp_device_get_device_id (dev), fp_device_get_name (dev),
            fp_device_get_driver (dev));
+
   return dev;
 }
 
