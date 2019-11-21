@@ -162,73 +162,73 @@ endif
 other_sources = []
 
 fp_enums = gnome.mkenums_simple('fp-enums',
-                                sources: libfprint_public_headers,
-                                install_header : true)
+    sources: libfprint_public_headers,
+    install_header : true)
 fp_enums_h = fp_enums[1]
 
 fpi_enums = gnome.mkenums_simple('fpi-enums',
-                                 sources: libfprint_private_headers,
-                                 install_header : true)
+    sources: libfprint_private_headers,
+    install_header : true)
 fpi_enums_h = fpi_enums[1]
 
 drivers_sources += configure_file(input: 'empty_file',
-                                  output: 'fp-drivers.c',
-                                  capture: true,
-                                  command: [
-                                    'echo',
-                                    drivers_type_list + '\n\n' + drivers_type_func
-                                  ])
+    output: 'fp-drivers.c',
+    capture: true,
+    command: [
+        'echo',
+        drivers_type_list + '\n\n' + drivers_type_func
+    ])
 
 mapfile = 'libfprint.ver'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
 
 deps = [ mathlib_dep, glib_dep, gusb_dep, nss_dep, imaging_dep, gio_dep ]
 libfprint = library('fprint',
-                    libfprint_sources + fp_enums + fpi_enums +
-                      drivers_sources + nbis_sources + other_sources,
-                    soversion: soversion,
-                    version: libversion,
-                    c_args: common_cflags + drivers_cflags,
-                    include_directories: [
-                      root_inc,
-                      include_directories('nbis/include'),
-                    ],
-                    link_args : vflag,
-                    link_depends : mapfile,
-                    dependencies: deps,
-                    install: true)
+    libfprint_sources + fp_enums + fpi_enums +
+        drivers_sources + nbis_sources + other_sources,
+    soversion: soversion,
+    version: libversion,
+    c_args: common_cflags + drivers_cflags,
+    include_directories: [
+        root_inc,
+        include_directories('nbis/include'),
+    ],
+    link_args : vflag,
+    link_depends : mapfile,
+    dependencies: deps,
+    install: true)
 
 libfprint_dep = declare_dependency(link_with: libfprint,
-                                   sources: [ fp_enums_h ],
-                                   include_directories: root_inc,
-                                   dependencies: [glib_dep, gusb_dep, gio_dep])
+    sources: [ fp_enums_h ],
+    include_directories: root_inc,
+    dependencies: [ glib_dep, gusb_dep, gio_dep ])
 
 install_headers(['fprint.h'] + libfprint_public_headers, subdir: 'libfprint')
 
 udev_rules = executable('fprint-list-udev-rules',
-                        'fprint-list-udev-rules.c',
-                        include_directories: [
-                          root_inc,
-                        ],
-                        dependencies: [ deps, libfprint_dep ],
-                        install: false)
+    'fprint-list-udev-rules.c',
+    include_directories: [
+        root_inc,
+    ],
+    dependencies: [ deps, libfprint_dep ],
+    install: false)
 
 if get_option('udev_rules')
     custom_target('udev-rules',
-                  output: '60-fprint-autosuspend.rules',
-                  capture: true,
-                  command: [ udev_rules ],
-                  install: true,
-                  install_dir: udev_rules_dir)
+        output: '60-fprint-autosuspend.rules',
+        capture: true,
+        command: [ udev_rules ],
+        install: true,
+        install_dir: udev_rules_dir)
 endif
 
 supported_devices = executable('fprint-list-supported-devices',
-                               'fprint-list-supported-devices.c',
-                               include_directories: [
-                                 root_inc,
-                               ],
-                               dependencies: [ deps, libfprint_dep ],
-                               install: false)
+    'fprint-list-supported-devices.c',
+    include_directories: [
+        root_inc,
+    ],
+    dependencies: [ deps, libfprint_dep ],
+    install: false)
 
 
 if get_option('introspection')
@@ -256,8 +256,7 @@ if get_option('introspection')
             'GObject-2.0',
             'GUsb-1.0',
         ],
-        install : true
-        )
+        install : true)
     libfprint_gir = libfprint_girtarget[0]
     libfprint_typelib = libfprint_girtarget[1]
 endif

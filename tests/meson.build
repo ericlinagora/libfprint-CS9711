@@ -16,8 +16,7 @@ envs.set('NO_AT_BRIDGE', '1')
 
 if get_option('introspection')
     if 'virtual_image' in drivers
-        test(
-            'virtual-image',
+        test('virtual-image',
             find_program('virtual-image.py'),
             args: '--verbose',
             env: envs,
@@ -26,8 +25,7 @@ if get_option('introspection')
     endif
 
     if 'vfs5011' in drivers
-        test(
-            'vfs5011',
+        test('vfs5011',
             find_program('umockdev-test.py'),
             args: join_paths(meson.current_source_dir(), 'vfs5011'),
             env: envs,
@@ -37,8 +35,7 @@ if get_option('introspection')
     endif
 
     if 'synaptics' in drivers
-        test(
-            'synaptics',
+        test('synaptics',
             find_program('umockdev-test.py'),
             args: join_paths(meson.current_source_dir(), 'synaptics'),
             env: envs,

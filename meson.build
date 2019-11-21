@@ -1,12 +1,12 @@
 project('libfprint', [ 'c', 'cpp' ],
-        version: '1.90.0',
-        license: 'LGPLv2.1+',
-        default_options: [
-          'buildtype=debugoptimized',
-          'warning_level=1',
-          'c_std=c99',
-        ],
-        meson_version: '>= 0.46.0')
+    version: '1.90.0',
+    license: 'LGPLv2.1+',
+    default_options: [
+        'buildtype=debugoptimized',
+        'warning_level=1',
+        'c_std=c99',
+    ],
+    meson_version: '>= 0.46.0')
 
 gnome = import('gnome')
 
@@ -160,11 +160,10 @@ endif
 
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
-  name: 'libfprint',
-  description: 'Generic C API for fingerprint reader access',
-  version: meson.project_version(),
-  libraries: libfprint,
-  subdirs: 'libfprint',
-  filebase: 'libfprint2',
-  install_dir: join_paths(get_option('libdir'), 'pkgconfig'),
-)
+    name: 'libfprint',
+    description: 'Generic C API for fingerprint reader access',
+    version: meson.project_version(),
+    libraries: libfprint,
+    subdirs: 'libfprint',
+    filebase: 'libfprint2',
+    install_dir: join_paths(get_option('libdir'), 'pkgconfig'))
