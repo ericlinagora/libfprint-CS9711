@@ -1,6 +1,7 @@
 /*
  * FpDevice - A fingerprint reader device
  * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
+ * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
