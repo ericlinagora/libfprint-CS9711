@@ -51,7 +51,28 @@ mathlib_dep = cc.find_library('m', required: false)
 # Drivers
 drivers = get_option('drivers').split(',')
 virtual_drivers = [ 'virtual_image' ]
-default_drivers = [ 'upektc_img', 'vfs5011', 'aes3500', 'aes4000', 'aes1610', 'aes1660', 'aes2660', 'aes2501', 'aes2550', 'vfs101', 'vfs301', 'vfs0050', 'etes603', 'vcom5s', 'synaptics', 'elan', 'uru4000', 'upektc', 'upeksonly', 'upekts' ]
+default_drivers = [
+    'upektc_img',
+    'vfs5011',
+    'aes3500',
+    'aes4000',
+    'aes1610',
+    'aes1660',
+    'aes2660',
+    'aes2501',
+    'aes2550',
+    'vfs101',
+    'vfs301',
+    'vfs0050',
+    'etes603',
+    'vcom5s',
+    'synaptics',
+    'elan',
+    'uru4000',
+    'upektc',
+    'upeksonly',
+    'upekts',
+]
 
 all_drivers = default_drivers + virtual_drivers
 
