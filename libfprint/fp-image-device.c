@@ -69,6 +69,14 @@ enum {
 
 static GParamSpec *properties[N_PROPS];
 
+enum {
+  FPI_STATE_CHANGED,
+
+  LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
 /*******************************************************/
 
 /* TODO:
@@ -81,7 +89,6 @@ static void
 fp_image_device_change_state (FpImageDevice *self, FpImageDeviceState state)
 {
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
-  FpImageDeviceClass *cls = FP_IMAGE_DEVICE_GET_CLASS (self);
 
   /* Cannot change to inactive using this function. */
   g_assert (state != FP_IMAGE_DEVICE_STATE_INACTIVE);
@@ -94,11 +101,7 @@ fp_image_device_change_state (FpImageDevice *self, FpImageDeviceState state)
 
   priv->state = state;
   g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_FPI_STATE]);
-
-  /* change_state is the only callback which is optional and does not
-   * have a default implementation. */
-  if (cls->change_state)
-    cls->change_state (self, state);
+  g_signal_emit (self, signals[FPI_STATE_CHANGED], 0, priv->state);
 }
 
 static void
@@ -355,6 +358,14 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
                        FP_TYPE_IMAGE_DEVICE_STATE,
                        FP_IMAGE_DEVICE_STATE_INACTIVE,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
+
+  signals[FPI_STATE_CHANGED] =
+    g_signal_new ("fp-image-device-state-changed",
+                  G_TYPE_FROM_CLASS (object_class),
+                  G_SIGNAL_RUN_FIRST,
+                  G_STRUCT_OFFSET (FpImageDeviceClass, change_state),
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 1, FP_TYPE_IMAGE_DEVICE_STATE);
 
   g_object_class_install_properties (object_class, N_PROPS, properties);
 }
