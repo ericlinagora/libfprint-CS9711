@@ -479,16 +479,6 @@ receive_callback (FpiUsbTransfer *transfer, FpDevice *device,
     }
 }
 
-/* SSM stub to prepare device to another scan after orange light was on */
-static void
-another_scan (FpDevice *dev,
-              void     *data)
-{
-  FpiSsm *ssm = data;
-
-  fpi_ssm_jump_to_state (ssm, SSM_TURN_ON);
-}
-
 /* Main SSM loop */
 static void
 activate_ssm (FpiSsm *ssm, FpDevice *dev)
@@ -637,8 +627,7 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
 
     case SSM_WAIT_ANOTHER_SCAN:
       /* Orange light is on now */
-      fpi_device_add_timeout (dev, VFS_SSM_ORANGE_TIMEOUT,
-                              another_scan, ssm, NULL);
+      fpi_ssm_jump_to_state_delayed (ssm, SSM_TURN_ON, VFS_SSM_ORANGE_TIMEOUT);
       break;
 
     default:

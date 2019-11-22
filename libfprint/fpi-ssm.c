@@ -168,6 +168,8 @@ fpi_ssm_free (FpiSsm *machine)
   if (!machine)
     return;
 
+  BUG_ON (machine->timeout != NULL);
+
   if (machine->ssm_data_destroy)
     g_clear_pointer (&machine->ssm_data, machine->ssm_data_destroy);
   g_clear_pointer (&machine->error, g_error_free);
@@ -250,7 +252,6 @@ void
 fpi_ssm_mark_completed (FpiSsm *machine)
 {
   BUG_ON (machine->completed);
-  BUG_ON (machine->timeout);
   BUG_ON (machine->timeout != NULL);
 
   g_clear_pointer (&machine->timeout, g_source_destroy);

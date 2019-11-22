@@ -830,26 +830,6 @@ enum rebootpwr_states {
 };
 
 static void
-rebootpwr_pause_cb (FpDevice *dev,
-                    void     *data)
-{
-  FpiSsm *ssm = data;
-  FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (dev);
-
-  if (!--self->rebootpwr_ctr)
-    {
-      fp_err ("could not reboot device power");
-      fpi_ssm_mark_failed (ssm,
-                           fpi_device_error_new_msg (FP_DEVICE_ERROR,
-                                                     "Could not reboot device"));
-    }
-  else
-    {
-      fpi_ssm_jump_to_state (ssm, REBOOTPWR_GET_HWSTAT);
-    }
-}
-
-static void
 rebootpwr_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
@@ -875,7 +855,17 @@ rebootpwr_run_state (FpiSsm *ssm, FpDevice *_dev)
       break;
 
     case REBOOTPWR_PAUSE:
-      fpi_device_add_timeout (_dev, 10, rebootpwr_pause_cb, ssm, NULL);
+      if (!--self->rebootpwr_ctr)
+        {
+          fp_err ("could not reboot device power");
+          fpi_ssm_mark_failed (ssm,
+                               fpi_device_error_new_msg (FP_DEVICE_ERROR,
+                                                         "Could not reboot device"));
+        }
+      else
+        {
+          fpi_ssm_jump_to_state_delayed (ssm, 10, REBOOTPWR_GET_HWSTAT);
+        }
       break;
     }
 }
@@ -917,30 +907,6 @@ enum powerup_states {
 };
 
 static void
-powerup_pause_cb (FpDevice *dev,
-                  void     *data)
-{
-  FpiSsm *ssm = data;
-  FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (dev);
-
-  if (!--self->powerup_ctr)
-    {
-      fp_err ("could not power device up");
-      fpi_ssm_mark_failed (ssm,
-                           fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                                     "could not power device up"));
-    }
-  else if (!self->profile->auth_cr)
-    {
-      fpi_ssm_jump_to_state (ssm, POWERUP_SET_HWSTAT);
-    }
-  else
-    {
-      fpi_ssm_next_state (ssm);
-    }
-}
-
-static void
 powerup_run_state (FpiSsm *ssm, FpDevice *_dev)
 {
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
@@ -971,7 +937,21 @@ powerup_run_state (FpiSsm *ssm, FpDevice *_dev)
       break;
 
     case POWERUP_PAUSE:
-      fpi_device_add_timeout (_dev, 10, powerup_pause_cb, ssm, NULL);
+      if (!--self->powerup_ctr)
+        {
+          fp_err ("could not power device up");
+          fpi_ssm_mark_failed (ssm,
+                               fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                                         "could not power device up"));
+        }
+      else if (!self->profile->auth_cr)
+        {
+          fpi_ssm_jump_to_state_delayed (ssm, POWERUP_SET_HWSTAT, 10);
+        }
+      else
+        {
+          fpi_ssm_next_state_delayed (ssm, 10);
+        }
       break;
 
     case POWERUP_CHALLENGE_RESPONSE:
