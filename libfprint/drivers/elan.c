@@ -749,15 +749,10 @@ calibrate_run_state (FpiSsm *ssm, FpDevice *dev)
         }
       else
         {
-          GSource *timeout;
-
           if (self->calib_status == 0x00 &&
               self->last_read[0] == 0x01)
             self->calib_status = 0x01;
-          timeout = fpi_device_add_timeout (dev, 50,
-                                            fpi_ssm_next_state_timeout_cb,
-                                            ssm, NULL);
-          g_source_set_name (timeout, "calibrate_run_state");
+          fpi_ssm_next_state_delayed (ssm, 50);
         }
       break;
 

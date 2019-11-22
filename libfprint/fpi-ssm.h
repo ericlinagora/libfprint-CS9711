@@ -93,8 +93,6 @@ int fpi_ssm_get_cur_state (FpiSsm *machine);
 /* Callbacks to be used by the driver instead of implementing their own
  * logic.
  */
-void fpi_ssm_next_state_timeout_cb (FpDevice *dev,
-                                    void     *data);
 void fpi_ssm_usb_transfer_cb (FpiUsbTransfer *transfer,
                               FpDevice       *device,
                               gpointer        unused_data,

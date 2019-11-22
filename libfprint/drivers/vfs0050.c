@@ -618,8 +618,7 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
       clear_data (self);
 
       /* Wait for probable vdev->active changing */
-      fpi_device_add_timeout (dev, VFS_SSM_TIMEOUT,
-                              fpi_ssm_next_state_timeout_cb, ssm, NULL);
+      fpi_ssm_next_state_delayed (ssm, VFS_SSM_TIMEOUT);
       break;
 
     case SSM_NEXT_RECEIVE:

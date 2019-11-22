@@ -369,16 +369,6 @@ async_load (FpiSsm        *ssm,
                            async_load_cb, NULL);
 }
 
-/* Submit asynchronous sleep */
-static void
-async_sleep (unsigned int   msec,
-             FpiSsm        *ssm,
-             FpImageDevice *dev)
-{
-  fpi_device_add_timeout (FP_DEVICE (dev), msec,
-                          fpi_ssm_next_state_timeout_cb, ssm, NULL);
-}
-
 /* Swap ssm states */
 enum {
   M_SWAP_SEND,
@@ -795,7 +785,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_LOOP_0_SLEEP:
       /* Wait fingerprint scanning */
-      async_sleep (50, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 50);
       break;
 
     case M_LOOP_0_GET_STATE:
@@ -838,7 +828,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
       img_extract (ssm, dev);
 
       /* Wait handling image */
-      async_sleep (10, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 10);
       break;
 
     case M_LOOP_0_CHECK_ACTION:
@@ -861,7 +851,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
       if (vfs_finger_state (self) == VFS_FINGER_PRESENT)
         {
           fpi_image_device_report_finger_status (dev, TRUE);
-          async_sleep (250, ssm, dev);
+          fpi_ssm_next_state_delayed (ssm, 250);
         }
       else
         {
@@ -891,7 +881,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_LOOP_1_SLEEP:
       /* Wait fingerprint scanning */
-      async_sleep (10, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 10);
       break;
 
     case M_LOOP_2_ABORT_PRINT:
@@ -927,7 +917,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
         {
           /* Wait aborting */
           self->counter++;
-          async_sleep (100, ssm, dev);
+          fpi_ssm_next_state_delayed (ssm, 100);
         }
       else
         {
@@ -1065,7 +1055,7 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev)
         {
           /* Wait aborting */
           self->counter++;
-          async_sleep (100, ssm, dev);
+          fpi_ssm_next_state_delayed (ssm, 100);
         }
       else
         {
@@ -1094,7 +1084,7 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev)
             {
               /* Wait removing finger */
               self->counter++;
-              async_sleep (250, ssm, dev);
+              fpi_ssm_next_state_delayed (ssm, 250);
             }
           else
             {

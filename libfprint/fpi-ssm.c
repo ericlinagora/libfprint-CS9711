@@ -359,7 +359,7 @@ fpi_ssm_next_state_delayed (FpiSsm *machine,
   g_clear_pointer (&machine->timeout, g_source_destroy);
   machine->timeout = fpi_device_add_timeout (machine->dev, delay,
                                              on_device_timeout_next_state,
-                                             machine);
+                                             machine, NULL);
 
   source_name = g_strdup_printf ("[%s] ssm %p jump to next state %d",
                                  fp_device_get_device_id (machine->dev),
@@ -430,9 +430,9 @@ fpi_ssm_jump_to_state_delayed (FpiSsm *machine,
   data->next_state = state;
 
   g_clear_pointer (&machine->timeout, g_source_destroy);
-  machine->timeout = fpi_device_add_timeout_full (machine->dev, delay,
-                                                  on_device_timeout_jump_to_state,
-                                                  data, g_free);
+  machine->timeout = fpi_device_add_timeout (machine->dev, delay,
+                                             on_device_timeout_jump_to_state,
+                                             data, g_free);
 
   source_name = g_strdup_printf ("[%s] ssm %p jump to state %d",
                                  fp_device_get_device_id (machine->dev),
@@ -484,28 +484,6 @@ fpi_ssm_dup_error (FpiSsm *machine)
     return g_error_copy (machine->error);
 
   return NULL;
-}
-
-/**
- * fpi_ssm_next_state_timeout_cb:
- * @dev: a struct #fp_dev
- * @data: a pointer to an #FpiSsm state machine
- *
- * Same as fpi_ssm_next_state(), but to be used as a callback
- * for an fpi_device_add_timeout() callback, when the state
- * change needs to happen after a timeout.
- *
- * Make sure to pass the #FpiSsm as the `ssm_data` argument
- * for that fpi_device_add_timeout() call.
- */
-void
-fpi_ssm_next_state_timeout_cb (FpDevice *dev,
-                               void     *data)
-{
-  g_return_if_fail (dev != NULL);
-  g_return_if_fail (data != NULL);
-
-  fpi_ssm_next_state (data);
 }
 
 /**

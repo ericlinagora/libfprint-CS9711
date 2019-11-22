@@ -28,17 +28,6 @@ G_DEFINE_TYPE (FpDeviceVfs301, fpi_device_vfs301, FP_TYPE_IMAGE_DEVICE)
 
 /************************** GENERIC STUFF *************************************/
 
-/* Submit asynchronous sleep */
-static void
-async_sleep (unsigned int   msec,
-             FpiSsm        *ssm,
-             FpImageDevice *dev)
-{
-  /* Add timeout */
-  fpi_device_add_timeout (FP_DEVICE (dev), msec,
-                          fpi_ssm_next_state_timeout_cb, ssm, NULL);
-}
-
 static int
 submit_image (FpiSsm        *ssm,
               FpImageDevice *dev)
@@ -108,7 +97,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_WAIT_PRINT:
       /* Wait fingerprint scanning */
-      async_sleep (200, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 200);
       break;
 
     case M_CHECK_PRINT:
@@ -126,7 +115,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_READ_PRINT_WAIT:
       /* Wait fingerprint scanning */
-      async_sleep (200, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 200);
       break;
 
     case M_READ_PRINT_POLL:
