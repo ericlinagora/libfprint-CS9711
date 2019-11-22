@@ -732,7 +732,11 @@ fpi_image_device_deactivate_complete (FpImageDevice *self, GError *error)
 
   /* We might be waiting to be able to activate again. */
   if (priv->pending_activation_timeout_id)
-    fp_image_device_activate (self);
+    {
+      g_clear_handle_id (&priv->pending_activation_timeout_id, g_source_remove);
+      priv->pending_activation_timeout_id =
+        g_idle_add ((GSourceFunc) fp_image_device_activate, self);
+    }
 }
 
 /**
