@@ -534,11 +534,8 @@ fp_print_set_enroll_date (FpPrint     *print,
 
   g_clear_pointer (&print->enroll_date, g_date_free);
   if (enroll_date)
-    {
-      /* XXX: Should use g_date_copy, but that is new in 2.56. */
-      print->enroll_date = g_date_new ();
-      *print->enroll_date = *enroll_date;
-    }
+    print->enroll_date = g_date_copy (enroll_date);
+
   g_object_notify_by_pspec (G_OBJECT (print), properties[PROP_ENROLL_DATE]);
 }
 
