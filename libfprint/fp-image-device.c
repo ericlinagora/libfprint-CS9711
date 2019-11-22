@@ -21,6 +21,7 @@
 #include "fpi-log.h"
 
 #include "fpi-image-device.h"
+#include "fpi-enums.h"
 #include "fpi-print.h"
 #include "fpi-image.h"
 
@@ -60,6 +61,13 @@ typedef struct
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (FpImageDevice, fp_image_device, FP_TYPE_DEVICE)
 
+enum {
+  PROP_0,
+  PROP_FPI_STATE,
+  N_PROPS
+};
+
+static GParamSpec *properties[N_PROPS];
 
 /*******************************************************/
 
@@ -85,6 +93,7 @@ fp_image_device_change_state (FpImageDevice *self, FpImageDeviceState state)
   fp_dbg ("Image device internal state change from %d to %d\n", priv->state, state);
 
   priv->state = state;
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_FPI_STATE]);
 
   /* change_state is the only callback which is optional and does not
    * have a default implementation. */
@@ -103,6 +112,7 @@ fp_image_device_activate (FpImageDevice *self)
   /* We don't have a neutral ACTIVE state, but we always will
    * go into WAIT_FINGER_ON afterwards. */
   priv->state = FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON;
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_FPI_STATE]);
 
   /* We might have been waiting for deactivation to finish before
    * starting the next operation. */
@@ -127,6 +137,7 @@ fp_image_device_deactivate (FpDevice *device)
       return;
     }
   priv->state = FP_IMAGE_DEVICE_STATE_INACTIVE;
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_FPI_STATE]);
 
   fp_dbg ("Deactivating image device\n");
   cls->deactivate (self);
@@ -296,12 +307,33 @@ fp_image_device_default_deactivate (FpImageDevice *self)
 }
 
 static void
+fp_image_device_get_property (GObject    *object,
+                              guint       prop_id,
+                              GValue     *value,
+                              GParamSpec *pspec)
+{
+  FpImageDevice *self = FP_IMAGE_DEVICE (object);
+  FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
+
+  switch (prop_id)
+    {
+    case PROP_FPI_STATE:
+      g_value_set_enum (value, priv->state);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
+
+static void
 fp_image_device_class_init (FpImageDeviceClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   FpDeviceClass *fp_device_class = FP_DEVICE_CLASS (klass);
 
   object_class->finalize = fp_image_device_finalize;
+  object_class->get_property = fp_image_device_get_property;
 
   fp_device_class->open = fp_image_device_open;
   fp_device_class->close = fp_image_device_close;
@@ -315,6 +347,16 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
   /* Default implementations */
   klass->activate = fp_image_device_default_activate;
   klass->deactivate = fp_image_device_default_deactivate;
+
+  properties[PROP_FPI_STATE] =
+    g_param_spec_enum ("fp-image-device-state",
+                       "Image Device State",
+                       "Private: The state of the image device",
+                       FP_TYPE_IMAGE_DEVICE_STATE,
+                       FP_IMAGE_DEVICE_STATE_INACTIVE,
+                       G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
+
+  g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -760,6 +802,7 @@ fpi_image_device_open_complete (FpImageDevice *self, GError *error)
   g_debug ("Image device open completed");
 
   priv->state = FP_IMAGE_DEVICE_STATE_INACTIVE;
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_FPI_STATE]);
 
   fpi_device_open_complete (FP_DEVICE (self), error);
 }
@@ -785,6 +828,7 @@ fpi_image_device_close_complete (FpImageDevice *self, GError *error)
   g_return_if_fail (action == FP_DEVICE_ACTION_CLOSE);
 
   priv->state = FP_IMAGE_DEVICE_STATE_INACTIVE;
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_FPI_STATE]);
 
   fpi_device_close_complete (FP_DEVICE (self), error);
 }
