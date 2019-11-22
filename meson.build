@@ -18,7 +18,10 @@ libfprint_conf = configuration_data()
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 host_system = host_machine.system()
+glib_min_version = '2.50'
 
+glib_version_def = 'GLIB_VERSION_@0@_@1@'.format(
+    glib_min_version.split('.')[0], glib_min_version.split('.')[1])
 common_cflags = cc.get_supported_arguments([
     '-fgnu89-inline',
     '-std=gnu99',
@@ -30,8 +33,8 @@ common_cflags = cc.get_supported_arguments([
     '-Werror-implicit-function-declaration',
     '-Wno-pointer-sign',
     '-Wshadow',
-    '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_50',
-    '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_50',
+    '-DGLIB_VERSION_MIN_REQUIRED=' + glib_version_def,
+    '-DGLIB_VERSION_MAX_ALLOWED=' + glib_version_def,
 ])
 
 # maintaining compatibility with the previous libtool versioning
@@ -43,8 +46,8 @@ revision = 0
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
 
 # Dependencies
-glib_dep = dependency('glib-2.0', version: '>= 2.50')
-gio_dep = dependency('gio-unix-2.0', version: '>= 2.44.0')
+glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
+gio_dep = dependency('gio-unix-2.0', version: '>=' + glib_min_version)
 gusb_dep = dependency('gusb', version: '>= 0.3.0')
 mathlib_dep = cc.find_library('m', required: false)
 
