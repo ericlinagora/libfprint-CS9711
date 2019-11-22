@@ -68,11 +68,11 @@
 /**
  * fp_err:
  *
- * Same as g_warning(). In the future, this might be changed to a
+ * Same as g_critical(). In the future, this might be changed to a
  * g_assert() instead, so bear this in mind when adding those calls
  * to your driver.
  */
-#define fp_err g_warning
+#define fp_err g_critical
 
 /**
  * BUG_ON:
