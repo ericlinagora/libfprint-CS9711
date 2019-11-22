@@ -278,6 +278,7 @@ fp_image_device_finalize (GObject *object)
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
 
   g_assert (priv->active == FALSE);
+  g_clear_handle_id (&priv->pending_activation_timeout_id, g_source_remove);
 
   G_OBJECT_CLASS (fp_image_device_parent_class)->finalize (object);
 }
