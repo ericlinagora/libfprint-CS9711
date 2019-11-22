@@ -317,7 +317,7 @@ void
 fpi_ssm_jump_to_state (FpiSsm *machine, int state)
 {
   BUG_ON (machine->completed);
-  BUG_ON (state >= machine->nr_states);
+  BUG_ON (state < 0 || state >= machine->nr_states);
   machine->cur_state = state;
   __ssm_call_handler (machine);
 }
