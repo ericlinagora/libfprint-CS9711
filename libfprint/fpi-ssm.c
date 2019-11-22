@@ -272,7 +272,7 @@ fpi_ssm_mark_completed (FpiSsm *machine)
 /**
  * fpi_ssm_mark_failed:
  * @machine: an #FpiSsm state machine
- * @error: a #GError
+ * @error: (transfer full): a #GError
  *
  * Mark a state machine as failed with @error as the error code, completing it.
  */
@@ -288,7 +288,7 @@ fpi_ssm_mark_failed (FpiSsm *machine, GError *error)
     }
 
   fp_dbg ("SSM failed in state %d with error: %s", machine->cur_state, error->message);
-  machine->error = error;
+  machine->error = g_steal_pointer (&error);
   fpi_ssm_mark_completed (machine);
 }
 
