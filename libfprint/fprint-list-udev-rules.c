@@ -99,8 +99,6 @@ main (int argc, char **argv)
   g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof (GType));
   guint i;
 
-  g_print ("%p\n", drivers);
-  g_print ("%p\n", fpi_get_driver_types);
   fpi_get_driver_types (drivers);
 
   printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
