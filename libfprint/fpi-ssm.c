@@ -87,6 +87,7 @@ struct _FpiSsm
   int                     nr_states;
   int                     cur_state;
   gboolean                completed;
+  GSource                *timeout;
   GError                 *error;
   FpiSsmCompletedCallback callback;
   FpiSsmHandlerCallback   handler;
@@ -170,6 +171,7 @@ fpi_ssm_free (FpiSsm *machine)
   if (machine->ssm_data_destroy)
     g_clear_pointer (&machine->ssm_data, machine->ssm_data_destroy);
   g_clear_pointer (&machine->error, g_error_free);
+  g_clear_pointer (&machine->timeout, g_source_destroy);
   g_free (machine);
 }
 
@@ -231,7 +233,9 @@ __subsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 void
 fpi_ssm_start_subsm (FpiSsm *parent, FpiSsm *child)
 {
+  BUG_ON (parent->timeout);
   child->parentsm = parent;
+  g_clear_pointer (&parent->timeout, g_source_destroy);
   fpi_ssm_start (child, __subsm_complete);
 }
 
@@ -246,7 +250,12 @@ void
 fpi_ssm_mark_completed (FpiSsm *machine)
 {
   BUG_ON (machine->completed);
+  BUG_ON (machine->timeout);
+  BUG_ON (machine->timeout != NULL);
+
+  g_clear_pointer (&machine->timeout, g_source_destroy);
   machine->completed = TRUE;
+
   if (machine->error)
     fp_dbg ("%p completed with error: %s", machine, machine->error->message);
   else
@@ -297,11 +306,65 @@ fpi_ssm_next_state (FpiSsm *machine)
   g_return_if_fail (machine != NULL);
 
   BUG_ON (machine->completed);
+  BUG_ON (machine->timeout != NULL);
+
+  g_clear_pointer (&machine->timeout, g_source_destroy);
+
   machine->cur_state++;
   if (machine->cur_state == machine->nr_states)
     fpi_ssm_mark_completed (machine);
   else
     __ssm_call_handler (machine);
+}
+
+void
+fpi_ssm_cancel_delayed_state_change (FpiSsm *machine)
+{
+  g_return_if_fail (machine);
+  BUG_ON (machine->completed);
+  BUG_ON (machine->timeout == NULL);
+
+  g_clear_pointer (&machine->timeout, g_source_destroy);
+}
+
+static void
+on_device_timeout_next_state (FpDevice *dev,
+                              gpointer  user_data)
+{
+  FpiSsm *machine = user_data;
+
+  machine->timeout = NULL;
+  fpi_ssm_next_state (machine);
+}
+
+/**
+ * fpi_ssm_next_state_delayed:
+ * @machine: an #FpiSsm state machine
+ * @delay: the milliseconds to wait before switching to the next state
+ *
+ * Iterate to next state of a state machine with a delay of @delay ms. If the
+ * current state is the last state, then the state machine will be marked as
+ * completed, as if calling fpi_ssm_mark_completed().
+ */
+void
+fpi_ssm_next_state_delayed (FpiSsm *machine,
+                            int     delay)
+{
+  g_autofree char *source_name = NULL;
+
+  g_return_if_fail (machine != NULL);
+  BUG_ON (machine->completed);
+  BUG_ON (machine->timeout != NULL);
+
+  g_clear_pointer (&machine->timeout, g_source_destroy);
+  machine->timeout = fpi_device_add_timeout (machine->dev, delay,
+                                             on_device_timeout_next_state,
+                                             machine);
+
+  source_name = g_strdup_printf ("[%s] ssm %p jump to next state %d",
+                                 fp_device_get_device_id (machine->dev),
+                                 machine, machine->cur_state + 1);
+  g_source_set_name (machine->timeout, source_name);
 }
 
 /**
@@ -318,8 +381,63 @@ fpi_ssm_jump_to_state (FpiSsm *machine, int state)
 {
   BUG_ON (machine->completed);
   BUG_ON (state < 0 || state >= machine->nr_states);
+  BUG_ON (machine->timeout != NULL);
+
+  g_clear_pointer (&machine->timeout, g_source_destroy);
   machine->cur_state = state;
   __ssm_call_handler (machine);
+}
+
+typedef struct
+{
+  FpiSsm *machine;
+  int     next_state;
+} FpiSsmJumpToStateDelayedData;
+
+static void
+on_device_timeout_jump_to_state (FpDevice *dev,
+                                 gpointer  user_data)
+{
+  FpiSsmJumpToStateDelayedData *data = user_data;
+
+  data->machine->timeout = NULL;
+  fpi_ssm_jump_to_state (data->machine, data->next_state);
+}
+
+/**
+ * fpi_ssm_jump_to_state_delayed:
+ * @machine: an #FpiSsm state machine
+ * @state: the state to jump to
+ * @delay: the milliseconds to wait before switching to @state state
+ *
+ * Jump to the @state state with a delay of @delay milliseconds, bypassing
+ * intermediary states.
+ */
+void
+fpi_ssm_jump_to_state_delayed (FpiSsm *machine,
+                               int     state,
+                               int     delay)
+{
+  FpiSsmJumpToStateDelayedData *data;
+  g_autofree char *source_name = NULL;
+
+  g_return_if_fail (machine != NULL);
+  BUG_ON (machine->completed);
+  BUG_ON (machine->timeout != NULL);
+
+  data = g_new0 (FpiSsmJumpToStateDelayedData, 1);
+  data->machine = machine;
+  data->next_state = state;
+
+  g_clear_pointer (&machine->timeout, g_source_destroy);
+  machine->timeout = fpi_device_add_timeout_full (machine->dev, delay,
+                                                  on_device_timeout_jump_to_state,
+                                                  data, g_free);
+
+  source_name = g_strdup_printf ("[%s] ssm %p jump to state %d",
+                                 fp_device_get_device_id (machine->dev),
+                                 machine, state);
+  g_source_set_name (machine->timeout, source_name);
 }
 
 /**

@@ -215,7 +215,10 @@ fpi_ssm_free
 fpi_ssm_start
 fpi_ssm_start_subsm
 fpi_ssm_next_state
+fpi_ssm_next_state_delayed
 fpi_ssm_jump_to_state
+fpi_ssm_jump_to_state_delayed
+fpi_ssm_cancel_delayed_state_change
 fpi_ssm_mark_completed
 fpi_ssm_mark_failed
 fpi_ssm_set_data
