@@ -376,7 +376,7 @@ async_sleep (unsigned int   msec,
              FpImageDevice *dev)
 {
   fpi_device_add_timeout (FP_DEVICE (dev), msec,
-                          fpi_ssm_next_state_timeout_cb, ssm);
+                          fpi_ssm_next_state_timeout_cb, ssm, NULL);
 }
 
 /* Swap ssm states */

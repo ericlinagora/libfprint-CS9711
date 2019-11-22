@@ -756,7 +756,7 @@ calibrate_run_state (FpiSsm *ssm, FpDevice *dev)
             self->calib_status = 0x01;
           timeout = fpi_device_add_timeout (dev, 50,
                                             fpi_ssm_next_state_timeout_cb,
-                                            ssm);
+                                            ssm, NULL);
           g_source_set_name (timeout, "calibrate_run_state");
         }
       break;
@@ -1020,7 +1020,7 @@ dev_change_state (FpImageDevice *dev, FpImageDeviceState state)
         self->dev_state_next = state;
         timeout = fpi_device_add_timeout (FP_DEVICE (dev), 10,
                                           elan_change_state_async,
-                                          NULL);
+                                          NULL, NULL);
 
         name = g_strdup_printf ("dev_change_state to %d", state);
         g_source_set_name (timeout, name);

@@ -875,7 +875,7 @@ rebootpwr_run_state (FpiSsm *ssm, FpDevice *_dev)
       break;
 
     case REBOOTPWR_PAUSE:
-      fpi_device_add_timeout (_dev, 10, rebootpwr_pause_cb, ssm);
+      fpi_device_add_timeout (_dev, 10, rebootpwr_pause_cb, ssm, NULL);
       break;
     }
 }
@@ -971,7 +971,7 @@ powerup_run_state (FpiSsm *ssm, FpDevice *_dev)
       break;
 
     case POWERUP_PAUSE:
-      fpi_device_add_timeout (_dev, 10, powerup_pause_cb, ssm);
+      fpi_device_add_timeout (_dev, 10, powerup_pause_cb, ssm, NULL);
       break;
 
     case POWERUP_CHALLENGE_RESPONSE:
@@ -1130,7 +1130,7 @@ init_run_state (FpiSsm *ssm, FpDevice *_dev)
       self->scanpwr_irq_timeout = fpi_device_add_timeout (_dev,
                                                           300,
                                                           init_scanpwr_timeout,
-                                                          ssm);
+                                                          ssm, NULL);
       break;
 
     case INIT_DONE:

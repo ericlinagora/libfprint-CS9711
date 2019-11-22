@@ -706,7 +706,7 @@ activate_loop (FpiSsm *ssm, FpDevice *_dev)
     case DEV_ACTIVATE_DATA_COMPLETE:
       fpi_device_add_timeout (_dev, 1,
                               fpi_ssm_next_state_timeout_cb,
-                              ssm);
+                              ssm, NULL);
 
       break;
 

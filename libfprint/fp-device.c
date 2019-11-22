@@ -1475,7 +1475,8 @@ fpi_device_set_scan_type (FpDevice  *device,
  * @device: The #FpDevice
  * @interval: The interval in milliseconds
  * @func: The #FpTimeoutFunc to call on timeout
- * @user_data: User data to pass to the callback
+ * @user_data: (nullable): User data to pass to the callback
+ * @destroy_notify: (nullable): #GDestroyNotify for @user_data
  *
  * Register a timeout to run. Drivers should always make sure that timers are
  * cancelled when appropriate.
@@ -1483,10 +1484,11 @@ fpi_device_set_scan_type (FpDevice  *device,
  * Returns: (transfer none): A newly created and attached #GSource
  */
 GSource *
-fpi_device_add_timeout (FpDevice     *device,
-                        gint          interval,
-                        FpTimeoutFunc func,
-                        gpointer      user_data)
+fpi_device_add_timeout (FpDevice      *device,
+                        gint           interval,
+                        FpTimeoutFunc  func,
+                        gpointer       user_data,
+                        GDestroyNotify destroy_notify)
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
   FpDeviceTimeoutSource *source;
@@ -1497,7 +1499,7 @@ fpi_device_add_timeout (FpDevice     *device,
   source->user_data = user_data;
 
   g_source_attach (&source->source, NULL);
-  g_source_set_callback (&source->source, (GSourceFunc) func, user_data, NULL);
+  g_source_set_callback (&source->source, (GSourceFunc) func, user_data, destroy_notify);
   g_source_set_ready_time (&source->source,
                            g_source_get_time (&source->source) + interval * (guint64) 1000);
   priv->sources = g_slist_prepend (priv->sources, source);
