@@ -80,11 +80,7 @@ fp_image_device_change_state (FpImageDevice *self, FpImageDeviceState state)
 
   /* We might have been waiting for the finger to go OFF to start the
    * next operation. */
-  if (priv->pending_activation_timeout_id)
-    {
-      g_source_remove (priv->pending_activation_timeout_id);
-      priv->pending_activation_timeout_id = 0;
-    }
+  g_clear_handle_id (&priv->pending_activation_timeout_id, g_source_remove);
 
   fp_dbg ("Image device internal state change from %d to %d\n", priv->state, state);
 
@@ -110,11 +106,7 @@ fp_image_device_activate (FpImageDevice *self)
 
   /* We might have been waiting for deactivation to finish before
    * starting the next operation. */
-  if (priv->pending_activation_timeout_id)
-    {
-      g_source_remove (priv->pending_activation_timeout_id);
-      priv->pending_activation_timeout_id = 0;
-    }
+  g_clear_handle_id (&priv->pending_activation_timeout_id, g_source_remove);
 
   fp_dbg ("Activating image device\n");
   cls->activate (self);

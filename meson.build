@@ -18,7 +18,7 @@ libfprint_conf = configuration_data()
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 host_system = host_machine.system()
-glib_min_version = '2.50'
+glib_min_version = '2.56'
 
 glib_version_def = 'GLIB_VERSION_@0@_@1@'.format(
     glib_min_version.split('.')[0], glib_min_version.split('.')[1])
