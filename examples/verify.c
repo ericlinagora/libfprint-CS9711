@@ -182,7 +182,7 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
     {
       g_print ("Loading previously enrolled %s finger data...\n",
                finger_to_string (verify_data->finger));
-      g_autoptr(FpPrint) verify_print;
+      g_autoptr(FpPrint) verify_print = NULL;
 
       verify_print = print_data_load (dev, verify_data->finger);
 
