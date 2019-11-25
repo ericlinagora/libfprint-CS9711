@@ -1249,6 +1249,9 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev)
                                        awfsm_1000_run_state,
                                        AWFSM_1000_NUM_STATES);
                   break;
+
+                default:
+                  g_assert_not_reached ();
                 }
               fpi_ssm_start_subsm (ssm, awfsm);
             }
@@ -1290,6 +1293,9 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev)
                                capsm_1001_run_state,
                                CAPSM_1001_NUM_STATES);
           break;
+
+        default:
+          g_assert_not_reached ();
         }
       fpi_ssm_start_subsm (ssm, capsm);
       break;
@@ -1318,6 +1324,9 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev)
                                   deinitsm_1001_run_state,
                                   DEINITSM_1001_NUM_STATES);
           break;
+
+        default:
+          g_assert_not_reached ();
         }
       self->capturing = FALSE;
       fpi_ssm_start_subsm (ssm, deinitsm);
@@ -1441,6 +1450,9 @@ dev_activate (FpImageDevice *dev)
       ssm = fpi_ssm_new (FP_DEVICE (dev), initsm_1001_run_state,
                          INITSM_1001_NUM_STATES);
       break;
+
+    default:
+      g_assert_not_reached ();
     }
   fpi_ssm_start (ssm, initsm_complete);
 }
