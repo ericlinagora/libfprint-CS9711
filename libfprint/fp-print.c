@@ -921,6 +921,7 @@ fp_print_serialize (FpPrint *print,
                                                                   xyt->nrows,
                                                                   sizeof (col[0])));
           g_variant_builder_close (&nested);
+          g_free (col);
         }
 
       g_variant_builder_close (&nested);
