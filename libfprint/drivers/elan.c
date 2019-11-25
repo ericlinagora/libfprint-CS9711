@@ -223,6 +223,7 @@ elan_save_img_frame (FpiDeviceElan *elandev)
     {
       fp_dbg
         ("frame darker than background; finger present during calibration?");
+      g_free (frame);
       return -1;
     }
 
