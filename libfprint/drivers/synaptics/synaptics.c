@@ -604,6 +604,8 @@ verify_msg_cb (FpiDeviceSynaptics *self,
       return;
     }
 
+  g_assert (resp != NULL);
+
   verify_resp = &resp->response.verify_resp;
 
   switch (resp->response_id)
