@@ -493,8 +493,6 @@ fpi_image_device_report_finger_status (FpImageDevice *self,
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpDeviceAction action;
 
-  action = fpi_device_get_current_action (device);
-
   if (priv->state == FP_IMAGE_DEVICE_STATE_INACTIVE)
     {
       /* Do we really want to always ignore such reports? We could
