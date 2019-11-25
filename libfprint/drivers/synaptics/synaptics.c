@@ -447,7 +447,7 @@ list_msg_cb (FpiDeviceSynaptics *self,
 
   if (error)
     {
-      g_clear_pointer (&self->list_result, g_ptr_array_free);
+      g_clear_pointer (&self->list_result, g_ptr_array_unref);
       fpi_device_list_complete (FP_DEVICE (self), NULL, error);
       return;
     }
@@ -468,7 +468,7 @@ list_msg_cb (FpiDeviceSynaptics *self,
       else
         {
           fp_info ("Failed to query enrolled users: %d", resp->result);
-          g_clear_pointer (&self->list_result, g_ptr_array_free);
+          g_clear_pointer (&self->list_result, g_ptr_array_unref);
           fpi_device_list_complete (FP_DEVICE (self),
                                     NULL,
                                     fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
