@@ -181,9 +181,11 @@ GError * fpi_device_retry_new (FpDeviceRetry error);
 GError * fpi_device_error_new (FpDeviceError error);
 
 GError * fpi_device_retry_new_msg (FpDeviceRetry error,
-                                   const gchar  *msg);
+                                   const gchar  *msg,
+                                   ...) G_GNUC_PRINTF (2, 3);
 GError * fpi_device_error_new_msg (FpDeviceError error,
-                                   const gchar  *msg);
+                                   const gchar  *msg,
+                                   ...) G_GNUC_PRINTF (2, 3);
 
 guint64 fpi_device_get_driver_data (FpDevice *device);
 
