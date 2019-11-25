@@ -288,7 +288,7 @@ __handle_incoming_msg (FpDevice             *device,
         {
           fp_warn ("cmd response too short (%d)", len);
           error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                            "CMD response too short");
+                                            "CMD response too short (%d)", len);
           goto err;
         }
       if (innerbuf[0] != 0x28)
@@ -371,7 +371,8 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fp_err ("async msg read too short (%d)",
               (gint) transfer->actual_length);
       error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                        "Packet from device was too short");
+                                        "Packet from device was too short (%lu)",
+                                        transfer->actual_length);
       goto err;
     }
 
@@ -798,7 +799,8 @@ read_msg01_cb (FpDevice *dev, enum read_msg_type type,
     {
       fp_err ("expected seq=1, got %x", seq);
       fpi_ssm_mark_failed (ssm, fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                          "Got wrong sequence number"));
+                                                          "Got wrong sequence number (%x)",
+                                                          seq));
       return;
     }
 

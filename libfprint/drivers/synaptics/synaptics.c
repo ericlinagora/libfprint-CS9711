@@ -137,7 +137,8 @@ cmd_recieve_cb (FpiUsbTransfer *transfer,
           fp_warn ("Received General Error %d from the sensor", (guint) err);
           fpi_ssm_mark_failed (transfer->ssm,
                                fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                         "Received general error from device"));
+                                                         "Received general error %u from device",
+                                                         (guint) err));
           //fpi_ssm_jump_to_state (transfer->ssm, fpi_ssm_get_cur_state (transfer->ssm));
           return;
         }
@@ -472,7 +473,8 @@ list_msg_cb (FpiDeviceSynaptics *self,
           fpi_device_list_complete (FP_DEVICE (self),
                                     NULL,
                                     fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                                              "Failed to query enrolled users"));
+                                                              "Failed to query enrolled users: %d",
+                                                              resp->result));
         }
       break;
 
@@ -770,7 +772,8 @@ enroll_msg_cb (FpiDeviceSynaptics *self,
             fpi_device_enroll_complete (device,
                                         NULL,
                                         fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                                                  "Enrollment failed"));
+                                                                  "Enrollment failed (%d)",
+                                                                  resp->result));
           }
         break;
       }
@@ -1052,7 +1055,11 @@ dev_probe (FpDevice *device)
                self->mis_version.build_num);
 
       error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                        "Unsupported firmware version");
+                                        "Unsupported firmware version "
+                                        "(%d.%d with build number %d)",
+                                        self->mis_version.version_major,
+                                        self->mis_version.version_minor,
+                                        self->mis_version.build_num);
       goto err_close;
     }
 
@@ -1120,7 +1127,7 @@ fps_deinit_cb (FpiDeviceSynaptics *self,
         case BMKT_RSP_POWER_DOWN_FAIL:
           fp_info ("Failed to go to power down mode: %d", resp->result);
           error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                            "Power down failed");
+                                            "Power down failed: %d", resp->result);
 
           break;
         }

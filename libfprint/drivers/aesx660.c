@@ -131,7 +131,9 @@ aesX660_read_calibrate_data_cb (FpiUsbTransfer *transfer,
       fp_dbg ("Bogus calibrate response: %.2x\n", data[0]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus calibrate response"));
+                                                     "Bogus calibrate "
+                                                     "response: %.2x",
+                                                     data[0]));
       return;
     }
 
@@ -175,7 +177,8 @@ finger_det_read_fd_data_cb (FpiUsbTransfer *transfer,
       fp_dbg ("Bogus FD response: %.2x\n", data[0]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus FD response"));
+                                                     "Bogus FD response %.2x",
+                                                     data[0]));
       return;
     }
 
@@ -538,7 +541,8 @@ activate_read_id_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fp_dbg ("Bogus read ID response: %.2x\n", data[AESX660_RESPONSE_TYPE_OFFSET]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus read ID response"));
+                                                     "Bogus read ID response %.2x",
+                                                     data[AESX660_RESPONSE_TYPE_OFFSET]));
       return;
     }
 
@@ -565,7 +569,8 @@ activate_read_id_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fp_dbg ("Failed to init device! init status: %.2x\n", data[7]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Failed to init device"));
+                                                     "Failed to init device %.2x",
+                                                     data[7]));
       break;
     }
 }
@@ -594,7 +599,8 @@ activate_read_init_cb (FpiUsbTransfer *transfer, FpDevice *device,
               data[3]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus read init response"));
+                                                     "Bogus read init response: "
+                                                     "%.2x %.2x", data[0], data[3]));
       return;
     }
   priv->init_cmd_idx++;
