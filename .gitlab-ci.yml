@@ -1,5 +1,6 @@
 image: fedora:rawhide
 stages:
+  - check-source
   - build
   - test
   - flatpack
@@ -49,7 +50,7 @@ test:
     - meson test -C _build --verbose --no-stdsplit
 
 test_indent:
-  stage: test
+  stage: check-source
   script:
     - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck git uncrustify
     - scripts/uncrustify.sh --check
