@@ -54,3 +54,19 @@ if gdb.found()
                 gdb.path())
         ])
 endif
+
+valgrind = find_program('valgrind', required: false)
+if valgrind.found()
+    glib_share = glib_dep.get_pkgconfig_variable('prefix') / 'share' / glib_dep.name()
+    glib_suppressions = glib_share + '/valgrind/glib.supp'
+    python_suppressions = '@0@/@1@'.format(meson.source_root(),
+        files('valgrind-python.supp')[0])
+    add_test_setup('valgrind',
+        timeout_multiplier: 10,
+        env: [
+            'G_SLICE=always-malloc',
+            ('LIBFPRINT_TEST_WRAPPER=@0@ --tool=memcheck --leak-check=full ' +
+             '--suppressions=@1@ --suppressions=@2@').format(
+                valgrind.path(), glib_suppressions, python_suppressions)
+        ])
+endif
