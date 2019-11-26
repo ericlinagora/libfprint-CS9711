@@ -126,7 +126,6 @@ read_regs_rq_cb (FpImageDevice *dev, GError *error, void *user_data)
   fpi_usb_transfer_fill_bulk (transfer, EP_IN, READ_REGS_LEN);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            read_regs_data_cb, rdata);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -210,7 +209,6 @@ generic_read_ignore_data (FpiSsm *ssm, FpDevice *dev,
   fpi_usb_transfer_fill_bulk (transfer, EP_IN, bytes);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            generic_ignore_data_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /****** IMAGE PROCESSING ******/
@@ -315,7 +313,6 @@ finger_det_reqs_cb (FpImageDevice *dev, GError *error,
   fpi_usb_transfer_fill_bulk (transfer, EP_IN, FINGER_DETECTION_LEN);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            finger_det_data_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -547,7 +544,6 @@ capture_run_state (FpiSsm *ssm, FpDevice *device)
         fpi_usb_transfer_fill_bulk (transfer, EP_IN, STRIP_CAPTURE_LEN);
         fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                                  capture_read_strip_cb, NULL);
-        fpi_usb_transfer_unref (transfer);
         break;
       }
     }

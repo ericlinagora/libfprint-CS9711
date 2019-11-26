@@ -103,7 +103,6 @@ sm_write_reg (FpiSsm       *ssm,
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, sm_write_reg_cb,
                            NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -133,7 +132,6 @@ sm_exec_cmd (FpiSsm       *ssm,
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, sm_exec_cmd_cb,
                            NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /***** FINGER DETECTION *****/
@@ -227,7 +225,6 @@ capture_iterate (FpiSsm   *ssm,
                                    NULL);
 
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, capture_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 

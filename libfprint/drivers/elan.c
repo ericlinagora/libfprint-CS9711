@@ -406,7 +406,6 @@ elan_cmd_read (FpiSsm *ssm, FpDevice *dev)
     cancellable = fpi_device_get_cancellable (dev);
 
   fpi_usb_transfer_submit (transfer, self->cmd_timeout, cancellable, elan_cmd_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -449,7 +448,6 @@ elan_run_cmd (FpiSsm                *ssm,
                            cancellable,
                            elan_cmd_cb,
                            NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 enum stop_capture_states {

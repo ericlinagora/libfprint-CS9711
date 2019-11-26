@@ -100,7 +100,6 @@ upektc_img_submit_req (FpiSsm                *ssm,
   transfer->ssm = ssm;
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL, cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -120,7 +119,6 @@ upektc_img_read_data (FpiSsm                *ssm,
                                    NULL);
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL, cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /****** CAPTURE ******/
@@ -557,7 +555,6 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev)
         transfer->ssm = ssm;
         fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL,
                                  init_reqs_ctrl_cb, NULL);
-        fpi_usb_transfer_unref (transfer);
       }
       break;
 

@@ -181,7 +181,6 @@ write_regs (FpImageDevice *dev, uint16_t first_reg,
                                  num_regs);
   memcpy (transfer->buffer, values, num_regs);
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, callback, user_data);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -207,7 +206,6 @@ read_regs (FpImageDevice *dev, uint16_t first_reg,
                                  G_USB_DEVICE_RECIPIENT_DEVICE,
                                  USB_RQ, first_reg, 0, num_regs);
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, callback, user_data);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /*
@@ -365,7 +363,6 @@ start_irq_handler (FpImageDevice *dev)
                               EP_INTR,
                               IRQ_LENGTH);
   fpi_usb_transfer_submit (transfer, 0, self->irq_cancellable, irq_handler, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void

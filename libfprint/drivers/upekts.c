@@ -226,7 +226,6 @@ busy_ack_retry_read (FpDevice *device, struct read_msg_data *udata)
   transfer->short_is_error = TRUE;
 
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, busy_ack_sent_cb, udata);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Returns 0 if message was handled, 1 if it was a device-busy message, and
@@ -416,7 +415,6 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fpi_usb_transfer_submit (etransfer, TIMEOUT,
                                NULL,
                                read_msg_extend_cb, udata);
-      fpi_usb_transfer_unref (etransfer);
       return;
     }
 
@@ -442,7 +440,6 @@ __read_msg_async (FpDevice *device, struct read_msg_data *udata)
 
   fpi_usb_transfer_fill_bulk_full (transfer, EP_IN, udata->buffer, udata->buflen, NULL);
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, read_msg_cb, udata);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -676,7 +673,6 @@ initsm_send_msg28_handler (FpiSsm              *ssm,
   transfer->ssm = ssm;
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -697,7 +693,6 @@ initsm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->ssm = ssm;
       transfer->short_is_error = TRUE;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_MSG03:
@@ -709,7 +704,6 @@ initsm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->ssm = ssm;
       transfer->short_is_error = TRUE;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_MSG05:
@@ -820,7 +814,6 @@ deinitsm_state_handler (FpiSsm *ssm, FpDevice *dev)
       transfer->short_is_error = TRUE;
       transfer->ssm = ssm;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_MSG01:;
@@ -953,7 +946,6 @@ enroll_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->ssm = ssm;
 
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_ENROLL_MSG28:;
@@ -1205,7 +1197,6 @@ enroll_iterate (FpDevice *dev)
   transfer->short_is_error = TRUE;
 
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, enroll_iterate_cmd_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -1319,7 +1310,6 @@ verify_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->short_is_error = TRUE;
       transfer->ssm = ssm;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
 
       break;
     }
@@ -1519,7 +1509,6 @@ verify_iterate (FpDevice *dev)
       transfer->short_is_error = TRUE;
 
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, verify_wr2800_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
     }
 }
 

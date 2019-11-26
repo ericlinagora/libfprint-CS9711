@@ -710,7 +710,6 @@ async_tx (FpDevice *dev, unsigned int ep, void *cb,
   transfer->ssm = ssm;
   fpi_usb_transfer_fill_bulk_full (transfer, ep, buffer, length, NULL);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL, cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 

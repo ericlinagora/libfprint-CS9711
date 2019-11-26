@@ -67,8 +67,7 @@ static void
 usb_recv (FpDeviceVfs301 *dev, guint8 endpoint, int max_bytes, FpiUsbTransfer **out, GError **error)
 {
   GError *err = NULL;
-
-  g_autoptr(FpiUsbTransfer) transfer = NULL;
+  FpiUsbTransfer *transfer;
 
   /* XXX: This function swallows any transfer errors, that is obviously
    *      quite bad (it used to assert on no-error)! */
@@ -98,8 +97,7 @@ static void
 usb_send (FpDeviceVfs301 *dev, const guint8 *data, gssize length, GError **error)
 {
   GError *err = NULL;
-
-  g_autoptr(FpiUsbTransfer) transfer = NULL;
+  FpiUsbTransfer *transfer = NULL;
 
   /* XXX: This function swallows any transfer errors, that is obviously
    *      quite bad (it used to assert on no-error)! */
@@ -471,7 +469,7 @@ int
 vfs301_proto_peek_event (FpDeviceVfs301 *dev)
 {
   g_autoptr(GError) error = NULL;
-  g_autoptr(FpiUsbTransfer) transfer = NULL;
+  FpiUsbTransfer *transfer;
 
   const char no_event[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   const char got_event[] = {0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00};
@@ -540,7 +538,6 @@ vfs301_proto_process_event_cb (FpiUsbTransfer *transfer,
       fpi_usb_transfer_fill_bulk (new, VFS301_RECEIVE_ENDPOINT_DATA, VFS301_FP_RECV_LEN_2);
       fpi_usb_transfer_submit (new, VFS301_FP_RECV_TIMEOUT, NULL,
                                vfs301_proto_process_event_cb, NULL);
-      fpi_usb_transfer_unref (new);
       return;
     }
 }
@@ -580,7 +577,6 @@ vfs301_proto_process_event_start (FpDeviceVfs301 *dev)
   fpi_usb_transfer_fill_bulk (transfer, VFS301_RECEIVE_ENDPOINT_DATA, VFS301_FP_RECV_LEN_1);
   fpi_usb_transfer_submit (transfer, VFS301_FP_RECV_TIMEOUT, NULL,
                            vfs301_proto_process_event_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 int

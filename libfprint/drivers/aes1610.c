@@ -155,7 +155,6 @@ generic_read_ignore_data (FpiSsm *ssm, FpDevice *dev,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            generic_ignore_data_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /****** FINGER PRESENCE DETECTION ******/
@@ -238,7 +237,6 @@ finger_det_reqs_cb (FpImageDevice *dev, GError *error,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            finger_det_data_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -683,7 +681,6 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
       transfer->short_is_error = TRUE;
       fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                                capture_read_strip_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
     }
   ;

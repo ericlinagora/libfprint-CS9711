@@ -56,7 +56,6 @@ async_write (FpiSsm   *ssm,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
                            async_write_callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Callback for async_read */
@@ -108,7 +107,6 @@ async_read (FpiSsm   *ssm,
 
   fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
                            async_read_callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Callback for async_abort */
@@ -160,7 +158,6 @@ async_abort (FpDevice *dev, FpiSsm *ssm, int ep)
 
   fpi_usb_transfer_submit (transfer, VFS_USB_ABORT_TIMEOUT, NULL,
                            async_abort_callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Image processing functions */
@@ -564,7 +561,6 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
                                  0,
                                  fpi_device_get_cancellable (dev),
                                  interrupt_callback, NULL);
-        fpi_usb_transfer_unref (transfer);
 
         /* I've put it here to be sure that data is cleared */
         clear_data (self);
@@ -614,7 +610,6 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
         transfer->ssm = ssm;
         fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
                                  receive_callback, NULL);
-        fpi_usb_transfer_unref (transfer);
         break;
       }
 

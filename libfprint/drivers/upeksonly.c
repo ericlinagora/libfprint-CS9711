@@ -635,7 +635,6 @@ write_regs_iterate (struct write_regs_data *wrdata)
   transfer->short_is_error = TRUE;
   transfer->ssm = wrdata->ssm;
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, write_regs_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 
   transfer->buffer[0] = regwrite->value;
 }
@@ -688,7 +687,6 @@ sm_write_reg (FpiSsm        *ssm,
   transfer->short_is_error = TRUE;
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, sm_write_reg_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 
   transfer->buffer[0] = value;
 }
@@ -737,7 +735,6 @@ sm_read_reg (FpiSsm        *ssm,
                            NULL,
                            sm_read_reg_cb,
                            NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -782,7 +779,6 @@ sm_await_intr (FpiSsm        *ssm,
                            fpi_device_get_cancellable (FP_DEVICE (dev)),
                            sm_await_intr_cb,
                            NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /***** AWAIT FINGER *****/
@@ -1419,7 +1415,6 @@ dev_activate (FpImageDevice *dev)
   self->deactivating = FALSE;
   self->capturing = FALSE;
 
-  self->img_transfers = g_ptr_array_new_full (NUM_BULK_TRANSFERS, (GDestroyNotify) fpi_usb_transfer_unref);
   self->num_flying = 0;
 
   for (i = 0; i < self->img_transfers->len; i++)

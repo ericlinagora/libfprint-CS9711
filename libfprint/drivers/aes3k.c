@@ -142,7 +142,6 @@ do_capture (FpImageDevice *dev)
   fpi_usb_transfer_submit (priv->img_trf, 0,
                            fpi_device_get_cancellable (FP_DEVICE (dev)),
                            img_cb, NULL);
-  fpi_usb_transfer_unref (priv->img_trf);
 }
 
 static void

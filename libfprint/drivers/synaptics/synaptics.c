@@ -205,7 +205,7 @@ static void
 synaptics_cmd_run_state (FpiSsm   *ssm,
                          FpDevice *dev)
 {
-  g_autoptr(FpiUsbTransfer) transfer = NULL;
+  FpiUsbTransfer *transfer;
   FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (dev);
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -219,7 +219,7 @@ synaptics_cmd_run_state (FpiSsm   *ssm,
                                    NULL,
                                    fpi_ssm_usb_transfer_cb,
                                    NULL);
-          g_clear_pointer (&self->cmd_pending_transfer, fpi_usb_transfer_unref);
+          self->cmd_pending_transfer = NULL;
         }
       else
         {
@@ -317,7 +317,7 @@ synaptics_sensor_cmd (FpiDeviceSynaptics *self,
                       gssize              payload_len,
                       SynCmdMsgCallback   callback)
 {
-  g_autoptr(FpiUsbTransfer) transfer = NULL;
+  FpiUsbTransfer *transfer;
   guint8 real_seq_num;
   gint msg_len;
   gint res;
@@ -984,7 +984,6 @@ dev_probe (FpDevice *device)
   transfer->buffer[0] = SENSOR_CMD_GET_VERSION;
   if (!fpi_usb_transfer_submit_sync (transfer, 1000, &error))
     goto err_close;
-  fpi_usb_transfer_unref (transfer);
 
 
   transfer = fpi_usb_transfer_new (device);
@@ -1039,7 +1038,6 @@ dev_probe (FpDevice *device)
   fp_dbg ("Target: %d", self->mis_version.target);
   fp_dbg ("Product: %d", self->mis_version.product);
 
-  fpi_usb_transfer_unref (transfer);
 
   /* We need at least firmware version 10.1, and for 10.1 build 2989158 */
   if (self->mis_version.version_major < 10 ||

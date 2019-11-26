@@ -68,7 +68,6 @@ aesX660_send_cmd_timeout (FpiSsm                *ssm,
                                    cmd_len, NULL);
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, timeout, NULL, callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -100,7 +99,6 @@ aesX660_read_response (FpiSsm                *ssm,
   transfer->ssm = ssm;
   transfer->short_is_error = short_is_error;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, cancel, callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
