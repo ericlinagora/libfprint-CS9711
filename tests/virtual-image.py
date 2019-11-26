@@ -10,10 +10,19 @@ import sys
 import unittest
 import socket
 import struct
+import subprocess
 import shutil
 import glob
 import cairo
 import tempfile
+
+# Re-run the test with the passed wrapper if set
+wrapper = os.getenv('LIBFPRINT_TEST_WRAPPER')
+if wrapper:
+    wrap_cmd = wrapper.split(' ') + [sys.executable, os.path.abspath(__file__)] + \
+        sys.argv[1:]
+    os.unsetenv('LIBFPRINT_TEST_WRAPPER')
+    sys.exit(subprocess.check_call(wrap_cmd))
 
 class Connection:
 
@@ -273,7 +282,6 @@ class VirtualImage(unittest.TestCase):
         while self._verify_match is None:
             ctx.iteration(True)
         assert(not self._verify_match)
-
 
 # avoid writing to stderr
 unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
