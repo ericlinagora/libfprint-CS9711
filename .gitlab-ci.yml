@@ -49,6 +49,14 @@ test:
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit
 
+test_valgrind:
+  stage: test
+  script:
+    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES valgrind
+    - meson -Ddrivers=all . _build
+    - ninja -C _build
+    - meson test -C _build --verbose --no-stdsplit --setup=valgrind
+
 test_indent:
   stage: check-source
   script:
