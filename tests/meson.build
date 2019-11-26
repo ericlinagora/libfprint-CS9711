@@ -44,3 +44,13 @@ if get_option('introspection')
         )
     endif
 endif
+
+gdb = find_program('gdb', required: false)
+if gdb.found()
+    add_test_setup('gdb',
+        timeout_multiplier: 1000,
+        env: [
+            'LIBFPRINT_TEST_WRAPPER=@0@ --args'.format(
+                gdb.path())
+        ])
+endif
