@@ -113,7 +113,7 @@ GQuark fp_device_error_quark (void);
  * FpEnrollProgress:
  * @device: a #FpDevice
  * @completed_stages: Number of completed stages
- * @print: (nullable): The last scaned print
+ * @print: (nullable) (transfer none): The last scaned print
  * @user_data: (nullable): User provided data
  * @error: (nullable) (transfer none): #GError or %NULL
  *
