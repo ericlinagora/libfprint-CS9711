@@ -186,6 +186,8 @@ fp_context_finalize (GObject *object)
   g_cancellable_cancel (priv->cancellable);
   g_clear_object (&priv->cancellable);
   g_clear_pointer (&priv->drivers, g_array_unref);
+
+  g_object_run_dispose (G_OBJECT (priv->usb_ctx));
   g_clear_object (&priv->usb_ctx);
 
   G_OBJECT_CLASS (fp_context_parent_class)->finalize (object);
