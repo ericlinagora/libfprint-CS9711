@@ -389,8 +389,8 @@ static void
 fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   g_autoptr(FpImage) image = FP_IMAGE (source_object);
+  g_autoptr(FpPrint) print = NULL;
   GError *error = NULL;
-  FpPrint *print = NULL;
   FpDevice *device = FP_DEVICE (user_data);
   FpImageDevicePrivate *priv;
   FpDeviceAction action;
@@ -443,7 +443,8 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
           priv->enroll_stage += 1;
         }
 
-      fpi_device_enroll_progress (device, priv->enroll_stage, print, error);
+      fpi_device_enroll_progress (device, priv->enroll_stage,
+                                  g_steal_pointer (&print), error);
 
       if (priv->enroll_stage == IMG_ENROLL_STAGES)
         {
@@ -462,7 +463,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
       else
         result = FPI_MATCH_ERROR;
 
-      fpi_device_verify_complete (device, result, print, error);
+      fpi_device_verify_complete (device, result, g_steal_pointer (&print), error);
       fp_image_device_deactivate (device);
     }
   else if (action == FP_DEVICE_ACTION_IDENTIFY)
@@ -483,7 +484,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
             }
         }
 
-      fpi_device_identify_complete (device, result, print, error);
+      fpi_device_identify_complete (device, result, g_steal_pointer (&print), error);
       fp_image_device_deactivate (device);
     }
   else
