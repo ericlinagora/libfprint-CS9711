@@ -81,7 +81,7 @@ recv_image_img_recv_cb (GObject      *source_object,
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
       g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-      self->connection = NULL;
+      g_clear_object (&self->connection);
       return;
     }
 
@@ -118,7 +118,7 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
       g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-      self->connection = NULL;
+      g_clear_object (&self->connection);
       return;
     }
 
@@ -127,7 +127,7 @@ recv_image_hdr_recv_cb (GObject      *source_object,
     {
       g_warning ("Image header suggests an unrealistically large image, disconnecting client.");
       g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-      self->connection = NULL;
+      g_clear_object (&self->connection);
     }
 
   if (self->recv_img_hdr[0] < 0 || self->recv_img_hdr[1] < 0)
@@ -148,7 +148,7 @@ recv_image_hdr_recv_cb (GObject      *source_object,
         default:
           /* disconnect client, it didn't play fair */
           g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-          self->connection = NULL;
+          g_clear_object (&self->connection);
         }
 
       /* And, listen for more images from the same client. */
@@ -206,6 +206,7 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
   if (dev->connection)
     {
       g_io_stream_close (G_IO_STREAM (connection), NULL, NULL);
+      g_object_unref (connection);
       return;
     }
 
