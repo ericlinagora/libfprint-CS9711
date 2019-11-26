@@ -101,6 +101,7 @@ fp_print_finalize (GObject *object)
   g_clear_pointer (&self->description, g_free);
   g_clear_pointer (&self->enroll_date, g_date_free);
   g_clear_pointer (&self->data, g_variant_unref);
+  g_clear_pointer (&self->prints, g_ptr_array_unref);
 
   G_OBJECT_CLASS (fp_print_parent_class)->finalize (object);
 }
