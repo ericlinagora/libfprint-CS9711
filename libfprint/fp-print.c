@@ -978,6 +978,7 @@ fp_print_deserialize (const guchar *data,
   g_autoptr(FpPrint) result = NULL;
   g_autoptr(GVariant) raw_value = NULL;
   g_autoptr(GVariant) value = NULL;
+  g_autoptr(GVariant) print_data = NULL;
   guchar *aligned_data = NULL;
   GDate *date = NULL;
   guint8 finger_int8;
@@ -989,7 +990,6 @@ fp_print_deserialize (const guchar *data,
   const gchar *driver;
   const gchar *device_id;
   gboolean device_stored;
-  GVariant *print_data;
 
   g_assert (data);
   g_assert (length > 3);
@@ -1020,7 +1020,7 @@ fp_print_deserialize (const guchar *data,
     value = g_variant_get_normal_form (raw_value);
 
   g_variant_get (value,
-                 "(issbymsmsi@a{sv}v)",
+                 "(i&s&sbymsmsi@a{sv}v)",
                  &type,
                  &driver,
                  &device_id,
