@@ -2342,9 +2342,8 @@ fpi_device_enroll_progress (FpDevice *device,
                                 data->enroll_progress_data,
                                 error);
     }
-  if (error)
-    g_error_free (error);
 
+  g_clear_error (&error);
   g_clear_object (&print);
 }
 
