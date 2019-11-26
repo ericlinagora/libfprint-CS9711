@@ -789,7 +789,6 @@ m_exit_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
   else
     fp_dbg ("The device is now in idle state");
   fpi_image_device_deactivate_complete (idev, error);
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -911,7 +910,6 @@ m_capture_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
           g_error_free (error);
         }
     }
-  fpi_ssm_free (ssm);
 
   if (self->is_active == TRUE)
     {
@@ -1061,7 +1059,6 @@ m_finger_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
       self->is_active = FALSE;
     }
 
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -1265,7 +1262,6 @@ m_tunevrb_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
   if (!self->is_active)
     m_exit_start (idev);
 
-  fpi_ssm_free (ssm);
 }
 
 /*
@@ -1409,7 +1405,6 @@ m_tunedc_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
   if (!self->is_active)
     m_exit_start (idev);
 
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -1543,7 +1538,6 @@ m_init_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
       reset_param (FPI_DEVICE_ETES603 (dev));
       fpi_image_device_session_error (idev, error);
     }
-  fpi_ssm_free (ssm);
 }
 
 static void

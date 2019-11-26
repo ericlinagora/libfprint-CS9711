@@ -389,7 +389,6 @@ capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error_arg)
 
   g_autoptr(GError) error = error_arg;
 
-  fpi_ssm_free (ssm);
 
   /* Note: We assume that the error is a cancellation in the deactivation case */
   if (self->deactivating)
@@ -470,7 +469,6 @@ deactivate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (_dev);
 
   fp_dbg ("Deactivate completed");
-  fpi_ssm_free (ssm);
 
   self->deactivating = FALSE;
   fpi_image_device_deactivate_complete (dev,  error);
@@ -601,7 +599,6 @@ activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
 
-  fpi_ssm_free (ssm);
   fpi_image_device_activate_complete (dev, error);
 
   if (!error)

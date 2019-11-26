@@ -669,7 +669,6 @@ dev_activate_callback (FpiSsm *ssm, FpDevice *dev, GError *error)
       g_error_free (error);
     }
 
-  fpi_ssm_free (ssm);
 }
 
 /* Activate device */
@@ -710,7 +709,6 @@ dev_open_callback (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   /* Notify open complete */
   fpi_image_device_open_complete (FP_IMAGE_DEVICE (dev), error);
-  fpi_ssm_free (ssm);
 }
 
 /* Open device */

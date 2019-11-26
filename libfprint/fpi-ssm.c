@@ -51,6 +51,7 @@
  *
  * To start a ssm, you pass in a completion callback function to fpi_ssm_start()
  * which gets called when the ssm completes (both on error and on failure).
+ * Starting a ssm also takes ownership of it.
  *
  * To iterate to the next state, call fpi_ssm_next_state(). It is legal to
  * attempt to iterate beyond the final state - this is equivalent to marking
@@ -58,6 +59,7 @@
  *
  * To mark successful completion of a SSM, either iterate beyond the final
  * state or call fpi_ssm_mark_completed() from any state.
+ * This will also invalidate the machine, freeing it.
  *
  * To mark failed completion of a SSM, call fpi_ssm_mark_failed() from any
  * state. You must pass a non-zero error code.
@@ -125,7 +127,6 @@ fpi_ssm_new (FpDevice             *dev,
  * @ssm_data_destroy: (nullable): #GDestroyNotify for @ssm_data
  *
  * Sets @machine's data (freeing the existing data, if any).
- *
  */
 void
 fpi_ssm_set_data (FpiSsm        *machine,
@@ -182,12 +183,16 @@ __ssm_call_handler (FpiSsm *machine)
 
 /**
  * fpi_ssm_start:
- * @ssm: an #FpiSsm state machine
+ * @ssm: (transfer full): an #FpiSsm state machine
  * @callback: the #FpiSsmCompletedCallback callback to call on completion
  *
  * Starts a state machine. You can also use this function to restart
  * a completed or failed state machine. The @callback will be called
  * on completion.
+ *
+ * Note that @ssm will be stolen when this function is called.
+ * So that all associated data will be free'ed automatically, after the
+ * @callback is ran.
  */
 void
 fpi_ssm_start (FpiSsm *ssm, FpiSsmCompletedCallback callback)
@@ -210,7 +215,6 @@ __subsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
     fpi_ssm_mark_failed (parent, error);
   else
     fpi_ssm_next_state (parent);
-  fpi_ssm_free (ssm);
 }
 
 /**
@@ -253,6 +257,7 @@ fpi_ssm_mark_completed (FpiSsm *machine)
 
       machine->callback (machine, machine->dev, error);
     }
+  fpi_ssm_free (machine);
 }
 
 /**
@@ -260,7 +265,7 @@ fpi_ssm_mark_completed (FpiSsm *machine)
  * @machine: an #FpiSsm state machine
  * @error: a #GError
  *
- * Mark a state machine as failed with @error as the error code.
+ * Mark a state machine as failed with @error as the error code, completing it.
  */
 void
 fpi_ssm_mark_failed (FpiSsm *machine, GError *error)
@@ -305,6 +310,8 @@ fpi_ssm_next_state (FpiSsm *machine)
  * @state: the state to jump to
  *
  * Jump to the @state state, bypassing intermediary states.
+ * If @state is the last state, the machine won't be completed unless
+ * fpi_ssm_mark_completed() isn't explicitly called.
  */
 void
 fpi_ssm_jump_to_state (FpiSsm *machine, int state)

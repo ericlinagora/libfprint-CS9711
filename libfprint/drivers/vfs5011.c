@@ -745,7 +745,6 @@ activate_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
       submit_image (ssm, self, dev);
       fpi_image_device_report_finger_status (dev, FALSE);
     }
-  fpi_ssm_free (ssm);
 
   self->loop_running = FALSE;
 
@@ -793,7 +792,6 @@ open_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   self->init_sequence.receive_buf = NULL;
 
   fpi_image_device_open_complete (dev, error);
-  fpi_ssm_free (ssm);
 }
 
 static void

@@ -960,7 +960,6 @@ m_loop_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 
   self->active = FALSE;
 
-  fpi_ssm_free (ssm);
 }
 
 /* Init ssm states */
@@ -1268,7 +1267,6 @@ m_init_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
     }
 
   /* Free sequential state machine */
-  fpi_ssm_free (ssm);
 }
 
 /* Activate device */

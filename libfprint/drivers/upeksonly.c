@@ -1380,7 +1380,6 @@ loopsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
-  fpi_ssm_free (ssm);
 
   if (self->deactivating)
     {
@@ -1401,7 +1400,6 @@ initsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
-  fpi_ssm_free (ssm);
   fpi_image_device_activate_complete (dev, error);
   if (error)
     return;

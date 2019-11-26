@@ -789,7 +789,6 @@ imaging_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (dev);
 
-  fpi_ssm_free (ssm);
 
   /* Report error before exiting imaging loop - the error handler
    * can request state change, which needs to be postponed to end of

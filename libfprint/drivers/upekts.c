@@ -990,7 +990,6 @@ enroll_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
     fp_warn ("Error deinitializing: %s", error->message);
 
   fpi_device_enroll_complete (dev, data->print, data->error);
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -1217,7 +1216,6 @@ enroll_started (FpiSsm *ssm, FpDevice *dev, GError *error)
   else
     enroll_iterate (dev);
 
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -1256,7 +1254,6 @@ verify_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
     fp_warn ("Error deinitializing: %s", error->message);
 
   fpi_device_verify_complete (dev, data->res, NULL, data->error);
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -1540,7 +1537,6 @@ verify_started (FpiSsm *ssm, FpDevice *dev, GError *error)
   upekdev->first_verify_iteration = TRUE;
   verify_iterate (dev);
 
-  fpi_ssm_free (ssm);
 }
 
 static void

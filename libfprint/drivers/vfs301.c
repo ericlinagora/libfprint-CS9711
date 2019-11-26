@@ -168,7 +168,6 @@ m_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
       g_error_free (error);
     }
   /* Free sequential state machine */
-  fpi_ssm_free (ssm);
 }
 
 /* Exec init sequential state machine */
@@ -201,7 +200,6 @@ m_init_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
     }
 
   /* Free sequential state machine */
-  fpi_ssm_free (ssm);
 }
 
 /* Activate device */

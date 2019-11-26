@@ -301,7 +301,6 @@ loopsm_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
   FpImageDevice *imgdev = FP_IMAGE_DEVICE (dev);
   FpDeviceVcom5s *self = FPI_DEVICE_VCOM5S (dev);
 
-  fpi_ssm_free (ssm);
   g_object_unref (self->capture_img);
   self->capture_img = NULL;
   self->loop_running = FALSE;

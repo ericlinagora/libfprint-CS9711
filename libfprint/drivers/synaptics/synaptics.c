@@ -290,7 +290,6 @@ cmd_ssm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
     }
   self->cmd_complete_on_removal = FALSE;
   g_clear_pointer (&self->cmd_complete_error, g_error_free);
-  fpi_ssm_free (ssm);
 }
 
 static void

@@ -215,7 +215,6 @@ finger_det_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 
   fp_dbg ("Finger detection completed");
   fpi_image_device_report_finger_status (dev, TRUE);
-  fpi_ssm_free (ssm);
 
   if (priv->deactivating)
     {
@@ -466,7 +465,6 @@ capture_sm_complete (FpiSsm *ssm, FpDevice *device, GError *error)
   FpiDeviceAesX660Private *priv = fpi_device_aes_x660_get_instance_private (self);
 
   fp_dbg ("Capture completed");
-  fpi_ssm_free (ssm);
 
   if (priv->deactivating)
     {
@@ -672,7 +670,6 @@ static void
 activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
   fpi_image_device_activate_complete (FP_IMAGE_DEVICE (_dev), error);
-  fpi_ssm_free (ssm);
 
   if (!error)
     start_finger_detection (FP_IMAGE_DEVICE (_dev));

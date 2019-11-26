@@ -157,7 +157,6 @@ activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 
   if (!error)
     start_finger_detection (dev);
-  fpi_ssm_free (ssm);
 }
 
 
@@ -345,7 +344,6 @@ capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   else
     start_finger_detection (dev);
 
-  fpi_ssm_free (ssm);
 }
 
 static void
