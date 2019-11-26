@@ -24,25 +24,21 @@ if get_option('introspection')
         )
     endif
 
-    if 'vfs5011' in drivers
-        test('vfs5011',
-            find_program('umockdev-test.py'),
-            args: join_paths(meson.current_source_dir(), 'vfs5011'),
-            env: envs,
-            timeout: 10,
-            depends: libfprint_typelib,
-        )
-    endif
+    drivers_tests = [
+        'vfs5011',
+        'synaptics',
+    ]
 
-    if 'synaptics' in drivers
-        test('synaptics',
+    foreach driver_test: drivers_tests
+        test(driver_test,
             find_program('umockdev-test.py'),
-            args: join_paths(meson.current_source_dir(), 'synaptics'),
+            args: join_paths(meson.current_source_dir(), driver_test),
             env: envs,
+            suite: ['drivers'],
             timeout: 10,
             depends: libfprint_typelib,
         )
-    endif
+    endforeach
 endif
 
 gdb = find_program('gdb', required: false)
