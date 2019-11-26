@@ -50,18 +50,23 @@ def cmp_pngs(png_a, png_b):
         for y in range(img_a.get_height()):
             assert(data_a[y * stride + x * 4] == data_b[y * stride + x * 4])
 
-def capture():
-    ioctl = os.path.join(ddir, "capture.ioctl")
+def get_umockdev_runner(ioctl_basename):
+    ioctl = os.path.join(ddir, "{}.ioctl".format(ioctl_basename))
     device = os.path.join(ddir, "device")
     dev = open(ioctl).readline().strip()
     assert dev.startswith('@DEV ')
     dev = dev[5:]
 
-    subprocess.check_call(['umockdev-run', '-d', device,
-                                           '-i', "%s=%s" % (dev, ioctl),
-                                           '--',
-                                           '%s' % os.path.join(edir, "capture.py"),
-                                             '%s' % os.path.join(tmpdir, "capture.png")])
+    umockdev = ['umockdev-run', '-d', device,
+                '-i', "%s=%s" % (dev, ioctl),
+                '--']
+    wrapper = os.getenv('LIBFPRINT_TEST_WRAPPER')
+    return umockdev + (wrapper.split(' ') if wrapper else []) + [sys.executable]
+
+def capture():
+    subprocess.check_call(get_umockdev_runner("capture") +
+                          ['%s' % os.path.join(edir, "capture.py"),
+                           '%s' % os.path.join(tmpdir, "capture.png")])
 
     assert os.path.isfile(os.path.join(tmpdir, "capture.png"))
     if os.path.isfile(os.path.join(ddir, "capture.png")):
@@ -69,16 +74,8 @@ def capture():
         cmp_pngs(os.path.join(tmpdir, "capture.png"), os.path.join(ddir, "capture.png"))
 
 def custom():
-    ioctl = os.path.join(ddir, "custom.ioctl")
-    device = os.path.join(ddir, "device")
-    dev = open(ioctl).readline().strip()
-    assert dev.startswith('@DEV ')
-    dev = dev[5:]
-
-    subprocess.check_call(['umockdev-run', '-d', device,
-                                           '-i', "%s=%s" % (dev, ioctl),
-                                           '--',
-                                           '%s' % os.path.join(ddir, "custom.py")])
+    subprocess.check_call(get_umockdev_runner("custom") +
+                          ['%s' % os.path.join(ddir, "custom.py")])
 
 try:
     if os.path.exists(os.path.join(ddir, "capture.ioctl")):
