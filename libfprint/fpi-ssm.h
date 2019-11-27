@@ -91,5 +91,9 @@ void fpi_ssm_next_state_timeout_cb (FpDevice *dev,
                                     void     *data);
 void fpi_ssm_usb_transfer_cb (FpiUsbTransfer *transfer,
                               FpDevice       *device,
-                              gpointer        user_data,
+                              gpointer        user_date,
                               GError         *error);
+void fpi_ssm_usb_transfer_with_weak_pointer_cb (FpiUsbTransfer *transfer,
+                                                FpDevice       *device,
+                                                gpointer        weak_ptr,
+                                                GError         *error);

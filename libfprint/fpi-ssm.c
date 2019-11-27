@@ -413,3 +413,32 @@ fpi_ssm_usb_transfer_cb (FpiUsbTransfer *transfer, FpDevice *device,
   else
     fpi_ssm_next_state (transfer->ssm);
 }
+
+/**
+ * fpi_ssm_usb_transfer_with_weak_pointer_cb:
+ * @transfer: a #FpiUsbTransfer
+ * @device: a #FpDevice
+ * @weak_ptr: A #gpointer pointer to nullify. You can pass a pointer to any
+ *            #gpointer to nullify when the callback is completed. I.e a
+ *            pointer to the current #FpiUsbTransfer.
+ * @error: The #GError or %NULL
+ *
+ * Can be used in as a #FpiUsbTransfer callback handler to automatically
+ * advance or fail a statemachine on transfer completion.
+ * Passing a #gpointer* as @weak_ptr permits to nullify it once we're done
+ * with the transfer.
+ *
+ * Make sure to set the #FpiSsm on the transfer.
+ */
+void
+fpi_ssm_usb_transfer_with_weak_pointer_cb (FpiUsbTransfer *transfer,
+                                           FpDevice *device, gpointer weak_ptr,
+                                           GError *error)
+{
+  g_return_if_fail (transfer->ssm);
+
+  if (weak_ptr)
+    g_nullify_pointer ((gpointer *) weak_ptr);
+
+  fpi_ssm_usb_transfer_cb (transfer, device, weak_ptr, error);
+}
