@@ -803,7 +803,7 @@ enroll (FpDevice *device)
   GVariant *uid = NULL;
   const gchar *username;
   guint finger;
-  g_autofree gchar *user_id;
+  g_autofree gchar *user_id = NULL;
   gssize user_id_len;
   g_autofree guint8 *payload = NULL;
   const GDate *date;
