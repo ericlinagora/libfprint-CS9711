@@ -127,9 +127,14 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
           if (fp_print_get_finger (print) == verify_data->finger &&
               g_strcmp0 (fp_print_get_username (print), g_get_user_name ()) == 0)
             {
-              if (!verify_print ||
-                  (g_date_compare (fp_print_get_enroll_date (print),
-                                   fp_print_get_enroll_date (verify_print)) >= 0))
+              const GDate *verify_print_date = NULL;
+              const GDate *print_date = fp_print_get_enroll_date (print);
+
+              if (verify_print)
+                verify_print_date = fp_print_get_enroll_date (verify_print);
+
+              if (!verify_print || !print_date || !verify_print_date ||
+                  g_date_compare (print_date, verify_print_date) >= 0)
                 verify_print = print;
             }
         }

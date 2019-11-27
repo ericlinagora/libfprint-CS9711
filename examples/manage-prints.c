@@ -153,14 +153,19 @@ on_list_completed (FpDevice     *dev,
       for (i = 0; i < prints->len; ++i)
         {
           FpPrint * print = prints->pdata[i];
+          const GDate *date = fp_print_get_enroll_date (print);
 
-          g_date_strftime (buf, G_N_ELEMENTS (buf), "%Y-%m-%d",
-                           fp_print_get_enroll_date (print));
-          g_print ("[%d] Print of %s finger for username %s, enrolled "
-                   "on %s. Description: %s\n", i + 1,
+          g_print ("[%d] Print of %s finger for username %s", i + 1,
                    finger_to_string (fp_print_get_finger (print)),
-                   fp_print_get_username (print), buf,
-                   fp_print_get_description (print));
+                   fp_print_get_username (print));
+
+          if (date)
+            {
+              g_date_strftime (buf, G_N_ELEMENTS (buf), "%Y-%m-%d\0", date);
+              g_print (", enrolled on %s", buf);
+            }
+
+          g_print (". Description: %s\n", fp_print_get_description (print));
         }
 
       if (prints->len)
