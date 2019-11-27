@@ -394,7 +394,7 @@ fpi_ssm_next_state_timeout_cb (FpDevice *dev,
  * fpi_ssm_usb_transfer_cb:
  * @transfer: a #FpiUsbTransfer
  * @device: a #FpDevice
- * @ssm_data: User data (unused)
+ * @unused_data: User data (unused)
  * @error: The #GError or %NULL
  *
  * Can be used in as a #FpiUsbTransfer callback handler to automatically
@@ -404,7 +404,7 @@ fpi_ssm_next_state_timeout_cb (FpDevice *dev,
  */
 void
 fpi_ssm_usb_transfer_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                         gpointer ssm_data, GError *error)
+                         gpointer unused_data, GError *error)
 {
   g_return_if_fail (transfer->ssm);
 
