@@ -114,7 +114,7 @@ GQuark fp_device_error_quark (void);
  * @device: a #FpDevice
  * @completed_stages: Number of completed stages
  * @print: (nullable) (transfer none): The last scaned print
- * @user_data: (nullable): User provided data
+ * @user_data: (nullable) (transfer none): User provided data
  * @error: (nullable) (transfer none): #GError or %NULL
  *
  * The passed error is guaranteed to be of type %FP_DEVICE_RETRY if set.
