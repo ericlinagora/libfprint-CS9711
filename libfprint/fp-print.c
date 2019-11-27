@@ -580,7 +580,10 @@ fpi_print_set_type (FpPrint    *print,
 
   print->type = type;
   if (print->type == FP_PRINT_NBIS)
-    print->prints = g_ptr_array_new_with_free_func (g_free);
+    {
+      g_assert_null (print->prints);
+      print->prints = g_ptr_array_new_with_free_func (g_free);
+    }
   g_object_notify_by_pspec (G_OBJECT (print), properties[PROP_FPI_TYPE]);
 }
 
