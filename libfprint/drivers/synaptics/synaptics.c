@@ -817,9 +817,9 @@ enroll (FpDevice *device)
   date = fp_print_get_enroll_date (print);
   if (date && g_date_valid (date))
     {
-      y = date->year;
-      m = date->month;
-      d = date->day;
+      y = g_date_get_year (date);
+      m = g_date_get_month (date);
+      d = g_date_get_day (date);
     }
   else
     {
