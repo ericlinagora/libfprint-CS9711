@@ -257,16 +257,6 @@ enum capture_states {
 };
 
 static void
-capture_cmd_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                gpointer user_data, GError *error)
-{
-  if (!error)
-    fpi_ssm_next_state (transfer->ssm);
-  else
-    fpi_ssm_mark_failed (transfer->ssm, error);
-}
-
-static void
 capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
                       gpointer user_data, GError *error)
 {
@@ -304,7 +294,7 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
         transfer->ssm = ssm;
         transfer->short_is_error = TRUE;
         fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
-                                 capture_cmd_cb, NULL);
+                                 fpi_ssm_usb_transfer_cb, NULL);
       }
       break;
 

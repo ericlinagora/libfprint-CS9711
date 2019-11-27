@@ -116,18 +116,6 @@ stub_capture_stop_cb (FpImageDevice *dev, GError *error,
     }
 }
 
-
-/* check that read succeeded but ignore all data */
-static void
-generic_ignore_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                        gpointer user_data, GError *error)
-{
-  if (error)
-    fpi_ssm_mark_failed (transfer->ssm, error);
-  else
-    fpi_ssm_next_state (transfer->ssm);
-}
-
 static void
 generic_write_regv_cb (FpImageDevice *dev, GError *error,
                        void *user_data)
@@ -154,7 +142,7 @@ generic_read_ignore_data (FpiSsm *ssm, FpDevice *dev,
   transfer->ssm = ssm;
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
-                           generic_ignore_data_cb, NULL);
+                           fpi_ssm_usb_transfer_cb, NULL);
 }
 
 /****** FINGER PRESENCE DETECTION ******/

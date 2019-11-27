@@ -657,17 +657,6 @@ sm_write_regs (FpiSsm                      *ssm,
 }
 
 static void
-sm_write_reg_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                 gpointer user_data, GError *error)
-{
-  if (error)
-    fpi_ssm_mark_failed (transfer->ssm, error);
-  else
-    fpi_ssm_next_state (transfer->ssm);
-
-}
-
-static void
 sm_write_reg (FpiSsm        *ssm,
               FpImageDevice *dev,
               guint8         reg,
@@ -686,7 +675,8 @@ sm_write_reg (FpiSsm        *ssm,
                                  1);
   transfer->short_is_error = TRUE;
   transfer->ssm = ssm;
-  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, sm_write_reg_cb, NULL);
+  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL,
+                           fpi_ssm_usb_transfer_cb, NULL);
 
   transfer->buffer[0] = value;
 }

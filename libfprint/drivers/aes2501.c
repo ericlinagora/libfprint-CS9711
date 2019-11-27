@@ -182,19 +182,6 @@ generic_write_regv_cb (FpImageDevice *dev, GError *error,
     fpi_ssm_mark_failed (ssm, error);
 }
 
-/* check that read succeeded but ignore all data */
-static void
-generic_ignore_data_cb (FpiUsbTransfer *transfer, FpDevice *dev,
-                        gpointer user_data, GError *error)
-{
-  FpiSsm *ssm = transfer->ssm;
-
-  if (error)
-    fpi_ssm_mark_failed (ssm, error);
-  else
-    fpi_ssm_next_state (ssm);
-}
-
 /* read the specified number of bytes from the IN endpoint but throw them
  * away, then increment the SSM */
 static void
@@ -208,7 +195,7 @@ generic_read_ignore_data (FpiSsm *ssm, FpDevice *dev,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_fill_bulk (transfer, EP_IN, bytes);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
-                           generic_ignore_data_cb, NULL);
+                           fpi_ssm_usb_transfer_cb, NULL);
 }
 
 /****** IMAGE PROCESSING ******/

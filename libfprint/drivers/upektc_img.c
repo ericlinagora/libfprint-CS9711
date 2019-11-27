@@ -502,16 +502,6 @@ enum activate_states {
 };
 
 static void
-init_reqs_ctrl_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                   gpointer user_data, GError *error)
-{
-  if (!error)
-    fpi_ssm_next_state (transfer->ssm);
-  else
-    fpi_ssm_mark_failed (transfer->ssm, error);
-}
-
-static void
 init_reqs_cb (FpiUsbTransfer *transfer, FpDevice *device,
               gpointer user_data, GError *error)
 {
@@ -554,7 +544,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev)
         transfer->buffer[0] = '\0';
         transfer->ssm = ssm;
         fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL,
-                                 init_reqs_ctrl_cb, NULL);
+                                 fpi_ssm_usb_transfer_cb, NULL);
       }
       break;
 

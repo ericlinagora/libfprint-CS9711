@@ -102,16 +102,6 @@ aesX660_read_response (FpiSsm                *ssm,
 }
 
 static void
-aesX660_send_cmd_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                     gpointer user_data, GError *error)
-{
-  if (!error)
-    fpi_ssm_next_state (transfer->ssm);
-  else
-    fpi_ssm_mark_failed (transfer->ssm, error);
-}
-
-static void
 aesX660_read_calibrate_data_cb (FpiUsbTransfer *transfer,
                                 FpDevice *device,
                                 gpointer user_data, GError *error)
@@ -238,12 +228,12 @@ finger_det_run_state (FpiSsm *ssm, FpDevice *dev)
     {
     case FINGER_DET_SEND_LED_CMD:
       aesX660_send_cmd (ssm, dev, led_blink_cmd, sizeof (led_blink_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case FINGER_DET_SEND_FD_CMD:
       aesX660_send_cmd_timeout (ssm, dev, wait_for_finger_cmd, sizeof (wait_for_finger_cmd),
-                                aesX660_send_cmd_cb, 0);
+                                fpi_ssm_usb_transfer_cb, 0);
       break;
 
     case FINGER_DET_READ_FD_DATA:
@@ -433,14 +423,14 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
     {
     case CAPTURE_SEND_LED_CMD:
       aesX660_send_cmd (ssm, _dev, led_solid_cmd, sizeof (led_solid_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case CAPTURE_SEND_CAPTURE_CMD:
       g_byte_array_set_size (priv->stripe_packet, 0);
       aesX660_send_cmd (ssm, _dev, cls->start_imaging_cmd,
                         cls->start_imaging_cmd_len,
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case CAPTURE_READ_STRIPE_DATA:
@@ -625,13 +615,13 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev)
       priv->init_seq_idx = 0;
       fp_dbg ("Activate: set idle\n");
       aesX660_send_cmd (ssm, _dev, set_idle_cmd, sizeof (set_idle_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_SEND_READ_ID_CMD:
       fp_dbg ("Activate: read ID\n");
       aesX660_send_cmd (ssm, _dev, read_id_cmd, sizeof (read_id_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_READ_ID:
@@ -645,7 +635,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev)
       aesX660_send_cmd (ssm, _dev,
                         priv->init_seq[priv->init_cmd_idx].cmd,
                         priv->init_seq[priv->init_cmd_idx].len,
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_READ_INIT_RESPONSE:
@@ -655,7 +645,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev)
 
     case ACTIVATE_SEND_CALIBRATE_CMD:
       aesX660_send_cmd (ssm, _dev, calibrate_cmd, sizeof (calibrate_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_READ_CALIBRATE_DATA:
