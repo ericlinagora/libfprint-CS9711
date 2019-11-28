@@ -970,10 +970,7 @@ dev_probe (FpDevice *device)
     }
 
   if (!g_usb_device_reset (fpi_device_get_usb_device (device), &error))
-    {
-      fpi_device_probe_complete (device, NULL, NULL, error);
-      return;
-    }
+    goto err_close;
 
   if (!g_usb_device_claim_interface (fpi_device_get_usb_device (device), 0, 0, &error))
     goto err_close;
