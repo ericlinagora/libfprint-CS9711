@@ -950,7 +950,8 @@ dev_probe (FpDevice *device)
 {
   FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
   GUsbDevice *usb_dev;
-  FpiUsbTransfer *transfer;
+
+  g_autoptr(FpiUsbTransfer) transfer = NULL;
   FpiByteReader reader;
   GError *error = NULL;
   guint16 status;
@@ -985,7 +986,7 @@ dev_probe (FpDevice *device)
   if (!fpi_usb_transfer_submit_sync (transfer, 1000, &error))
     goto err_close;
 
-
+  g_clear_pointer (&transfer, fpi_usb_transfer_unref);
   transfer = fpi_usb_transfer_new (device);
   fpi_usb_transfer_fill_bulk (transfer, USB_EP_REPLY, 40);
   if (!fpi_usb_transfer_submit_sync (transfer, 1000, &error))
