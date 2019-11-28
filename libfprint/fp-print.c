@@ -1009,7 +1009,7 @@ fp_print_deserialize (const guchar *data,
   memcpy (aligned_data, data + 3, length - 3);
   raw_value = g_variant_new_from_data (FP_PRINT_VARIANT_TYPE,
                                        aligned_data, length - 3,
-                                       FALSE, g_free, NULL);
+                                       FALSE, g_free, aligned_data);
 
   if (!raw_value)
     goto invalid_format;
