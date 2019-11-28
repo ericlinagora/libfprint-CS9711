@@ -48,7 +48,10 @@ def cmp_pngs(png_a, png_b):
 
     for x in range(img_a.get_width()):
         for y in range(img_a.get_height()):
-            assert(data_a[y * stride + x * 4] == data_b[y * stride + x * 4])
+            # RGB24 format is endian dependent, using +1 means we test either
+            # the G or B component, which works on any endian for the greyscale
+            # test.
+            assert(data_a[y * stride + x * 4 + 1] == data_b[y * stride + x * 4 + 1])
 
 def get_umockdev_runner(ioctl_basename):
     ioctl = os.path.join(ddir, "{}.ioctl".format(ioctl_basename))
