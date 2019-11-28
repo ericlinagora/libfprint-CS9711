@@ -385,8 +385,10 @@ median_filter (int *data, int size, int filtersize)
 
 static void
 interpolate_lines (struct fpi_line_asmbl_ctx *ctx,
-                   GSList *line1, float y1, GSList *line2,
-                   float y2, unsigned char *output, float yi, int size)
+                   GSList *line1, gint32 y1_f,
+                   GSList *line2, gint32 y2_f,
+                   unsigned char *output, gint32 yi_f,
+                   int size)
 {
   int i;
   unsigned char p1, p2;
@@ -396,10 +398,12 @@ interpolate_lines (struct fpi_line_asmbl_ctx *ctx,
 
   for (i = 0; i < size; i++)
     {
+      gint unscaled;
       p1 = ctx->get_pixel (ctx, line1, i);
       p2 = ctx->get_pixel (ctx, line2, i);
-      output[i] = (float) p1
-                  + (yi - y1) / (y2 - y1) * (p2 - p1);
+
+      unscaled = (yi_f - y1_f) * p2 + (y2_f - yi_f) * p1;
+      output[i] = (unscaled) / (y2_f - y1_f);
     }
 }
 
@@ -424,7 +428,13 @@ fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,
   /* Number of output lines per distance between two scanners */
   int i;
   GSList *row1, *row2;
-  float y = 0.0;
+  /* The y coordinate is tracked as a 16.16 fixed point number. All
+   * variables postfixed with _f follow this format here and in
+   * interpolate_lines.
+   * We could also use floating point here, but using fixed point means
+   * we get consistent results across architectures.
+   */
+  gint32 y_f = 0;
   int line_ind = 0;
   int *offsets = g_new0 (int, num_lines / 2);
   unsigned char *output = g_malloc0 (ctx->line_width * ctx->max_height);
@@ -476,21 +486,21 @@ fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,
       int offset = offsets[i / 2];
       if (offset > 0)
         {
-          float ynext = y + (float) ctx->resolution / offset;
-          while (line_ind < ynext)
+          gint32 ynext_f = y_f + (ctx->resolution << 16) / offset;
+          while ((line_ind << 16) < ynext_f)
             {
               if (line_ind > ctx->max_height - 1)
                 goto out;
               interpolate_lines (ctx,
-                                 row1, y,
+                                 row1, y_f,
                                  g_slist_next (row1),
-                                 ynext,
+                                 ynext_f,
                                  output + line_ind * ctx->line_width,
-                                 line_ind,
+                                 line_ind << 16,
                                  ctx->line_width);
               line_ind++;
             }
-          y = ynext;
+          y_f = ynext_f;
         }
     }
 out:
