@@ -114,6 +114,7 @@ fpi_ssm_new (FpDevice             *dev,
   FpiSsm *machine;
 
   BUG_ON (nr_states < 1);
+  BUG_ON (handler == NULL);
 
   machine = g_new0 (FpiSsm, 1);
   machine->handler = handler;
