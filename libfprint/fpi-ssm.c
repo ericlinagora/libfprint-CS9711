@@ -88,6 +88,8 @@ struct _FpiSsm
   int                     cur_state;
   gboolean                completed;
   GSource                *timeout;
+  GCancellable           *cancellable;
+  gulong                  cancellable_id;
   GError                 *error;
   FpiSsmCompletedCallback callback;
   FpiSsmHandlerCallback   handler;
@@ -155,6 +157,81 @@ fpi_ssm_get_data (FpiSsm *machine)
   return machine->ssm_data;
 }
 
+static void
+fpi_ssm_clear_delayed_action (FpiSsm *machine)
+{
+  if (machine->cancellable_id)
+    {
+      g_cancellable_disconnect (machine->cancellable, machine->cancellable_id);
+      machine->cancellable_id = 0;
+    }
+
+  g_clear_object (&machine->cancellable);
+  g_clear_pointer (&machine->timeout, g_source_destroy);
+}
+
+typedef struct _CancelledActionIdleData
+{
+  gulong        cancellable_id;
+  GCancellable *cancellable;
+} CancelledActionIdleData;
+
+static gboolean
+on_delayed_action_cancelled_idle (gpointer user_data)
+{
+  CancelledActionIdleData *data = user_data;
+
+  g_cancellable_disconnect (data->cancellable, data->cancellable_id);
+  g_object_unref (data->cancellable);
+  g_free (data);
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+on_delayed_action_cancelled (GCancellable *cancellable,
+                             FpiSsm       *machine)
+{
+  CancelledActionIdleData *data;
+
+  g_clear_pointer (&machine->timeout, g_source_destroy);
+
+  data = g_new0 (CancelledActionIdleData, 1);
+  data->cancellable = g_steal_pointer (&machine->cancellable);
+  data->cancellable_id = machine->cancellable_id;
+  machine->cancellable_id = 0;
+
+  g_idle_add_full (G_PRIORITY_HIGH_IDLE, on_delayed_action_cancelled_idle,
+                   data, NULL);
+}
+
+static void
+fpi_ssm_set_delayed_action_timeout (FpiSsm        *machine,
+                                    int            delay,
+                                    FpTimeoutFunc  callback,
+                                    GCancellable  *cancellable,
+                                    gpointer       user_data,
+                                    GDestroyNotify destroy_func)
+{
+  BUG_ON (machine->completed);
+  BUG_ON (machine->timeout != NULL);
+
+  fpi_ssm_clear_delayed_action (machine);
+
+  if (cancellable != NULL)
+    {
+      g_set_object (&machine->cancellable, cancellable);
+
+      machine->cancellable_id =
+        g_cancellable_connect (machine->cancellable,
+                               G_CALLBACK (on_delayed_action_cancelled),
+                               machine, NULL);
+    }
+
+  machine->timeout = fpi_device_add_timeout (machine->dev, delay, callback,
+                                             user_data, destroy_func);
+}
+
 /**
  * fpi_ssm_free:
  * @machine: an #FpiSsm state machine
@@ -173,7 +250,7 @@ fpi_ssm_free (FpiSsm *machine)
   if (machine->ssm_data_destroy)
     g_clear_pointer (&machine->ssm_data, machine->ssm_data_destroy);
   g_clear_pointer (&machine->error, g_error_free);
-  g_clear_pointer (&machine->timeout, g_source_destroy);
+  fpi_ssm_clear_delayed_action (machine);
   g_free (machine);
 }
 
@@ -254,7 +331,8 @@ fpi_ssm_mark_completed (FpiSsm *machine)
   BUG_ON (machine->completed);
   BUG_ON (machine->timeout != NULL);
 
-  g_clear_pointer (&machine->timeout, g_source_destroy);
+  fpi_ssm_clear_delayed_action (machine);
+
   machine->completed = TRUE;
 
   if (machine->error)
@@ -309,7 +387,7 @@ fpi_ssm_next_state (FpiSsm *machine)
   BUG_ON (machine->completed);
   BUG_ON (machine->timeout != NULL);
 
-  g_clear_pointer (&machine->timeout, g_source_destroy);
+  fpi_ssm_clear_delayed_action (machine);
 
   machine->cur_state++;
   if (machine->cur_state == machine->nr_states)
@@ -325,7 +403,7 @@ fpi_ssm_cancel_delayed_state_change (FpiSsm *machine)
   BUG_ON (machine->completed);
   BUG_ON (machine->timeout == NULL);
 
-  g_clear_pointer (&machine->timeout, g_source_destroy);
+  fpi_ssm_clear_delayed_action (machine);
 }
 
 static void
@@ -342,25 +420,26 @@ on_device_timeout_next_state (FpDevice *dev,
  * fpi_ssm_next_state_delayed:
  * @machine: an #FpiSsm state machine
  * @delay: the milliseconds to wait before switching to the next state
+ * @cancellable: (nullable): a #GCancellable to cancel the delayed operation
  *
  * Iterate to next state of a state machine with a delay of @delay ms. If the
  * current state is the last state, then the state machine will be marked as
  * completed, as if calling fpi_ssm_mark_completed().
+ * Passing a valid #GCancellable will cause the action to be cancelled when
+ * @cancellable is.
  */
 void
-fpi_ssm_next_state_delayed (FpiSsm *machine,
-                            int     delay)
+fpi_ssm_next_state_delayed (FpiSsm       *machine,
+                            int           delay,
+                            GCancellable *cancellable)
 {
   g_autofree char *source_name = NULL;
 
   g_return_if_fail (machine != NULL);
-  BUG_ON (machine->completed);
-  BUG_ON (machine->timeout != NULL);
 
-  g_clear_pointer (&machine->timeout, g_source_destroy);
-  machine->timeout = fpi_device_add_timeout (machine->dev, delay,
-                                             on_device_timeout_next_state,
-                                             machine, NULL);
+  fpi_ssm_set_delayed_action_timeout (machine, delay,
+                                      on_device_timeout_next_state, cancellable,
+                                      machine, NULL);
 
   source_name = g_strdup_printf ("[%s] ssm %p jump to next state %d",
                                  fp_device_get_device_id (machine->dev),
@@ -384,7 +463,8 @@ fpi_ssm_jump_to_state (FpiSsm *machine, int state)
   BUG_ON (state < 0 || state >= machine->nr_states);
   BUG_ON (machine->timeout != NULL);
 
-  g_clear_pointer (&machine->timeout, g_source_destroy);
+  fpi_ssm_clear_delayed_action (machine);
+
   machine->cur_state = state;
   __ssm_call_handler (machine);
 }
@@ -410,14 +490,18 @@ on_device_timeout_jump_to_state (FpDevice *dev,
  * @machine: an #FpiSsm state machine
  * @state: the state to jump to
  * @delay: the milliseconds to wait before switching to @state state
+ * @cancellable: (nullable): a #GCancellable to cancel the delayed operation
  *
  * Jump to the @state state with a delay of @delay milliseconds, bypassing
  * intermediary states.
+ * Passing a valid #GCancellable will cause the action to be cancelled when
+ * @cancellable is.
  */
 void
-fpi_ssm_jump_to_state_delayed (FpiSsm *machine,
-                               int     state,
-                               int     delay)
+fpi_ssm_jump_to_state_delayed (FpiSsm       *machine,
+                               int           state,
+                               int           delay,
+                               GCancellable *cancellable)
 {
   FpiSsmJumpToStateDelayedData *data;
   g_autofree char *source_name = NULL;
@@ -430,10 +514,9 @@ fpi_ssm_jump_to_state_delayed (FpiSsm *machine,
   data->machine = machine;
   data->next_state = state;
 
-  g_clear_pointer (&machine->timeout, g_source_destroy);
-  machine->timeout = fpi_device_add_timeout (machine->dev, delay,
-                                             on_device_timeout_jump_to_state,
-                                             data, g_free);
+  fpi_ssm_set_delayed_action_timeout (machine, delay,
+                                      on_device_timeout_jump_to_state,
+                                      cancellable, data, g_free);
 
   source_name = g_strdup_printf ("[%s] ssm %p jump to state %d",
                                  fp_device_get_device_id (machine->dev),
