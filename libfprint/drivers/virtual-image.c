@@ -66,13 +66,14 @@ recv_image_img_recv_cb (GObject      *source_object,
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualImage *self;
   FpImageDevice *device;
-  gssize bytes;
+  gboolean success;
+  gsize bytes = 0;
 
-  bytes = g_input_stream_read_finish (G_INPUT_STREAM (source_object), res, &error);
+  success = g_input_stream_read_all_finish (G_INPUT_STREAM (source_object), res, &bytes, &error);
 
-  if (bytes <= 0)
+  if (!success || bytes == 0)
     {
-      if (bytes < 0)
+      if (!success)
         {
           g_warning ("Error receiving header for image data: %s", error->message);
           if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
@@ -103,13 +104,14 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 {
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualImage *self;
-  gssize bytes;
+  gboolean success;
+  gsize bytes;
 
-  bytes = g_input_stream_read_finish (G_INPUT_STREAM (source_object), res, &error);
+  success = g_input_stream_read_all_finish (G_INPUT_STREAM (source_object), res, &bytes, &error);
 
-  if (bytes <= 0)
+  if (!success || bytes == 0)
     {
-      if (bytes < 0)
+      if (!success)
         {
           g_warning ("Error receiving header for image data: %s", error->message);
           if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
@@ -158,25 +160,25 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 
   self->recv_img = fp_image_new (self->recv_img_hdr[0], self->recv_img_hdr[1]);
   g_debug ("image data: %p", self->recv_img->data);
-  g_input_stream_read_async (G_INPUT_STREAM (source_object),
-                             (guint8 *) self->recv_img->data,
-                             self->recv_img->width * self->recv_img->height,
-                             G_PRIORITY_DEFAULT,
-                             self->cancellable,
-                             recv_image_img_recv_cb,
-                             self);
+  g_input_stream_read_all_async (G_INPUT_STREAM (source_object),
+                                 (guint8 *) self->recv_img->data,
+                                 self->recv_img->width * self->recv_img->height,
+                                 G_PRIORITY_DEFAULT,
+                                 self->cancellable,
+                                 recv_image_img_recv_cb,
+                                 self);
 }
 
 static void
 recv_image (FpDeviceVirtualImage *dev, GInputStream *stream)
 {
-  g_input_stream_read_async (stream,
-                             dev->recv_img_hdr,
-                             sizeof (dev->recv_img_hdr),
-                             G_PRIORITY_DEFAULT,
-                             dev->cancellable,
-                             recv_image_hdr_recv_cb,
-                             dev);
+  g_input_stream_read_all_async (stream,
+                                 dev->recv_img_hdr,
+                                 sizeof (dev->recv_img_hdr),
+                                 G_PRIORITY_DEFAULT,
+                                 dev->cancellable,
+                                 recv_image_hdr_recv_cb,
+                                 dev);
 }
 
 static void
