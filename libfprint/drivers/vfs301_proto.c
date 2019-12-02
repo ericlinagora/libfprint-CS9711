@@ -498,7 +498,7 @@ vfs301_proto_peek_event (FpDeviceVfs301 *dev)
     usb_recv (dev, e1, l1, NULL, &error); \
     usb_recv (dev, e2, l2, NULL, NULL); \
     if (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT)) \
-    usb_recv(dev, e1, l1, NULL, NULL); \
+    usb_recv (dev, e1, l1, NULL, NULL); \
   }
 
 static void
