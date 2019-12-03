@@ -407,7 +407,7 @@ static gboolean
 parse_print_data (GVariant      *data,
                   guint8        *finger,
                   const guint8 **user_id,
-                  gssize        *user_id_len)
+                  gsize         *user_id_len)
 {
   g_autoptr(GVariant) user_id_var = NULL;
 
@@ -506,7 +506,7 @@ list_msg_cb (FpiDeviceSynaptics *self,
                    get_enroll_templates_resp->templates[n].user_id,
                    get_enroll_templates_resp->templates[n].finger_id);
 
-          userid = get_enroll_templates_resp->templates[n].user_id;
+          userid = (gchar *) get_enroll_templates_resp->templates[n].user_id;
 
           print = fp_print_new (FP_DEVICE (self));
           uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,

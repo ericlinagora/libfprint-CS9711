@@ -399,7 +399,7 @@ interrupt_callback (FpiUsbTransfer *transfer, FpDevice *device,
                     gpointer user_data, GError *error)
 {
   FpDeviceVfs0050 *self = FPI_DEVICE_VFS0050 (device);
-  char *interrupt = transfer->buffer;
+  unsigned char *interrupt = transfer->buffer;
 
   /* we expect a cancellation error when the device is deactivating
    * go into the SSM_CLEAR_EP2 state in that case. */

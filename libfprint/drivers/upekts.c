@@ -375,7 +375,7 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
       goto err;
     }
 
-  if (strncmp (udata->buffer, "Ciao", 4) != 0)
+  if (strncmp ((char *) udata->buffer, "Ciao", 4) != 0)
     {
       fp_err ("no Ciao for you!!");
       error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,

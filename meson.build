@@ -31,7 +31,6 @@ common_cflags = cc.get_supported_arguments([
     '-Wunused',
     '-Wstrict-prototypes',
     '-Werror-implicit-function-declaration',
-    '-Wno-pointer-sign',
     '-Wshadow',
     '-DGLIB_VERSION_MIN_REQUIRED=' + glib_version_def,
     '-DGLIB_VERSION_MAX_ALLOWED=' + glib_version_def,

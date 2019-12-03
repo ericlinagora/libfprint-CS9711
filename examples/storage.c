@@ -57,7 +57,7 @@ load_data (void)
   GVariantDict *res;
   GVariant *var;
   g_autofree gchar *contents = NULL;
-  gssize length = 0;
+  gsize length = 0;
 
   if (!g_file_get_contents (STORAGE_FILE, &contents, &length, NULL))
     {
