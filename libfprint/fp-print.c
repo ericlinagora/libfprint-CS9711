@@ -207,7 +207,7 @@ fp_print_set_property (GObject      *object,
       break;
 
     case PROP_FPI_DATA:
-      g_clear_pointer (&self->description, g_variant_unref);
+      g_clear_pointer (&self->data, g_variant_unref);
       self->data = g_value_dup_variant (value);
       break;
 
