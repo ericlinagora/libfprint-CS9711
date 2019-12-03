@@ -349,6 +349,46 @@ fpi_ssm_mark_completed (FpiSsm *machine)
   fpi_ssm_free (machine);
 }
 
+static void
+on_device_timeout_complete (FpDevice *dev,
+                            gpointer  user_data)
+{
+  FpiSsm *machine = user_data;
+
+  machine->timeout = NULL;
+  fpi_ssm_mark_completed (machine);
+}
+
+/**
+ * fpi_ssm_mark_completed_delayed:
+ * @machine: an #FpiSsm state machine
+ * @delay: the milliseconds to wait before switching to the next state
+ * @cancellable: (nullable): a #GCancellable to cancel the delayed operation
+ *
+ * Mark a ssm as completed successfully with a delay of @delay ms.
+ * The callback set when creating the state machine with fpi_ssm_new () will be
+ * called when the timeout is over.
+ * The request can be cancelled passing a #GCancellable as @cancellable.
+ */
+void
+fpi_ssm_mark_completed_delayed (FpiSsm       *machine,
+                                int           delay,
+                                GCancellable *cancellable)
+{
+  g_autofree char *source_name = NULL;
+
+  g_return_if_fail (machine != NULL);
+
+  fpi_ssm_set_delayed_action_timeout (machine, delay,
+                                      on_device_timeout_complete, cancellable,
+                                      machine, NULL);
+
+  source_name = g_strdup_printf ("[%s] ssm %p complete %d",
+                                 fp_device_get_device_id (machine->dev),
+                                 machine, machine->cur_state + 1);
+  g_source_set_name (machine->timeout, source_name);
+}
+
 /**
  * fpi_ssm_mark_failed:
  * @machine: an #FpiSsm state machine
