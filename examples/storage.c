@@ -20,6 +20,7 @@
  */
 
 #include <libfprint/fprint.h>
+#include "storage.h"
 
 #include <errno.h>
 #include <stdio.h>
