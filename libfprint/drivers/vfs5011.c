@@ -210,8 +210,8 @@ vfs5011_get_deviation2 (struct fpi_line_asmbl_ctx *ctx, GSList *row1, GSList *ro
   int res = 0, mean = 0, i;
   const int size = 64;
 
-  buf1 = row1->data + 56;
-  buf2 = row2->data + 168;
+  buf1 = (unsigned char *) row1->data + 56;
+  buf2 = (unsigned char *) row2->data + 168;
 
   for (i = 0; i < size; i++)
     mean += (int) buf1[i] + (int) buf2[i];
@@ -232,7 +232,7 @@ vfs5011_get_pixel (struct fpi_line_asmbl_ctx *ctx,
                    GSList                    *row,
                    unsigned                   x)
 {
-  unsigned char *data = row->data + 8;
+  unsigned char *data = (unsigned char *) row->data + 8;
 
   return data[x];
 }
