@@ -182,10 +182,16 @@ class VirtualImage(unittest.TestCase):
         while self._step < 1:
             ctx.iteration(True)
 
+        # Test the image-device path where the finger is removed after
+        # the minutiae scan is completed.
+        self.send_finger_automatic(False)
+        self.send_finger_report(True)
         self.send_image(image)
         while self._step < 2:
             ctx.iteration(True)
+        self.send_finger_report(False)
 
+        self.send_finger_automatic(True)
         self.send_image(image)
         while self._step < 3:
             ctx.iteration(True)
