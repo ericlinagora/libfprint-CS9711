@@ -51,6 +51,7 @@ typedef struct
   FpImageDeviceState state;
   gboolean           active;
 
+  gboolean           enroll_await_on_pending;
   gint               enroll_stage;
 
   guint              pending_activation_timeout_id;
@@ -256,6 +257,7 @@ fp_image_device_start_capture_action (FpDevice *device)
     }
 
   priv->enroll_stage = 0;
+  priv->enroll_await_on_pending = FALSE;
 
   /* The device might still be deactivating from a previous call.
    * In that situation, try to wait for a bit before reporting back an
@@ -386,6 +388,22 @@ fp_image_device_init (FpImageDevice *self)
 }
 
 static void
+fp_image_device_enroll_maybe_await_finger_on (FpImageDevice *self)
+{
+  FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
+
+  if (priv->enroll_await_on_pending)
+    {
+      priv->enroll_await_on_pending = FALSE;
+      fp_image_device_change_state (self, FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON);
+    }
+  else
+    {
+      priv->enroll_await_on_pending = TRUE;
+    }
+}
+
+static void
 fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   g_autoptr(FpImage) image = FP_IMAGE (source_object);
@@ -446,10 +464,15 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
       fpi_device_enroll_progress (device, priv->enroll_stage,
                                   g_steal_pointer (&print), error);
 
+      /* Start another scan or deactivate. */
       if (priv->enroll_stage == IMG_ENROLL_STAGES)
         {
           fpi_device_enroll_complete (device, g_object_ref (enroll_print), NULL);
           fp_image_device_deactivate (device);
+        }
+      else
+        {
+          fp_image_device_enroll_maybe_await_finger_on (FP_IMAGE_DEVICE (device));
         }
     }
   else if (action == FP_DEVICE_ACTION_VERIFY)
@@ -572,13 +595,15 @@ fpi_image_device_report_finger_status (FpImageDevice *self,
        *  2. We are still deactivating the device after an action completed
        *  3. We were waiting for finger removal to start the new action
        * Either way, we always end up deactivating except for the enroll case.
-       * XXX: This is not quite correct though, as we assume we need another finger
-       *      scan even though we might be processing the last one (successfully).
+       *
+       * The enroll case is special as AWAIT_FINGER_ON should only happen after
+       * minutiae detection to prevent deactivation (without cancellation)
+       * from the AWAIT_FINGER_ON state.
        */
       if (action != FP_DEVICE_ACTION_ENROLL)
         fp_image_device_deactivate (device);
       else
-        fp_image_device_change_state (self, FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON);
+        fp_image_device_enroll_maybe_await_finger_on (self);
     }
 }
 
