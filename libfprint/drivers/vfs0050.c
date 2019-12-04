@@ -595,7 +595,8 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
         /* Receive chunk of data */
         transfer = fpi_usb_transfer_new (dev);
         fpi_usb_transfer_fill_bulk_full (transfer, 0x82,
-                                         (void *) self->lines_buffer + self->bytes,
+                                         (guint8 *)
+                                         (self->lines_buffer + self->bytes),
                                          VFS_USB_BUFFER_SIZE, NULL);
         transfer->ssm = ssm;
         fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
