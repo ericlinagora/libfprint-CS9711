@@ -118,6 +118,7 @@ endforeach
 
 # Export the drivers' types to the core code
 drivers_type_list = '#include <glib-object.h>\n'
+drivers_type_list += '#include "fpi-context.h"\n'
 drivers_type_func = 'void fpi_get_driver_types(GArray *drivers)\n{\n\tGType t;\n'
 foreach driver: drivers
     drivers_type_list += 'extern GType (fpi_device_' + driver + '_get_type) (void);\n'
