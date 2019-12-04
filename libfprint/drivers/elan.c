@@ -776,7 +776,6 @@ calibrate_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
     }
   else
     {
-      self->dev_state = FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON;
       elan_capture (dev);
     }
 
@@ -966,6 +965,7 @@ elan_change_state (FpImageDevice *idev)
     {
     case FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
       /* activation completed or another enroll stage started */
+      self->dev_state = FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON;
       elan_calibrate (dev);
       break;
 
