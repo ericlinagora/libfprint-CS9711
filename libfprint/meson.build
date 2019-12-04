@@ -184,12 +184,13 @@ vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfil
 
 deps = [ mathlib_dep, glib_dep, gusb_dep, nss_dep, imaging_dep, gio_dep ]
 
-nbis_lib = static_library('nbis',
+deps += declare_dependency(include_directories: [
+    root_inc,
+    include_directories('nbis/include'),
+])
+
+libnbis = static_library('nbis',
     nbis_sources,
-    include_directories: [
-        root_inc,
-        include_directories('nbis/include'),
-    ],
     dependencies: deps,
     install: false)
 
@@ -199,13 +200,9 @@ libfprint = library('fprint',
     soversion: soversion,
     version: libversion,
     c_args: drivers_cflags,
-    include_directories: [
-        root_inc,
-        include_directories('nbis/include'),
-    ],
     link_args : vflag,
     link_depends : mapfile,
-    link_with: nbis_lib,
+    link_with: libnbis,
     dependencies: deps,
     install: true)
 
@@ -218,9 +215,6 @@ install_headers(['fprint.h'] + libfprint_public_headers, subdir: 'libfprint')
 
 udev_rules = executable('fprint-list-udev-rules',
     'fprint-list-udev-rules.c',
-    include_directories: [
-        root_inc,
-    ],
     dependencies: [ deps, libfprint_dep ],
     install: false)
 
@@ -235,9 +229,6 @@ endif
 
 supported_devices = executable('fprint-list-supported-devices',
     'fprint-list-supported-devices.c',
-    include_directories: [
-        root_inc,
-    ],
     dependencies: [ deps, libfprint_dep ],
     install: false)
 
