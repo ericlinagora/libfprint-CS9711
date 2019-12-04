@@ -211,6 +211,7 @@ fpi_print_bz3_match
 FpiSsmCompletedCallback
 FpiSsmHandlerCallback
 fpi_ssm_new
+fpi_ssm_new_full
 fpi_ssm_free
 fpi_ssm_start
 fpi_ssm_start_subsm

@@ -81,6 +81,7 @@
 struct _FpiSsm
 {
   FpDevice               *dev;
+  const char             *name;
   FpiSsm                 *parentsm;
   gpointer                ssm_data;
   GDestroyNotify          ssm_data_destroy;
@@ -103,13 +104,29 @@ struct _FpiSsm
  *
  * Allocate a new ssm, with @nr_states states. The @handler callback
  * will be called after each state transition.
+ * This is a macro that calls fpi_ssm_new_full() using the stringified
+ * version of @nr_states, so will work better with named parameters.
+ *
+ * Returns: a new #FpiSsm state machine
+ */
+
+/**
+ * fpi_ssm_new_full:
+ * @dev: a #fp_dev fingerprint device
+ * @handler: the callback function
+ * @nr_states: the number of states
+ * @name: the name of the state machine (for debug purposes)
+ *
+ * Allocate a new ssm, with @nr_states states. The @handler callback
+ * will be called after each state transition.
  *
  * Returns: a new #FpiSsm state machine
  */
 FpiSsm *
-fpi_ssm_new (FpDevice             *dev,
-             FpiSsmHandlerCallback handler,
-             int                   nr_states)
+fpi_ssm_new_full (FpDevice             *dev,
+                  FpiSsmHandlerCallback handler,
+                  int                   nr_states,
+                  const char           *name)
 {
   FpiSsm *machine;
 
@@ -120,6 +137,7 @@ fpi_ssm_new (FpDevice             *dev,
   machine->handler = handler;
   machine->nr_states = nr_states;
   machine->dev = dev;
+  machine->name = g_strdup (name);
   machine->completed = TRUE;
   return machine;
 }
@@ -251,6 +269,7 @@ fpi_ssm_free (FpiSsm *machine)
   if (machine->ssm_data_destroy)
     g_clear_pointer (&machine->ssm_data, machine->ssm_data_destroy);
   g_clear_pointer (&machine->error, g_error_free);
+  g_clear_pointer (&machine->name, g_free);
   fpi_ssm_clear_delayed_action (machine);
   g_free (machine);
 }
@@ -259,7 +278,7 @@ fpi_ssm_free (FpiSsm *machine)
 static void
 __ssm_call_handler (FpiSsm *machine)
 {
-  fp_dbg ("%p entering state %d", machine, machine->cur_state);
+  fp_dbg ("%s entering state %d", machine->name, machine->cur_state);
   machine->handler (machine, machine->dev);
 }
 
@@ -337,9 +356,9 @@ fpi_ssm_mark_completed (FpiSsm *machine)
   machine->completed = TRUE;
 
   if (machine->error)
-    fp_dbg ("%p completed with error: %s", machine, machine->error->message);
+    fp_dbg ("%s completed with error: %s", machine->name, machine->error->message);
   else
-    fp_dbg ("%p completed successfully", machine);
+    fp_dbg ("%s completed successfully", machine->name);
   if (machine->callback)
     {
       GError *error = machine->error ? g_error_copy (machine->error) : NULL;
@@ -383,9 +402,9 @@ fpi_ssm_mark_completed_delayed (FpiSsm       *machine,
                                       on_device_timeout_complete, cancellable,
                                       machine, NULL);
 
-  source_name = g_strdup_printf ("[%s] ssm %p complete %d",
+  source_name = g_strdup_printf ("[%s] ssm %s complete %d",
                                  fp_device_get_device_id (machine->dev),
-                                 machine, machine->cur_state + 1);
+                                 machine->name, machine->cur_state + 1);
   g_source_set_name (machine->timeout, source_name);
 }
 
@@ -482,9 +501,9 @@ fpi_ssm_next_state_delayed (FpiSsm       *machine,
                                       on_device_timeout_next_state, cancellable,
                                       machine, NULL);
 
-  source_name = g_strdup_printf ("[%s] ssm %p jump to next state %d",
+  source_name = g_strdup_printf ("[%s] ssm %s jump to next state %d",
                                  fp_device_get_device_id (machine->dev),
-                                 machine, machine->cur_state + 1);
+                                 machine->name, machine->cur_state + 1);
   g_source_set_name (machine->timeout, source_name);
 }
 
@@ -559,9 +578,9 @@ fpi_ssm_jump_to_state_delayed (FpiSsm       *machine,
                                       on_device_timeout_jump_to_state,
                                       cancellable, data, g_free);
 
-  source_name = g_strdup_printf ("[%s] ssm %p jump to state %d",
+  source_name = g_strdup_printf ("[%s] ssm %s jump to state %d",
                                  fp_device_get_device_id (machine->dev),
-                                 machine, state);
+                                 machine->name, state);
   g_source_set_name (machine->timeout, source_name);
 }
 
