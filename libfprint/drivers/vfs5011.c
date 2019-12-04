@@ -190,11 +190,13 @@ usbexchange_loop (FpiSsm *ssm, FpDevice *_dev)
 
 static void
 usb_exchange_async (FpiSsm                  *ssm,
-                    struct usbexchange_data *data)
+                    struct usbexchange_data *data,
+                    const char              *exchange_name)
 {
-  FpiSsm *subsm = fpi_ssm_new (FP_DEVICE (data->device),
-                               usbexchange_loop,
-                               data->stepcount);
+  FpiSsm *subsm = fpi_ssm_new_full (FP_DEVICE (data->device),
+                                    usbexchange_loop,
+                                    data->stepcount,
+                                    exchange_name);
 
   fpi_ssm_set_data (subsm, data, NULL);
   fpi_ssm_start_subsm (ssm, subsm);
@@ -684,7 +686,7 @@ activate_loop (FpiSsm *ssm, FpDevice *_dev)
         self->init_sequence.receive_buf =
           g_malloc0 (VFS5011_RECEIVE_BUF_SIZE);
       self->init_sequence.timeout = 1000;
-      usb_exchange_async (ssm, &self->init_sequence);
+      usb_exchange_async (ssm, &self->init_sequence, "ACTIVATE REQUEST");
       break;
 
     case DEV_ACTIVATE_INIT_COMPLETE:
@@ -716,7 +718,7 @@ activate_loop (FpiSsm *ssm, FpDevice *_dev)
         self->init_sequence.receive_buf =
           g_malloc0 (VFS5011_RECEIVE_BUF_SIZE);
       self->init_sequence.timeout = VFS5011_DEFAULT_WAIT_TIMEOUT;
-      usb_exchange_async (ssm, &self->init_sequence);
+      usb_exchange_async (ssm, &self->init_sequence, "PREPARE CAPTURE");
       break;
 
     }
@@ -769,7 +771,7 @@ open_loop (FpiSsm *ssm, FpDevice *_dev)
       self->init_sequence.receive_buf =
         g_malloc0 (VFS5011_RECEIVE_BUF_SIZE);
       self->init_sequence.timeout = VFS5011_DEFAULT_WAIT_TIMEOUT;
-      usb_exchange_async (ssm, &self->init_sequence);
+      usb_exchange_async (ssm, &self->init_sequence, "DEVICE OPEN");
       break;
     }
   ;
