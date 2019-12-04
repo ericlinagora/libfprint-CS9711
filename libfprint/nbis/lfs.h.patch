@@ -1,15 +1,16 @@
---- include/lfs.h	2018-08-24 15:31:54.535579623 +0200
-+++ include/lfs.h.orig	2018-08-24 15:31:48.781587933 +0200
-@@ -66,7 +43,7 @@ of the software.
+--- include/lfs.h
++++ include/lfs.h
+@@ -66,7 +66,8 @@ of the software.
  
  #include <math.h>
  #include <stdio.h>
 -#include <an2k.h>  /* Needed by to_type9.c */
-+#include <fp_internal.h>
++#include <nbis-helpers.h>
++#include <fpi-minutiae.h>
  
  /*************************************************************************/
  /*        OUTPUT FILE EXTENSIONS                                         */
-@@ -154,26 +131,8 @@ typedef struct rotgrids{
+@@ -154,26 +155,8 @@ typedef struct rotgrids{
  #define DISAPPEARING    0
  #define APPEARING       1
  
@@ -38,7 +39,7 @@
  
  typedef struct feature_pattern{
     int type;
-@@ -1185,17 +1185,6 @@ extern void bubble_sort_double_inc_2(double *, int *, const int);
+@@ -1203,17 +1186,6 @@ extern void bubble_sort_double_inc_2(double *, int *, const int);
  extern void bubble_sort_double_dec_2(double *, int *,  const int);
  extern void bubble_sort_int_inc(int *, const int);
  

@@ -66,7 +66,8 @@ of the software.
 
 #include <math.h>
 #include <stdio.h>
-#include <fp_internal.h>
+#include <nbis-helpers.h>
+#include <fpi-minutiae.h>
 
 /*************************************************************************/
 /*        OUTPUT FILE EXTENSIONS                                         */

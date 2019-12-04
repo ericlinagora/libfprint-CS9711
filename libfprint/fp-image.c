@@ -19,6 +19,7 @@
  */
 
 #include "fpi-image.h"
+#include "fpi-log.h"
 
 #include <nbis.h>
 

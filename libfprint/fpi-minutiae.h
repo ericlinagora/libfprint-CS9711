@@ -1,6 +1,6 @@
 /*
  * Internal/private definitions for libfprint
- * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
+ * Copyright (C) 2007-2008 Daniel Drake <dsd@gentoo.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,27 @@
 
 #pragma once
 
-#include "fpi-log.h"
-#include "fpi-image.h"
-#include "fpi-image-device.h"
-#include "fpi-minutiae.h"
+/* fp_minutia structure definition */
+struct fp_minutia
+{
+  int    x;
+  int    y;
+  int    ex;
+  int    ey;
+  int    direction;
+  double reliability;
+  int    type;
+  int    appearing;
+  int    feature_id;
+  int   *nbrs;
+  int   *ridge_counts;
+  int    num_nbrs;
+};
+
+/* fp_minutiae structure definition */
+struct fp_minutiae
+{
+  int                 alloc;
+  int                 num;
+  struct fp_minutia **list;
+};

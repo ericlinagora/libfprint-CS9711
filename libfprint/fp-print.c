@@ -20,6 +20,7 @@
 
 #include "fpi-print.h"
 #include "fpi-image.h"
+#include "fpi-log.h"
 #include "fpi-device.h"
 
 #include <nbis.h>
