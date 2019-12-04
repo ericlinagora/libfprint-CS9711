@@ -175,7 +175,7 @@ write_regs (FpImageDevice *dev, uint16_t first_reg,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_fill_control (transfer,
                                  G_USB_DEVICE_DIRECTION_HOST_TO_DEVICE,
-                                 G_USB_DEVICE_REQUEST_TYPE_STANDARD,
+                                 G_USB_DEVICE_REQUEST_TYPE_VENDOR,
                                  G_USB_DEVICE_RECIPIENT_DEVICE,
                                  USB_RQ, first_reg, 0,
                                  num_regs);
@@ -202,7 +202,7 @@ read_regs (FpImageDevice *dev, uint16_t first_reg,
 
   fpi_usb_transfer_fill_control (transfer,
                                  G_USB_DEVICE_DIRECTION_DEVICE_TO_HOST,
-                                 G_USB_DEVICE_REQUEST_TYPE_STANDARD,
+                                 G_USB_DEVICE_REQUEST_TYPE_VENDOR,
                                  G_USB_DEVICE_RECIPIENT_DEVICE,
                                  USB_RQ, first_reg, 0, num_regs);
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, callback, user_data);
