@@ -12,14 +12,14 @@ variables:
 .build_one_driver_template: &build_one_driver
   script:
     # Build with a driver that doesn't need imaging, or nss
-    - meson -Ddrivers=$driver . _build
+    - meson --werror -Ddrivers=$driver . _build
     - ninja -C _build
     - rm -rf _build/
 
 .build_template: &build
   script:
     # And build with everything
-    - meson -Ddrivers=all . _build
+    - meson --werror -Ddrivers=all . _build
     - ninja -C _build
     - ninja -C _build install
 
@@ -38,7 +38,7 @@ build:
 test:
   stage: test
   script:
-    - meson -Ddrivers=all . _build
+    - meson --werror -Ddrivers=all . _build
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit
 
