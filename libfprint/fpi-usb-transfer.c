@@ -298,7 +298,7 @@ fpi_usb_transfer_fill_interrupt_full (FpiUsbTransfer *transfer,
   transfer->free_buffer = free_func;
 }
 
-void
+static void
 transfer_finish_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;

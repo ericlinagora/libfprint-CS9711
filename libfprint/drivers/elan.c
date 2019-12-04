@@ -41,7 +41,7 @@
 #include "drivers_api.h"
 #include "elan.h"
 
-unsigned char
+static unsigned char
 elan_get_pixel (struct fpi_frame_asmbl_ctx *ctx,
                 struct fpi_frame *frame, unsigned int x,
                 unsigned int y)
@@ -91,7 +91,7 @@ G_DECLARE_FINAL_TYPE (FpiDeviceElan, fpi_device_elan, FPI, DEVICE_ELAN,
                       FpImageDevice);
 G_DEFINE_TYPE (FpiDeviceElan, fpi_device_elan, FP_TYPE_IMAGE_DEVICE);
 
-int
+static int
 cmp_short (const void *a, const void *b)
 {
   return (int) (*(short *) a - *(short *) b);

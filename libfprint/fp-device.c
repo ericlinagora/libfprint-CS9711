@@ -1386,7 +1386,7 @@ typedef struct
   FpDevice *device;
 } FpDeviceTimeoutSource;
 
-void
+static void
 timeout_finalize (GSource *source)
 {
   FpDeviceTimeoutSource *timeout_source = (FpDeviceTimeoutSource *) source;

@@ -686,7 +686,7 @@ enum activate_states {
   ACTIVATE_NUM_STATES,
 };
 
-void
+static void
 activate_read_regs_cb (FpImageDevice *dev, GError *error,
                        unsigned char *regs, void *user_data)
 {
