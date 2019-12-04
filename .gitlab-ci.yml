@@ -77,7 +77,7 @@ test_indent:
     <<: *flatpak_script
     <<: *flatpak_artifacts
 
-flatpak master:
+.flatpak_master_template: &flatpak_master
     image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.32
     stage: flatpack
     variables:
@@ -87,3 +87,17 @@ flatpak master:
         FLATPAK_MODULE: "libfprint"
         DBUS_ID: "org.freedesktop.libfprint.Demo"
     <<: *flatpak
+
+flatpak-auto master:
+    <<: *flatpak_master
+    when: always
+    only:
+      - tags
+      - master
+
+flatpak-manual master:
+    <<: *flatpak_master
+    when: manual
+    except:
+      - tags
+      - master
