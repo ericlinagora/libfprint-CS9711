@@ -172,11 +172,11 @@ fpi_enums = gnome.mkenums_simple('fpi-enums',
 fpi_enums_h = fpi_enums[1]
 
 drivers_sources += configure_file(input: 'empty_file',
-    output: 'fp-drivers.c',
+    output: 'fpi-drivers.c',
     capture: true,
     command: [
         'echo',
-        drivers_type_list + '\n\n' + drivers_type_func
+        '\n'.join(drivers_type_list + [] + drivers_type_func)
     ])
 
 mapfile = 'libfprint.ver'
