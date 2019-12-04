@@ -6,10 +6,10 @@
 
 int main (int argc, char **argv)
 {
-	FpContext *ctx;
+  FpContext *ctx;
 
-	ctx = fp_context_new ();
-	g_object_unref (ctx);
+  ctx = fp_context_new ();
+  g_object_unref (ctx);
 
-	return 0;
+  return 0;
 }
