@@ -278,7 +278,8 @@ fpi_ssm_free (FpiSsm *machine)
 static void
 __ssm_call_handler (FpiSsm *machine)
 {
-  fp_dbg ("%s entering state %d", machine->name, machine->cur_state);
+  fp_dbg ("[%s] %s entering state %d", fp_device_get_driver (machine->dev),
+          machine->name, machine->cur_state);
   machine->handler (machine, machine->dev);
 }
 
@@ -356,9 +357,11 @@ fpi_ssm_mark_completed (FpiSsm *machine)
   machine->completed = TRUE;
 
   if (machine->error)
-    fp_dbg ("%s completed with error: %s", machine->name, machine->error->message);
+    fp_dbg ("[%s] %s completed with error: %s", fp_device_get_driver (machine->dev),
+            machine->name, machine->error->message);
   else
-    fp_dbg ("%s completed successfully", machine->name);
+    fp_dbg ("[%s] %s completed successfully", fp_device_get_driver (machine->dev),
+            machine->name);
   if (machine->callback)
     {
       GError *error = machine->error ? g_error_copy (machine->error) : NULL;
@@ -421,12 +424,15 @@ fpi_ssm_mark_failed (FpiSsm *machine, GError *error)
   g_assert (error);
   if (machine->error)
     {
-      fp_warn ("SSM already has an error set, ignoring new error %s", error->message);
+      fp_warn ("[%s] SSM %s already has an error set, ignoring new error %s",
+               fp_device_get_driver (machine->dev), machine->name, error->message);
       g_error_free (error);
       return;
     }
 
-  fp_dbg ("SSM failed in state %d with error: %s", machine->cur_state, error->message);
+  fp_dbg ("[%s] SSM %s failed in state %d with error: %s",
+          fp_device_get_driver (machine->dev), machine->name,
+          machine->cur_state, error->message);
   machine->error = g_steal_pointer (&error);
   fpi_ssm_mark_completed (machine);
 }
