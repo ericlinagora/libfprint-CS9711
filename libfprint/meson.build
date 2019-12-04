@@ -188,7 +188,7 @@ libfprint = library('fprint',
         drivers_sources + nbis_sources + other_sources,
     soversion: soversion,
     version: libversion,
-    c_args: common_cflags + drivers_cflags,
+    c_args: drivers_cflags,
     include_directories: [
         root_inc,
         include_directories('nbis/include'),

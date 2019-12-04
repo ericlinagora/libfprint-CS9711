@@ -10,9 +10,6 @@ project('libfprint', [ 'c', 'cpp' ],
 
 gnome = import('gnome')
 
-add_project_arguments([ '-D_GNU_SOURCE' ], language: 'c')
-add_project_arguments([ '-DG_LOG_DOMAIN="libfprint"' ], language: 'c')
-
 libfprint_conf = configuration_data()
 
 cc = meson.get_compiler('c')
@@ -23,8 +20,6 @@ glib_min_version = '2.56'
 glib_version_def = 'GLIB_VERSION_@0@_@1@'.format(
     glib_min_version.split('.')[0], glib_min_version.split('.')[1])
 common_cflags = cc.get_supported_arguments([
-    '-fgnu89-inline',
-    '-std=gnu99',
     '-Wall',
     '-Wtype-limits',
     '-Wundef',
@@ -34,7 +29,15 @@ common_cflags = cc.get_supported_arguments([
     '-Wshadow',
     '-DGLIB_VERSION_MIN_REQUIRED=' + glib_version_def,
     '-DGLIB_VERSION_MAX_ALLOWED=' + glib_version_def,
+    '-D_GNU_SOURCE',
+    '-DG_LOG_DOMAIN="libfprint"',
 ])
+c_cflags = cc.get_supported_arguments([
+    '-fgnu89-inline',
+    '-std=gnu99',
+])
+add_project_arguments(common_cflags + c_cflags, language: 'c')
+add_project_arguments(common_cflags, language: 'cpp')
 
 # maintaining compatibility with the previous libtool versioning
 # current = binary - interface

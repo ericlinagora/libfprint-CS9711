@@ -6,8 +6,7 @@ foreach example: examples
         dependencies: [ libfprint_dep, glib_dep ],
         include_directories: [
             root_inc,
-        ],
-        c_args: common_cflags)
+        ])
 endforeach
 
 executable('cpp-test',
@@ -15,5 +14,4 @@ executable('cpp-test',
     dependencies: libfprint_dep,
     include_directories: [
         root_inc,
-    ],
-    c_args: common_cflags)
+    ])

@@ -13,10 +13,7 @@ executable('gtk-libfprint-test',
     include_directories: [
         root_inc,
     ],
-    c_args: [
-        common_cflags,
-        '-DPACKAGE_VERSION="' + meson.project_version() + '"'
-    ],
+    c_args: '-DPACKAGE_VERSION="' + meson.project_version() + '"',
     install: true,
     install_dir: bindir)
 
