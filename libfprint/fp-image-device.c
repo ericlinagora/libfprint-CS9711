@@ -50,6 +50,7 @@ typedef struct
 {
   FpImageDeviceState state;
   gboolean           active;
+  gboolean           cancelling;
 
   gboolean           enroll_await_on_pending;
   gint               enroll_stage;
@@ -140,6 +141,9 @@ fp_image_device_deactivate (FpDevice *device)
       fp_dbg ("Already deactivated, ignoring request.");
       return;
     }
+  if (!priv->cancelling && priv->state == FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
+    g_warning ("Deactivating image device while waiting for finger, this should not happen.");
+
   priv->state = FP_IMAGE_DEVICE_STATE_INACTIVE;
   g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_FPI_STATE]);
 
@@ -203,6 +207,7 @@ static void
 fp_image_device_cancel_action (FpDevice *device)
 {
   FpImageDevice *self = FP_IMAGE_DEVICE (device);
+  FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpDeviceAction action;
 
   action = fpi_device_get_current_action (device);
@@ -214,7 +219,9 @@ fp_image_device_cancel_action (FpDevice *device)
       action == FP_DEVICE_ACTION_IDENTIFY ||
       action == FP_DEVICE_ACTION_CAPTURE)
     {
+      priv->cancelling = TRUE;
       fp_image_device_deactivate (FP_DEVICE (self));
+      priv->cancelling = FALSE;
 
       /* XXX: Some nicer way of doing this would be good. */
       fpi_device_action_error (FP_DEVICE (self),
