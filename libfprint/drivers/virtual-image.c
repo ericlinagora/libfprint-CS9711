@@ -47,6 +47,7 @@ struct _FpDeviceVirtualImage
   gint               socket_fd;
   gint               client_fd;
 
+  gboolean           automatic_finger;
   FpImage           *recv_img;
   gint               recv_img_hdr[2];
 };
@@ -89,9 +90,11 @@ recv_image_img_recv_cb (GObject      *source_object,
   self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
   device = FP_IMAGE_DEVICE (self);
 
-  fpi_image_device_report_finger_status (device, TRUE);
+  if (self->automatic_finger)
+    fpi_image_device_report_finger_status (device, TRUE);
   fpi_image_device_image_captured (device, g_steal_pointer (&self->recv_img));
-  fpi_image_device_report_finger_status (device, FALSE);
+  if (self->automatic_finger)
+    fpi_image_device_report_finger_status (device, FALSE);
 
   /* And, listen for more images from the same client. */
   recv_image (self, G_INPUT_STREAM (source_object));
@@ -146,6 +149,17 @@ recv_image_hdr_recv_cb (GObject      *source_object,
           /* -2 is a fatal error, just pass it through*/
           fpi_image_device_session_error (FP_IMAGE_DEVICE (self),
                                           fpi_device_error_new (self->recv_img_hdr[1]));
+          break;
+
+        case -3:
+          /* -3 sets/clears automatic finger detection for images */
+          self->automatic_finger = !!self->recv_img_hdr[1];
+          break;
+
+        case -4:
+          /* -4 submits a finger detection report */
+          fpi_image_device_report_finger_status (FP_IMAGE_DEVICE (self),
+                                                 !!self->recv_img_hdr[1]);
           break;
 
         default:
@@ -214,6 +228,7 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
     }
 
   dev->connection = connection;
+  dev->automatic_finger = TRUE;
   stream = g_io_stream_get_input_stream (G_IO_STREAM (connection));
 
   recv_image (dev, stream);
