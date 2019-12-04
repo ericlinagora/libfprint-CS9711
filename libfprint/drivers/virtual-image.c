@@ -75,9 +75,9 @@ recv_image_img_recv_cb (GObject      *source_object,
     {
       if (!success)
         {
-          g_warning ("Error receiving header for image data: %s", error->message);
           if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
             return;
+          g_warning ("Error receiving header for image data: %s", error->message);
         }
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
@@ -113,9 +113,10 @@ recv_image_hdr_recv_cb (GObject      *source_object,
     {
       if (!success)
         {
-          g_warning ("Error receiving header for image data: %s", error->message);
-          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) ||
+              g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CLOSED))
             return;
+          g_warning ("Error receiving header for image data: %s", error->message);
         }
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
