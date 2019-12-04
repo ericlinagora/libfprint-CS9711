@@ -1382,21 +1382,9 @@ fp_device_list_prints_finish (FpDevice     *device,
 
 typedef struct
 {
-  GSource       source;
-  FpDevice     *device;
-  FpTimeoutFunc callback;
-  gpointer      user_data;
+  GSource   source;
+  FpDevice *device;
 } FpDeviceTimeoutSource;
-
-gboolean
-device_timeout_cb (gpointer user_data)
-{
-  FpDeviceTimeoutSource *source = user_data;
-
-  source->callback (source->device, source->user_data);
-
-  return G_SOURCE_REMOVE;
-}
 
 void
 timeout_finalize (GSource *source)
@@ -1409,11 +1397,12 @@ timeout_finalize (GSource *source)
 }
 
 static gboolean
-timeout_dispatch (GSource *source, GSourceFunc callback, gpointer user_data)
+timeout_dispatch (GSource *source, GSourceFunc gsource_func, gpointer user_data)
 {
   FpDeviceTimeoutSource *timeout_source = (FpDeviceTimeoutSource *) source;
+  FpTimeoutFunc callback = (FpTimeoutFunc) gsource_func;
 
-  ((FpTimeoutFunc) callback)(timeout_source->device, user_data);
+  callback (timeout_source->device, user_data);
 
   return G_SOURCE_REMOVE;
 }
@@ -1496,7 +1485,6 @@ fpi_device_add_timeout (FpDevice      *device,
   source = (FpDeviceTimeoutSource *) g_source_new (&timeout_funcs,
                                                    sizeof (FpDeviceTimeoutSource));
   source->device = device;
-  source->user_data = user_data;
 
   g_source_attach (&source->source, NULL);
   g_source_set_callback (&source->source, (GSourceFunc) func, user_data, destroy_notify);
