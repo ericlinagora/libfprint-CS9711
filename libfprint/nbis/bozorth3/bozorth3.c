@@ -896,7 +896,7 @@ for ( k = 0; k < np - 1; k++ ) {
 			for ( i = 0; i < tot; i++ ) {
 
 
-				int colp_value = colp[ y[i]-1 ][0];
+				int colp_value = colp[ bz_y[i]-1 ][0];
 				if ( colp_value < 0 ) {
 					kk += colp_value;
 					n++;
@@ -933,7 +933,7 @@ for ( k = 0; k < np - 1; k++ ) {
 
 			kk = 0;
 			for ( i = 0; i < tot; i++ ) {
-				int diff = colp[ y[i]-1 ][0] - jj;
+				int diff = colp[ bz_y[i]-1 ][0] - jj;
 				j = SQUARED( diff );
 
 
@@ -942,7 +942,7 @@ for ( k = 0; k < np - 1; k++ ) {
 				if ( j > TXS && j < CTXS )
 					kk++;
 				else
-					y[i-kk] = y[i];
+					bz_y[i-kk] = bz_y[i];
 			} /* END FOR i */
 
 			tot -= kk;				/* Adjust the total edge pairs TOT based on # of edge pairs skipped */
@@ -958,7 +958,7 @@ for ( k = 0; k < np - 1; k++ ) {
 
 
 			for ( i = tot-1 ; i >= 0; i-- ) {
-				int idx = y[i] - 1;
+				int idx = bz_y[i] - 1;
 				if ( rk[idx] == 0 ) {
 					sc[idx] = -1;
 				} else {
@@ -976,7 +976,7 @@ for ( k = 0; k < np - 1; k++ ) {
 			int pd = 0;
 
 			for ( i = 0; i < tot; i++ ) {
-				int idx = y[i] - 1;
+				int idx = bz_y[i] - 1;
 				for ( ii = 1; ii < 4; ii++ ) {
 
 
@@ -1476,7 +1476,7 @@ return match_score;
 /* extern int rk[ RK_SIZE ]; */
 /* extern int cp[ CP_SIZE ]; */
 /* extern int rp[ RP_SIZE ]; */
-/* extern int y[ Y_SIZE ]; */
+/* extern int bz_y[ Y_SIZE ]; */
 
 void bz_sift(
 	int * ww,		/* INPUT and OUTPUT; endpoint groups index; *ww may be bumped by one or by two */
@@ -1507,7 +1507,7 @@ if ( n == 0 && t == 0 ) {
 
 
 	if ( sc[kx-1] != ftt ) {
-		y[ (*tot)++ ] = kx;
+		bz_y[ (*tot)++ ] = kx;
 		rk[kx-1] = sc[kx-1];
 		sc[kx-1] = ftt;
 	}
@@ -1553,7 +1553,7 @@ if ( n == l ) {
 			qq[*qh]  = kz;
 			zz[kz-1] = (*qh)++;
 		}
-		y[(*tot)++] = kx;
+		bz_y[(*tot)++] = kx;
 		rk[kx-1] = sc[kx-1];
 		sc[kx-1] = ftt;
 	}
@@ -1697,12 +1697,12 @@ for ( ii = 0; ii < tp; ii++ ) {				/* For each index up to the current value of 
 		}
 
 		t     = 0;
-		y[0]  = lim;
+		bz_y[0]  = lim;
 		cp[0] = 1;
 		b     = 0;
 		n     = 1;
 		do {					/* looping until T < 0 ... */
-			if ( y[t] - cp[t] > 1 ) {
+			if (bz_y[t] - cp[t] > 1 ) {
 				k = sct[cp[t]][t];
 				j = ctt[k] + 1;
 				for ( i = 0; i < j; i++ ) {
@@ -1715,25 +1715,25 @@ for ( ii = 0; ii < tp; ii++ ) {				/* For each index up to the current value of 
 				do {
 					while ( rp[jj] < sct[kk][t] && jj < j )
 						jj++;
-					while ( rp[jj] > sct[kk][t] && kk < y[t] )
+					while ( rp[jj] > sct[kk][t] && kk < bz_y[t] )
 						kk++;
-					while ( rp[jj] == sct[kk][t] && kk < y[t] && jj < j ) {
+					while ( rp[jj] == sct[kk][t] && kk < bz_y[t] && jj < j ) {
 						sct[k][t+1] = sct[kk][t];
 						k++;
 						kk++;
 						jj++;
 					}
-				} while ( kk < y[t] && jj < j );
+				} while ( kk < bz_y[t] && jj < j );
 
 				t++;
 				cp[t] = 1;
-				y[t]  = k;
+				bz_y[t]  = k;
 				b     = t;
 				n     = 1;
 			} else {
 				int tot = 0;
 
-				lim = y[t];
+				lim = bz_y[t];
 				for ( i = n-1; i < lim; i++ ) {
 					tot += ct[ sct[i][t] ];
 				}
@@ -1750,7 +1750,7 @@ for ( ii = 0; ii < tp; ii++ ) {				/* For each index up to the current value of 
 
 					{
 					int rk_index = b;
-					lim = y[t];
+					lim = bz_y[t];
 					for ( i = n-1; i < lim; ) {
 						rk[ rk_index++ ] = sct[ i++ ][ t ];
 					}
@@ -1760,7 +1760,7 @@ for ( ii = 0; ii < tp; ii++ ) {				/* For each index up to the current value of 
 				t--;
 				if ( t >= 0 ) {
 					++cp[t];
-					n = y[t];
+					n = bz_y[t];
 				}
 			} /* END IF */
 

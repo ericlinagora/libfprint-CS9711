@@ -186,6 +186,9 @@ sed -i 's/^\([[:space:]]*[[:alnum:]_]\+[\*[:space:]]\+'\
 # Use GLib memory management
 spatch --sp-file glib-memory.cocci --dir . --in-place
 
+# Rename global "y" variable in "bz_y"
+spatch --sp-file remove-global-y.cocci bozorth3/* include/bozorth.h --in-place
+
 # The above leaves an unused variable around, triggering a warning
 # remove it.
 patch -p0 < glib-mem-warning.patch

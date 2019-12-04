@@ -245,7 +245,7 @@ extern int cp[ CP_SIZE ];
 extern int rp[ RP_SIZE ];
 extern int rf[RF_SIZE_1][RF_SIZE_2];
 extern int cf[CF_SIZE_1][CF_SIZE_2];
-extern int y[20000];
+extern int bz_y[20000];
 
 /**************************************************************************/
 /**************************************************************************/

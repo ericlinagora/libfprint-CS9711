@@ -102,7 +102,7 @@ int yl[ YL_SIZE_1 ][ YL_SIZE_2 ];
    int rf[RF_SIZE_1][RF_SIZE_2];
    int cf[CF_SIZE_1][CF_SIZE_2];
 
-   int y[20000];
+   int bz_y[20000];
 #else
    int rq[ RQ_SIZE ] = {};
    int tq[ TQ_SIZE ] = {};
@@ -122,6 +122,6 @@ int yl[ YL_SIZE_1 ][ YL_SIZE_2 ];
    int rf[RF_SIZE_1][RF_SIZE_2] = {};
    int cf[CF_SIZE_1][CF_SIZE_2] = {};
 
-   int y[20000] = {};
+   int bz_y[20000] = {};
 #endif
 
