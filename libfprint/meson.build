@@ -183,9 +183,19 @@ mapfile = 'libfprint.ver'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
 
 deps = [ mathlib_dep, glib_dep, gusb_dep, nss_dep, imaging_dep, gio_dep ]
+
+nbis_lib = static_library('nbis',
+    nbis_sources,
+    include_directories: [
+        root_inc,
+        include_directories('nbis/include'),
+    ],
+    dependencies: deps,
+    install: false)
+
 libfprint = library('fprint',
     libfprint_sources + fp_enums + fpi_enums +
-        drivers_sources + nbis_sources + other_sources,
+        drivers_sources + other_sources,
     soversion: soversion,
     version: libversion,
     c_args: drivers_cflags,
@@ -195,6 +205,7 @@ libfprint = library('fprint',
     ],
     link_args : vflag,
     link_depends : mapfile,
+    link_with: nbis_lib,
     dependencies: deps,
     install: true)
 
