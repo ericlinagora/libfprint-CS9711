@@ -66,7 +66,7 @@ of the software.
 
 /***************************************************************************/
 /***************************************************************************/
-int open_logfile()
+int open_logfile(void)
 {
 #ifdef LOG_REPORT
       fprintf(stderr, "ERROR : open_logfile : fopen : %s\n", LOG_FILE);
@@ -91,7 +91,7 @@ void print2log(char *fmt, ...)
 
 /***************************************************************************/
 /***************************************************************************/
-int close_logfile()
+int close_logfile(void)
 {
 #ifdef LOG_REPORT
       fprintf(stderr, "ERROR : close_logfile : fclose : %s\n", LOG_FILE);
