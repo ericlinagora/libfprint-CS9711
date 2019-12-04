@@ -1,4 +1,4 @@
-image: fedora:rawhide
+image: registry.freedesktop.org/libfprint/libfprint/master:v1
 stages:
   - check-source
   - build
@@ -6,15 +6,11 @@ stages:
   - flatpack
 
 variables:
-  DEPENDENCIES: libgusb-devel glib2-devel nss-devel pixman-devel systemd meson gtk-doc
-                gcc gcc-c++ glibc-devel libX11-devel libXv-devel gtk3-devel flatpak-builder
-                gobject-introspection-devel python3-cairo python3-gobject umockdev
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
 .build_one_driver_template: &build_one_driver
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
     # Build with a driver that doesn't need imaging, or nss
     - meson -Ddrivers=$driver . _build
     - ninja -C _build
@@ -22,7 +18,6 @@ variables:
 
 .build_template: &build
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
     # And build with everything
     - meson -Ddrivers=all . _build
     - ninja -C _build
@@ -30,7 +25,6 @@ variables:
 
 .build_template: &check_abi
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES doxygen libabigail git
     - ./.ci/check-abi ${LAST_ABI_BREAK} $(git rev-parse HEAD)
 
 build:
@@ -44,7 +38,6 @@ build:
 test:
   stage: test
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
     - meson -Ddrivers=all . _build
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit
@@ -52,7 +45,6 @@ test:
 test_valgrind:
   stage: test
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES valgrind
     - meson -Ddrivers=all . _build
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit --setup=valgrind
@@ -60,7 +52,6 @@ test_valgrind:
 test_indent:
   stage: check-source
   script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck git uncrustify
     - scripts/uncrustify.sh --check
 
 .flatpak_script_template: &flatpak_script
