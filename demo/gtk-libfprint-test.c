@@ -22,9 +22,11 @@
 #include <gtk/gtk.h>
 #include <libfprint/fprint.h>
 
-typedef GtkApplication      LibfprintDemo;
-typedef GtkApplicationClass LibfprintDemoClass;
-
+struct _LibfprintDemo
+{
+  GtkApplication parent;
+};
+G_DECLARE_FINAL_TYPE (LibfprintDemo, libfprint_demo, FP, DEMO, GtkApplication)
 G_DEFINE_TYPE (LibfprintDemo, libfprint_demo, GTK_TYPE_APPLICATION)
 
 typedef enum {
@@ -33,7 +35,7 @@ typedef enum {
   IMAGE_DISPLAY_BINARY   =  1 << 1
 } ImageDisplayFlags;
 
-typedef struct
+struct _LibfprintDemoWindow
 {
   GtkApplicationWindow parent_instance;
 
@@ -52,10 +54,9 @@ typedef struct
 
   FpImage             *img;
   ImageDisplayFlags    img_flags;
-} LibfprintDemoWindow;
+};
 
-typedef GtkApplicationWindowClass LibfprintDemoWindowClass;
-
+G_DECLARE_FINAL_TYPE (LibfprintDemoWindow, libfprint_demo_window, FP, DEMO_WINDOW, GtkApplicationWindow)
 G_DEFINE_TYPE (LibfprintDemoWindow, libfprint_demo_window, GTK_TYPE_APPLICATION_WINDOW)
 
 typedef enum {
