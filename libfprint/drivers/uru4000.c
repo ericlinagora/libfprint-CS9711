@@ -332,6 +332,8 @@ irq_handler (FpiUsbTransfer *transfer,
       return;
     }
 
+  start_irq_handler (imgdev);
+
   type = GUINT16_FROM_BE (*((uint16_t *) data));
   fp_dbg ("recv irq type %04x", type);
 
@@ -344,8 +346,6 @@ irq_handler (FpiUsbTransfer *transfer,
     urudev->irq_cb (imgdev, NULL, type, urudev->irq_cb_data);
   else
     fp_dbg ("ignoring interrupt");
-
-  start_irq_handler (imgdev);
 }
 
 static void
