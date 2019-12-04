@@ -187,11 +187,17 @@ deps = [ mathlib_dep, glib_dep, gusb_dep, nss_dep, imaging_dep, gio_dep ]
 deps += declare_dependency(include_directories: [
     root_inc,
     include_directories('nbis/include'),
+    include_directories('nbis/libfprint-include'),
 ])
 
 libnbis = static_library('nbis',
     nbis_sources,
     dependencies: deps,
+    c_args: cc.get_supported_arguments([
+        '-Wno-error=redundant-decls',
+        '-Wno-redundant-decls',
+        '-Wno-discarded-qualifiers',
+    ]),
     install: false)
 
 libfprint = library('fprint',

@@ -20,7 +20,7 @@
 
 #include "fpi-image.h"
 
-#include "nbis/include/lfs.h"
+#include <nbis.h>
 
 #if HAVE_PIXMAN
 #include <pixman.h>

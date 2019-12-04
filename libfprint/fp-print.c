@@ -22,8 +22,7 @@
 #include "fpi-image.h"
 #include "fpi-device.h"
 
-#include "nbis/include/bozorth.h"
-#include "nbis/include/lfs.h"
+#include <nbis.h>
 
 /**
  * SECTION: fp-print
