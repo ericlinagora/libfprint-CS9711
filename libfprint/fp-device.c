@@ -88,6 +88,7 @@ enum {
   PROP_DRIVER,
   PROP_DEVICE_ID,
   PROP_NAME,
+  PROP_OPEN,
   PROP_NR_ENROLL_STAGES,
   PROP_SCAN_TYPE,
   PROP_FPI_ENVIRON,
@@ -417,6 +418,10 @@ fp_device_get_property (GObject    *object,
       g_value_set_string (value, priv->device_name);
       break;
 
+    case PROP_OPEN:
+      g_value_set_boolean (value, priv->is_open);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -551,6 +556,12 @@ fp_device_class_init (FpDeviceClass *klass)
                          NULL,
                          G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
 
+  properties[PROP_OPEN] =
+    g_param_spec_boolean ("open",
+                          "Opened",
+                          "Wether the device is open or not", FALSE,
+                          G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
+
   properties[PROP_FPI_ENVIRON] =
     g_param_spec_string ("fp-environ",
                          "Virtual Environment",
@@ -626,6 +637,22 @@ fp_device_get_name (FpDevice *device)
   g_return_val_if_fail (FP_IS_DEVICE (device), NULL);
 
   return priv->device_name;
+}
+
+/**
+ * fp_device_is_open:
+ * @device: A #FpDevice
+ *
+ * Returns: Whether the device is open or not
+ */
+gboolean
+fp_device_is_open (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
+
+  return priv->is_open;
 }
 
 /**
@@ -1959,7 +1986,10 @@ fpi_device_open_complete (FpDevice *device, GError *error)
   clear_device_cancel_action (device);
 
   if (!error)
-    priv->is_open = TRUE;
+    {
+      priv->is_open = TRUE;
+      g_object_notify_by_pspec (G_OBJECT (device), properties[PROP_OPEN]);
+    }
 
   if (!error)
     fp_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
@@ -1988,6 +2018,7 @@ fpi_device_close_complete (FpDevice *device, GError *error)
 
   clear_device_cancel_action (device);
   priv->is_open = FALSE;
+  g_object_notify_by_pspec (G_OBJECT (device), properties[PROP_OPEN]);
 
   switch (priv->type)
     {

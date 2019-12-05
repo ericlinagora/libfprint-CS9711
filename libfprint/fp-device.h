@@ -129,6 +129,7 @@ typedef void (*FpEnrollProgress) (FpDevice *device,
 const gchar *fp_device_get_driver (FpDevice *device);
 const gchar *fp_device_get_device_id (FpDevice *device);
 const gchar *fp_device_get_name (FpDevice *device);
+gboolean     fp_device_is_open (FpDevice *device);
 FpScanType   fp_device_get_scan_type (FpDevice *device);
 gint         fp_device_get_nr_enroll_stages (FpDevice *device);
 
