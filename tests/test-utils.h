@@ -21,3 +21,17 @@
 
 void fpt_setup_virtual_device_environment (void);
 void fpt_teardown_virtual_device_environment (void);
+
+typedef struct _FptContext
+{
+  FpContext *fp_context;
+  FpDevice  *device;
+  gpointer   user_data;
+} FptContext;
+
+FptContext * fpt_context_new (void);
+FptContext * fpt_context_new_with_virtual_imgdev (void);
+
+void fpt_context_free (FptContext *test_context);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (FptContext, fpt_context_free)
