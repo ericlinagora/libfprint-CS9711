@@ -50,11 +50,8 @@ typedef struct
 {
   FpDeviceType type;
 
-  union
-  {
-    GUsbDevice  *usb_device;
-    const gchar *virtual_env;
-  };
+  GUsbDevice  *usb_device;
+  const gchar *virtual_env;
 
   gboolean   is_open;
 
@@ -382,7 +379,9 @@ fp_device_finalize (GObject *object)
 
   g_clear_pointer (&priv->device_id, g_free);
   g_clear_pointer (&priv->device_name, g_free);
+
   g_clear_object (&priv->usb_device);
+  g_clear_pointer (&priv->virtual_env, g_free);
 
   G_OBJECT_CLASS (fp_device_parent_class)->finalize (object);
 }
