@@ -1,7 +1,14 @@
 variables:
+  FEDORA_TAG: rawhide
+  FEDORA_VERSION: rawhide
   FEDORA_IMAGE: registry.freedesktop.org/libfprint/libfprint/master:v1
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
+
+include:
+  - project: 'wayland/ci-templates'
+    ref: master
+    file: '/templates/fedora.yml'
 
 stages:
   - check-source
@@ -118,3 +125,37 @@ flatpak-manual master:
     except:
       - tags
       - master
+
+# CONTAINERS creation stage
+container_fedora_build:
+  extends: .fedora@container-build
+  only:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
+  variables:
+    GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
+    # a list of packages to install
+    FEDORA_RPMS:
+      doxygen
+      flatpak-builder
+      gcc
+      gcc-c++
+      git
+      glib2-devel
+      glibc-devel
+      gobject-introspection-devel
+      gtk-doc
+      gtk3-devel
+      libabigail
+      libgusb-devel
+      libX11-devel
+      libXv-devel
+      meson
+      nss-devel
+      pixman-devel
+      python3-cairo
+      python3-gobject
+      systemd
+      umockdev
+      uncrustify
+      valgrind
