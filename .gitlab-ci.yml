@@ -31,6 +31,9 @@ image: "$FEDORA_IMAGE"
 
 build:
   stage: build
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
   variables:
     driver: virtual_image
   <<: *build_one_driver
@@ -39,6 +42,9 @@ build:
 
 test:
   stage: test
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
   script:
     - meson --werror -Ddrivers=all . _build
     - ninja -C _build
@@ -46,6 +52,9 @@ test:
 
 test_valgrind:
   stage: test
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
   script:
     - meson -Ddrivers=all . _build
     - ninja -C _build
@@ -53,6 +62,9 @@ test_valgrind:
 
 test_indent:
   stage: check-source
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
   script:
     - scripts/uncrustify.sh --check
 
@@ -82,6 +94,9 @@ test_indent:
 .flatpak_master_template: &flatpak_master
     image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.32
     stage: flatpack
+    except:
+      variables:
+        - $CI_PIPELINE_SOURCE == "schedule"
     variables:
         MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
         # From demo/org.freedesktop.libfprint.Demo.json
