@@ -1,7 +1,7 @@
 variables:
   FEDORA_TAG: rawhide
   FEDORA_VERSION: rawhide
-  FEDORA_IMAGE: registry.freedesktop.org/libfprint/libfprint/master:v1
+  FEDORA_IMAGE: "$CI_REGISTRY_IMAGE/fedora/$FEDORA_VERSION:$FEDORA_TAG"
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
