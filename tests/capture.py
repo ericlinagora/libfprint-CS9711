@@ -17,12 +17,16 @@ c.enumerate()
 devices = c.get_devices()
 
 d = devices[0]
+del devices
 
 d.open_sync()
 
 img = d.capture_sync(True)
 
 d.close_sync()
+
+del d
+del c
 
 width = img.get_width()
 height = img.get_height()

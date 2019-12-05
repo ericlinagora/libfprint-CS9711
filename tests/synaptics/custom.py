@@ -11,6 +11,7 @@ c.enumerate()
 devices = c.get_devices()
 
 d = devices[0]
+del devices
 
 assert d.get_driver() == "synaptics"
 
@@ -40,3 +41,6 @@ print("deleting")
 d.delete_print_sync(p)
 print("delete done")
 d.close_sync()
+
+del d
+del c
