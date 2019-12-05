@@ -197,9 +197,6 @@ on_list_completed (FpDevice     *dev,
                 list_data->ret_value = EXIT_SUCCESS;
               else
                 g_warning ("Invalid finger selected");
-
-              fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
-                               list_data);
             }
         }
 
