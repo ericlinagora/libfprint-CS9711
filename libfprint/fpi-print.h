@@ -21,13 +21,13 @@ typedef enum {
 /**
  * FpiMatchResult:
  * @FPI_MATCH_ERROR: An error occured during matching
- * @FPI_MATCH_SUCCESS: The prints matched
  * @FPI_MATCH_FAIL: The prints did not match
+ * @FPI_MATCH_SUCCESS: The prints matched
  */
 typedef enum {
-  FPI_MATCH_ERROR = 0,
-  FPI_MATCH_SUCCESS,
+  FPI_MATCH_ERROR = -1, /* -1 for g_task_propagate_int */
   FPI_MATCH_FAIL,
+  FPI_MATCH_SUCCESS,
 } FpiMatchResult;
 
 void     fpi_print_add_print (FpPrint *print,
