@@ -1,13 +1,15 @@
-image: registry.freedesktop.org/libfprint/libfprint/master:v1
+variables:
+  FEDORA_IMAGE: registry.freedesktop.org/libfprint/libfprint/master:v1
+  BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
+  LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
+
 stages:
   - check-source
   - build
   - test
   - flatpack
 
-variables:
-  BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
-  LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
+image: "$FEDORA_IMAGE"
 
 .build_one_driver_template: &build_one_driver
   script:
