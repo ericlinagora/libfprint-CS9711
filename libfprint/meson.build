@@ -4,6 +4,9 @@ libfprint_sources = [
     'fp-image.c',
     'fp-print.c',
     'fp-image-device.c',
+]
+
+libfprint_private_sources = [
     'fpi-assembling.c',
     'fpi-ssm.c',
     'fpi-usb-transfer.c',
@@ -200,15 +203,19 @@ libnbis = static_library('nbis',
     ]),
     install: false)
 
+libfprint_private = static_library('fprint-private',
+    sources: libfprint_private_sources + fpi_enums,
+    dependencies: deps,
+    install: false)
+
 libfprint = library('fprint',
-    libfprint_sources + fp_enums + fpi_enums +
-        drivers_sources + other_sources,
+    sources: libfprint_sources + fp_enums + drivers_sources + other_sources,
     soversion: soversion,
     version: libversion,
     c_args: drivers_cflags,
     link_args : vflag,
     link_depends : mapfile,
-    link_with: libnbis,
+    link_with: [libnbis, libfprint_private],
     dependencies: deps,
     install: true)
 
