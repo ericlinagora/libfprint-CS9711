@@ -186,9 +186,6 @@ drivers_sources += configure_file(input: 'empty_file',
         '\n'.join(drivers_type_list + [] + drivers_type_func)
     ])
 
-mapfile = 'libfprint.ver'
-vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
-
 deps = [ mathlib_dep, glib_dep, gusb_dep, nss_dep, imaging_dep, gio_dep ]
 
 deps += declare_dependency(include_directories: [
@@ -211,6 +208,9 @@ libfprint_private = static_library('fprint-private',
     sources: libfprint_private_sources + fpi_enums,
     dependencies: deps,
     install: false)
+
+mapfile = files('libfprint.ver')
+vflag = '-Wl,--version-script,@0@/@1@'.format(meson.source_root(), mapfile[0])
 
 libfprint = library('fprint',
     sources: libfprint_sources + fp_enums + drivers_sources + other_sources,
