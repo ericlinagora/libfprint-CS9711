@@ -969,10 +969,10 @@ dev_probe (FpDevice *device)
       return;
     }
 
-  if (!g_usb_device_reset (fpi_device_get_usb_device (device), &error))
+  if (!g_usb_device_reset (usb_dev, &error))
     goto err_close;
 
-  if (!g_usb_device_claim_interface (fpi_device_get_usb_device (device), 0, 0, &error))
+  if (!g_usb_device_claim_interface (usb_dev, 0, 0, &error))
     goto err_close;
 
   /* TODO: Do not do this synchronous. */
