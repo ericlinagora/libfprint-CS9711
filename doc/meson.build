@@ -32,7 +32,6 @@ gnome.gtkdoc('libfprint',
     expand_content_files: expand_content_files,
     scan_args: [
         #'--rebuild-sections',
-        '--ignore-decorators=API_EXPORTED',
         '--ignore-headers=' + ' '.join(private_headers),
     ],
     fixxref_args: [
