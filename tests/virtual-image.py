@@ -83,6 +83,8 @@ class VirtualImage(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.tmpdir)
+        del cls.dev
+        del cls.ctx
 
     def setUp(self):
         self.dev.open_sync()
