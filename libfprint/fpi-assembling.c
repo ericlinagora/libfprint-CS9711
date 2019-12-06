@@ -52,6 +52,9 @@ calc_error (struct fpi_frame_asmbl_ctx *ctx,
   width = ctx->frame_width - (dx > 0 ? dx : -dx);
   height = ctx->frame_height - dy;
 
+  if (height == 0 || width == 0)
+    return INT_MAX;
+
   y1 = 0;
   y2 = dy;
   i = 0;
@@ -85,9 +88,6 @@ calc_error (struct fpi_frame_asmbl_ctx *ctx,
   /* Normalize error */
   err *= (ctx->frame_height * ctx->frame_width);
   err /= (height * width);
-
-  if (err == 0)
-    return INT_MAX;
 
   return err;
 }
