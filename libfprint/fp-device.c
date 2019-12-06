@@ -923,7 +923,7 @@ fp_device_identify (FpDevice           *device,
                         g_ptr_array_ref (prints),
                         (GDestroyNotify) g_ptr_array_unref);
 
-  FP_DEVICE_GET_CLASS (device)->verify (device);
+  FP_DEVICE_GET_CLASS (device)->identify (device);
 }
 
 /**
