@@ -99,6 +99,8 @@ static void
 find_overlap (struct fpi_frame_asmbl_ctx *ctx,
               struct fpi_frame           *first_frame,
               struct fpi_frame           *second_frame,
+              int                        *dx_out,
+              int                        *dy_out,
               unsigned int               *min_error)
 {
   int dx, dy;
@@ -120,8 +122,8 @@ find_overlap (struct fpi_frame_asmbl_ctx *ctx,
           if (err < *min_error)
             {
               *min_error = err;
-              second_frame->delta_x = -dx;
-              second_frame->delta_y = dy;
+              *dx_out = -dx;
+              *dy_out = dy;
             }
         }
     }
@@ -133,7 +135,7 @@ do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
 {
   GSList *l;
   GTimer *timer;
-  guint num_frames = 0;
+  guint num_frames = 1;
   struct fpi_frame *prev_stripe;
   unsigned int min_error;
   /* Max error is width * height * 255, for AES2501 which has the largest
@@ -143,20 +145,27 @@ do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
   unsigned long long total_error = 0;
 
   timer = g_timer_new ();
+
+  /* Skip the first frame */
   prev_stripe = stripes->data;
-  for (l = stripes; l != NULL; l = l->next, num_frames++)
+
+  for (l = stripes->next; l != NULL; l = l->next, num_frames++)
     {
       struct fpi_frame *cur_stripe = l->data;
 
       if (reverse)
         {
-          find_overlap (ctx, prev_stripe, cur_stripe, &min_error);
+          find_overlap (ctx, prev_stripe, cur_stripe,
+                        &cur_stripe->delta_x, &cur_stripe->delta_y,
+                        &min_error);
           cur_stripe->delta_y = -cur_stripe->delta_y;
           cur_stripe->delta_x = -cur_stripe->delta_x;
         }
       else
         {
-          find_overlap (ctx, cur_stripe, prev_stripe, &min_error);
+          find_overlap (ctx, cur_stripe, prev_stripe,
+                        &cur_stripe->delta_x, &cur_stripe->delta_y,
+                        &min_error);
         }
       total_error += min_error;
 
@@ -328,19 +337,10 @@ fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
     {
       fpi_frame = l->data;
 
-      if(reverse)
-        {
-          y += fpi_frame->delta_y;
-          x += fpi_frame->delta_x;
-        }
+      y += fpi_frame->delta_y;
+      x += fpi_frame->delta_x;
 
       aes_blit_stripe (ctx, img, fpi_frame, x, y);
-
-      if(!reverse)
-        {
-          y += fpi_frame->delta_y;
-          x += fpi_frame->delta_x;
-        }
     }
 
   return img;
