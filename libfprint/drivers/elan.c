@@ -320,6 +320,7 @@ elan_submit_image (FpImageDevice *dev)
   g_slist_foreach (raw_frames, (GFunc) self->process_frame, &frames);
   fpi_do_movement_estimation (&assembling_ctx, frames);
   img = fpi_assemble_frames (&assembling_ctx, frames);
+  g_slist_free_full (frames, g_free);
 
   fpi_image_device_image_captured (dev, img);
 }
