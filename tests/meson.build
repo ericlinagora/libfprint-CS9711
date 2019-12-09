@@ -4,7 +4,7 @@ envs.set('G_DEBUG', 'fatal-warnings')
 envs.set('G_MESSAGES_DEBUG', 'all')
 
 # Setup paths
-envs.set('MESON_SOURCE_ROOT', meson.build_root())
+envs.set('MESON_SOURCE_ROOT', meson.source_root())
 envs.prepend('LD_LIBRARY_PATH', join_paths(meson.build_root(), 'libfprint'))
 
 # Set FP_DEVICE_EMULATION so that drivers can adapt (e.g. to use fixed
