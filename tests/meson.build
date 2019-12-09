@@ -59,6 +59,7 @@ test_utils = static_library('fprint-test-utils',
 unit_tests = [
     'fpi-device',
     'fpi-ssm',
+    'fpi-assembling',
 ]
 
 if 'virtual_image' in drivers
@@ -68,11 +69,41 @@ if 'virtual_image' in drivers
     ]
 endif
 
+unit_tests_deps = { 'fpi-assembling' : [cairo_dep] }
+
+test_config = configuration_data()
+test_config.set_quoted('SOURCE_ROOT', meson.source_root())
+test_config_h = configure_file(output: 'test-config.h', configuration: test_config)
+
 foreach test_name: unit_tests
+    if unit_tests_deps.has_key(test_name)
+        missing_deps = false
+        foreach dep: unit_tests_deps[test_name]
+            if not dep.found()
+                missing_deps = true
+                break
+            endif
+        endforeach
+
+        if missing_deps
+            # Create a dummy test that always skips instead
+            warning('Test @0@ cannot be compiled due to missing dependencies'.format(test_name))
+            test(test_name,
+                find_program('sh'),
+                suite: ['unit-tests'],
+                args: ['-c', 'exit 77'],
+            )
+            continue
+        endif
+        extra_deps = unit_tests_deps[test_name]
+    else
+        extra_deps = []
+    endif
+
     basename = 'test-' + test_name
     test_exe = executable(basename,
-        sources: basename + '.c',
-        dependencies: libfprint_private_dep,
+        sources: [basename + '.c', test_config_h],
+        dependencies: [ libfprint_private_dep ] + extra_deps,
         c_args: common_cflags,
         link_with: test_utils,
     )

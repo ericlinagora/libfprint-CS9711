@@ -82,6 +82,9 @@ gio_dep = dependency('gio-unix-2.0', version: '>=' + glib_min_version)
 gusb_dep = dependency('gusb', version: '>= 0.3.0')
 mathlib_dep = cc.find_library('m', required: false)
 
+# The following dependencies are only used for tests
+cairo_dep = dependency('cairo', required: false)
+
 # Drivers
 drivers = get_option('drivers').split(',')
 virtual_drivers = [ 'virtual_image' ]
