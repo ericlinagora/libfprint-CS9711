@@ -168,7 +168,7 @@ cmd_recieve_cb (FpiUsbTransfer *transfer,
    * depending on resp.complete. */
   if (self->cmd_pending_transfer)
     fpi_ssm_jump_to_state (transfer->ssm, SYNAPTICS_CMD_SEND_PENDING);
-  else if (!resp.complete)
+  else if (!resp.complete || self->cmd_complete_on_removal)
     fpi_ssm_next_state (transfer->ssm);             /* SYNAPTICS_CMD_WAIT_INTERRUPT */
   else
     fpi_ssm_mark_completed (transfer->ssm);
