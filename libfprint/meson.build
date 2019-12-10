@@ -8,6 +8,7 @@ libfprint_sources = [
 
 libfprint_private_sources = [
     'fpi-assembling.c',
+    'fpi-device.c',
     'fpi-ssm.c',
     'fpi-usb-transfer.c',
     'fpi-byte-reader.c',
