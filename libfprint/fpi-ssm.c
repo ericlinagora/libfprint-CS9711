@@ -115,7 +115,7 @@ struct _FpiSsm
  * @dev: a #fp_dev fingerprint device
  * @handler: the callback function
  * @nr_states: the number of states
- * @name: the name of the state machine (for debug purposes)
+ * @machine_name: the name of the state machine (for debug purposes)
  *
  * Allocate a new ssm, with @nr_states states. The @handler callback
  * will be called after each state transition.
@@ -126,7 +126,7 @@ FpiSsm *
 fpi_ssm_new_full (FpDevice             *dev,
                   FpiSsmHandlerCallback handler,
                   int                   nr_states,
-                  const char           *name)
+                  const char           *machine_name)
 {
   FpiSsm *machine;
 
@@ -137,7 +137,7 @@ fpi_ssm_new_full (FpDevice             *dev,
   machine->handler = handler;
   machine->nr_states = nr_states;
   machine->dev = dev;
-  machine->name = g_strdup (name);
+  machine->name = g_strdup (machine_name);
   machine->completed = TRUE;
   return machine;
 }
