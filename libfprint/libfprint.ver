@@ -1,9 +1,6 @@
 LIBFPRINT_2.0.0 {
 global:
 	fp_*;
-
-	/* Needs to be public for the listing commands. */
-	fpi_get_driver_types;
 local:
 	*;
 };

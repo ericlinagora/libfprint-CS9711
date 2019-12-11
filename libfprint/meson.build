@@ -207,19 +207,26 @@ libnbis = static_library('nbis',
 libfprint_private = static_library('fprint-private',
     sources: libfprint_private_sources + fpi_enums,
     dependencies: deps,
+    link_with: libnbis,
+    install: false)
+
+libfprint_drivers = static_library('fprint-drivers',
+    sources: drivers_sources + [ fp_enums_h ],
+    c_args: drivers_cflags,
+    dependencies: deps,
+    link_with: libfprint_private,
     install: false)
 
 mapfile = files('libfprint.ver')
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.source_root(), mapfile[0])
 
 libfprint = library('fprint',
-    sources: libfprint_sources + fp_enums + drivers_sources + other_sources,
+    sources: libfprint_sources + fp_enums + other_sources,
     soversion: soversion,
     version: libversion,
-    c_args: drivers_cflags,
     link_args : vflag,
     link_depends : mapfile,
-    link_with: [libnbis, libfprint_private],
+    link_with: [libfprint_private, libfprint_drivers],
     dependencies: deps,
     install: true)
 
@@ -230,9 +237,16 @@ libfprint_dep = declare_dependency(link_with: libfprint,
 
 install_headers(['fprint.h'] + libfprint_public_headers, subdir: 'libfprint')
 
+libfprint_private_dep = declare_dependency(
+    include_directories: include_directories('.'),
+    link_with: libfprint_private,
+    dependencies: [ deps, libfprint_dep ]
+)
+
 udev_rules = executable('fprint-list-udev-rules',
     'fprint-list-udev-rules.c',
-    dependencies: [ deps, libfprint_dep ],
+    dependencies: libfprint_private_dep,
+    link_with: libfprint_drivers,
     install: false)
 
 if get_option('udev_rules')
@@ -246,7 +260,8 @@ endif
 
 supported_devices = executable('fprint-list-supported-devices',
     'fprint-list-supported-devices.c',
-    dependencies: [ deps, libfprint_dep ],
+    dependencies: libfprint_private_dep,
+    link_with: libfprint_drivers,
     install: false)
 
 
