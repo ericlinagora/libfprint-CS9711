@@ -48,35 +48,38 @@ if get_option('introspection')
     endforeach
 endif
 
-if 'virtual_image' in drivers
-    test_utils = static_library('fprint-test-utils',
-        sources: [
-            'test-utils.c',
-            'test-device-fake.c',
-        ],
-        dependencies: libfprint_private_dep,
-        install: false)
+test_utils = static_library('fprint-test-utils',
+    sources: [
+        'test-utils.c',
+        'test-device-fake.c',
+    ],
+    dependencies: libfprint_private_dep,
+    install: false)
 
-    unit_tests = [
+unit_tests = []
+
+if 'virtual_image' in drivers
+    unit_tests += [
         'fp-context',
         'fp-device',
     ]
-
-    foreach test_name: unit_tests
-        basename = 'test-' + test_name
-        test_exe = executable(basename,
-            sources: basename + '.c',
-            dependencies: libfprint_private_dep,
-            c_args: common_cflags,
-            link_with: test_utils)
-        test(test_name,
-            find_program('test-runner.sh'),
-            suite: ['unit-tests'],
-            args: [test_exe],
-            env: envs,
-        )
-    endforeach
 endif
+
+foreach test_name: unit_tests
+    basename = 'test-' + test_name
+    test_exe = executable(basename,
+        sources: basename + '.c',
+        dependencies: libfprint_private_dep,
+        c_args: common_cflags,
+        link_with: test_utils,
+    )
+    test(test_name,
+        find_program('test-runner.sh'),
+        suite: ['unit-tests'],
+        args: [test_exe],
+        env: envs,
+    )
+endforeach
 
 gdb = find_program('gdb', required: false)
 if gdb.found()
