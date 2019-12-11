@@ -1134,8 +1134,8 @@ fpi_device_list_complete (FpDevice  *device,
  * fpi_device_enroll_progress:
  * @device: The #FpDevice
  * @completed_stages: The number of stages that are completed at this point
- * @print: The #FpPrint for the newly completed stage or %NULL on failure
- * @error: The #GError or %NULL on success
+ * @print: (transfer full): The #FpPrint for the newly completed stage or %NULL on failure
+ * @error: (transfer full): The #GError or %NULL on success
  *
  * Notify about the progress of the enroll operation. This is important for UI interaction.
  * The passed error may be used if a scan needs to be retried, use fpi_device_retry_new().
