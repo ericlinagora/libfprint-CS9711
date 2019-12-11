@@ -109,3 +109,5 @@ void fpi_ssm_usb_transfer_with_weak_pointer_cb (FpiUsbTransfer *transfer,
                                                 FpDevice       *device,
                                                 gpointer        weak_ptr,
                                                 GError         *error);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpiSsm, fpi_ssm_free)
