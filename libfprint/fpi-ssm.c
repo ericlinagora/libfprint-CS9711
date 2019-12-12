@@ -213,6 +213,9 @@ on_delayed_action_cancelled (GCancellable *cancellable,
 {
   CancelledActionIdleData *data;
 
+  fp_dbg ("[%s] %s cancelled delayed state change",
+          fp_device_get_driver (machine->dev), machine->name);
+
   g_clear_pointer (&machine->timeout, g_source_destroy);
 
   data = g_new0 (CancelledActionIdleData, 1);
@@ -468,6 +471,9 @@ fpi_ssm_cancel_delayed_state_change (FpiSsm *machine)
   g_return_if_fail (machine);
   BUG_ON (machine->completed);
   BUG_ON (machine->timeout == NULL);
+
+  fp_dbg ("[%s] %s cancelled delayed state change",
+          fp_device_get_driver (machine->dev), machine->name);
 
   fpi_ssm_clear_delayed_action (machine);
 }
