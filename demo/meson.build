@@ -10,9 +10,6 @@ datadir = join_paths(prefix, get_option('datadir'))
 executable('gtk-libfprint-test',
     [ 'gtk-libfprint-test.c', gtk_test_resources ],
     dependencies: [ libfprint_dep, gtk_dep ],
-    include_directories: [
-        root_inc,
-    ],
     c_args: '-DPACKAGE_VERSION="' + meson.project_version() + '"',
     install: true,
     install_dir: bindir)
