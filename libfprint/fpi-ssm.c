@@ -573,8 +573,7 @@ fpi_ssm_jump_to_state_delayed (FpiSsm       *machine,
   g_autofree char *source_name = NULL;
 
   g_return_if_fail (machine != NULL);
-  BUG_ON (machine->completed);
-  BUG_ON (machine->timeout != NULL);
+  BUG_ON (state < 0 || state >= machine->nr_states);
 
   data = g_new0 (FpiSsmJumpToStateDelayedData, 1);
   data->machine = machine;
