@@ -338,7 +338,10 @@ fpi_ssm_start_subsm (FpiSsm *parent, FpiSsm *child)
 {
   BUG_ON (parent->timeout);
   child->parentsm = parent;
-  g_clear_pointer (&parent->timeout, g_source_destroy);
+
+  fpi_ssm_clear_delayed_action (parent);
+  fpi_ssm_clear_delayed_action (child);
+
   fpi_ssm_start (child, __subsm_complete);
 }
 
