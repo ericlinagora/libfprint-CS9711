@@ -55,7 +55,7 @@ test:
   script:
     - meson --werror -Ddrivers=all -Db_coverage=true . _build
     - ninja -C _build
-    - meson test -C _build --verbose --no-stdsplit
+    - meson test -C _build --verbose --no-stdsplit --timeout-multiplier 3
     - ninja -C _build coverage
   artifacts:
     paths:
