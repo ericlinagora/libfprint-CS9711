@@ -39,7 +39,7 @@ typedef struct _FpiSsm FpiSsm;
  * FpiSsmCompletedCallback:
  * @ssm: a #FpiSsm state machine
  * @dev: the #fp_dev fingerprint device
- * @error: The #GError or %NULL on successful completion
+ * @error: (transfer full): The #GError or %NULL on successful completion
  *
  * The callback called when a state machine completes successfully,
  * as set when calling fpi_ssm_start().
