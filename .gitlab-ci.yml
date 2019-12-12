@@ -53,9 +53,14 @@ test:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - meson --werror -Ddrivers=all . _build
+    - meson --werror -Ddrivers=all -Db_coverage=true . _build
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit
+    - ninja -C _build coverage
+  artifacts:
+    paths:
+      - _build/meson-logs
+    expire_in: 1 week
 
 test_valgrind:
   stage: test
@@ -140,6 +145,7 @@ container_fedora_build:
       flatpak-builder
       gcc
       gcc-c++
+      gcovr
       git
       glib2-devel
       glibc-devel
