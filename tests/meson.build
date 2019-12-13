@@ -11,6 +11,9 @@ envs.prepend('LD_LIBRARY_PATH', join_paths(meson.build_root(), 'libfprint'))
 # random numbers rather than proper ones)
 envs.set('FP_DEVICE_EMULATION', '1')
 
+# Set a colon-separated list of native drivers we enable in tests
+envs.set('FP_DRIVERS_WHITELIST', 'virtual_image')
+
 envs.set('NO_AT_BRIDGE', '1')
 
 if get_option('introspection')
@@ -31,10 +34,13 @@ if get_option('introspection')
     ]
 
     foreach driver_test: drivers_tests
+        driver_envs = envs
+        driver_envs.set('FP_DRIVERS_WHITELIST', driver_test)
+
         test(driver_test,
             find_program('umockdev-test.py'),
             args: join_paths(meson.current_source_dir(), driver_test),
-            env: envs,
+            env: driver_envs,
             suite: ['drivers'],
             timeout: 10,
             depends: libfprint_typelib,

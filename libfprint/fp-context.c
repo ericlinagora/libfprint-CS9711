@@ -57,6 +57,35 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
+static const char *
+get_drivers_whitelist_env (void)
+{
+  return g_getenv ("FP_DRIVERS_WHITELIST");
+}
+
+static gboolean
+is_driver_allowed (const gchar *driver)
+{
+  g_auto(GStrv) whitelisted_drivers = NULL;
+  const char *fp_drivers_whitelist_env;
+  int i;
+
+  g_return_val_if_fail (driver, TRUE);
+
+  fp_drivers_whitelist_env = get_drivers_whitelist_env ();
+
+  if (!fp_drivers_whitelist_env)
+    return TRUE;
+
+  whitelisted_drivers = g_strsplit (fp_drivers_whitelist_env, ":", -1);
+
+  for (i = 0; whitelisted_drivers[i]; ++i)
+    if (g_strcmp0 (driver, whitelisted_drivers[i]) == 0)
+      return TRUE;
+
+  return FALSE;
+}
+
 static void
 async_device_init_done_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
@@ -242,8 +271,24 @@ fp_context_init (FpContext *self)
 {
   g_autoptr(GError) error = NULL;
   FpContextPrivate *priv = fp_context_get_instance_private (self);
+  guint i;
 
   priv->drivers = fpi_get_driver_types ();
+
+  if (get_drivers_whitelist_env ())
+    {
+      for (i = 0; i < priv->drivers->len;)
+        {
+          GType driver = g_array_index (priv->drivers, GType, i);
+          g_autoptr(GTypeClass) type_class = g_type_class_ref (driver);
+          FpDeviceClass *cls = FP_DEVICE_CLASS (type_class);
+
+          if (!is_driver_allowed (cls->id))
+            g_array_remove_index (priv->drivers, i);
+          else
+            ++i;
+        }
+    }
 
   priv->devices = g_ptr_array_new_with_free_func (g_object_unref);
 
