@@ -233,14 +233,21 @@ libfprint = library('fprint',
 libfprint_dep = declare_dependency(link_with: libfprint,
     sources: [ fp_enums_h ],
     include_directories: root_inc,
-    dependencies: [ glib_dep, gusb_dep, gio_dep ])
+    dependencies: [
+        gio_dep,
+        glib_dep,
+        gusb_dep,
+    ])
 
 install_headers(['fprint.h'] + libfprint_public_headers, subdir: 'libfprint')
 
 libfprint_private_dep = declare_dependency(
     include_directories: include_directories('.'),
     link_with: libfprint_private,
-    dependencies: [ deps, libfprint_dep ]
+    dependencies: [
+        deps,
+        libfprint_dep,
+    ]
 )
 
 udev_rules = executable('fprint-list-udev-rules',
