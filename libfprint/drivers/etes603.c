@@ -36,7 +36,6 @@
 #define FP_COMPONENT "etes603"
 
 #include "drivers_api.h"
-#include "driver_ids.h"
 
 /* libusb defines */
 #define EP_IN 0x81
