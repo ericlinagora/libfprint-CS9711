@@ -104,17 +104,13 @@ main (int argc, char **argv)
   for (i = 0; i < drivers->len; i++)
     {
       GType driver = g_array_index (drivers, GType, i);
-      FpDeviceClass *cls = FP_DEVICE_CLASS (g_type_class_ref (driver));
+      g_autoptr(GTypeClass) type_class = g_type_class_ref (driver);
+      FpDeviceClass *cls = FP_DEVICE_CLASS (type_class);
 
       if (cls->type != FP_DEVICE_TYPE_USB)
-        {
-          g_type_class_unref (cls);
-          continue;
-        }
+        continue;
 
       print_driver (cls);
-
-      g_type_class_unref (cls);
     }
 
   print_driver (&whitelist);

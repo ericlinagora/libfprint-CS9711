@@ -131,14 +131,12 @@ usb_device_added_cb (FpContext *self, GUsbDevice *device, GUsbContext *usb_ctx)
   for (i = 0; i < priv->drivers->len; i++)
     {
       GType driver = g_array_index (priv->drivers, GType, i);
-      FpDeviceClass *cls = FP_DEVICE_CLASS (g_type_class_ref (driver));
+      g_autoptr(GTypeClass) type_class = g_type_class_ref (driver);
+      FpDeviceClass *cls = FP_DEVICE_CLASS (type_class);
       const FpIdEntry *entry;
 
       if (cls->type != FP_DEVICE_TYPE_USB)
-        {
-          g_type_class_unref (cls);
-          continue;
-        }
+        continue;
 
       for (entry = cls->id_table; entry->pid; entry++)
         {
@@ -158,8 +156,6 @@ usb_device_added_cb (FpContext *self, GUsbDevice *device, GUsbContext *usb_ctx)
           found_driver = driver;
           found_entry = entry;
         }
-
-      g_type_class_unref (cls);
     }
 
   if (found_driver == G_TYPE_NONE)
@@ -355,7 +351,8 @@ fp_context_enumerate (FpContext *context)
   for (i = 0; i < priv->drivers->len; i++)
     {
       GType driver = g_array_index (priv->drivers, GType, i);
-      FpDeviceClass *cls = FP_DEVICE_CLASS (g_type_class_ref (driver));
+      g_autoptr(GTypeClass) type_class = g_type_class_ref (driver);
+      FpDeviceClass *cls = FP_DEVICE_CLASS (type_class);
       const FpIdEntry *entry;
 
       if (cls->type != FP_DEVICE_TYPE_VIRTUAL)
@@ -381,8 +378,6 @@ fp_context_enumerate (FpContext *context)
                                       NULL);
           g_debug ("created");
         }
-
-      g_type_class_unref (cls);
     }
 
   while (priv->pending_devices)
