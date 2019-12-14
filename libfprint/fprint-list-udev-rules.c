@@ -96,10 +96,8 @@ print_driver (const FpDeviceClass *cls)
 int
 main (int argc, char **argv)
 {
-  g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof (GType));
+  g_autoptr(GArray) drivers = fpi_get_driver_types ();
   guint i;
-
-  fpi_get_driver_types (drivers);
 
   printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 

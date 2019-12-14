@@ -31,10 +31,8 @@ GHashTable *printed = NULL;
 static GList *
 insert_drivers (GList *list)
 {
-  g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof (GType));
+  g_autoptr(GArray) drivers = fpi_get_driver_types ();
   gint i;
-
-  fpi_get_driver_types (drivers);
 
   /* Find the best driver to handle this USB device. */
   for (i = 0; i < drivers->len; i++)

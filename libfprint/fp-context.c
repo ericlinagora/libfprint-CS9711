@@ -243,8 +243,7 @@ fp_context_init (FpContext *self)
   g_autoptr(GError) error = NULL;
   FpContextPrivate *priv = fp_context_get_instance_private (self);
 
-  priv->drivers = g_array_new (TRUE, FALSE, sizeof (GType));
-  fpi_get_driver_types (priv->drivers);
+  priv->drivers = fpi_get_driver_types ();
 
   priv->devices = g_ptr_array_new_with_free_func (g_object_unref);
 

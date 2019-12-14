@@ -23,11 +23,12 @@
 
 /**
  * fpi_get_driver_types:
- * @drivers: #GArray to be filled with all driver types
  *
  * This function is purely for private used. It is solely part of the public
  * API as it is useful during build time.
  *
  * Stability: private
+ * Returns: (element-type GType) (transfer container): a #GArray filled with
+ *   all driver types
  */
-void fpi_get_driver_types (GArray *drivers);
+GArray *fpi_get_driver_types (void);
