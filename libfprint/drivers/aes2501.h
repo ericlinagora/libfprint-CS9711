@@ -19,8 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __AES2501_H
-#define __AES2501_H
+#pragma once
 
 enum aes2501_regs {
   AES2501_REG_CTRL1 = 0x80,
@@ -172,5 +171,3 @@ enum aes2501_sensor_gain2 {
 
 #define AES2501_SUM_HIGH_THRESH 1000
 #define AES2501_SUM_LOW_THRESH 700
-
-#endif  /* __AES2501_H */

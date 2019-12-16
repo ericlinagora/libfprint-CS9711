@@ -18,11 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __UTILITIES_H
-#define __UTILITIES_H
+#pragma once
 
 FpDevice * discover_device (GPtrArray *devices);
 FpFinger finger_chooser (void);
 const char * finger_to_string (FpFinger finger);
-
-#endif /* __UTILITIES_H */

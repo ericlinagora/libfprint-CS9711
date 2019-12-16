@@ -18,8 +18,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __FPI_BYTE_WRITER_H__
-#define __FPI_BYTE_WRITER_H__
+#pragma once
 
 #include "fpi-byte-reader.h"
 #include <string.h>
@@ -409,5 +408,3 @@ fpi_byte_writer_fill_inline (FpiByteWriter * writer, guint8 value, guint size)
 #endif
 
 G_END_DECLS
-
-#endif /* __FPI_BYTE_WRITER_H__ */

@@ -19,8 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __UPEKTC_H
-#define __UPEKTC_H
+#pragma once
 
 #define UPEKTC_CMD_LEN 0x40
 #define IMAGE_WIDTH 208
@@ -1936,5 +1935,3 @@ static const unsigned char scan_cmd[0x40] = {
   0x05, 0x90, 0xf6, 0x77, 0x84, 0xf5, 0x2f, 0x01,
   0x05, 0x90, 0xf6, 0x00, 0xc8, 0x00, 0xec, 0x00
 };
-
-#endif

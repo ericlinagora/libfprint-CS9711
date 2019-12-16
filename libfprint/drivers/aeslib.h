@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __AESLIB_H__
-#define __AESLIB_H__
+#pragma once
 
 #include <fprint.h>
 
@@ -45,5 +44,3 @@ unsigned char aes_get_pixel (struct fpi_frame_asmbl_ctx *ctx,
                              struct fpi_frame           *frame,
                              unsigned int                x,
                              unsigned int                y);
-
-#endif

@@ -18,8 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __ELAN_H
-#define __ELAN_H
+#pragma once
 
 #include <glib.h>
 
@@ -224,5 +223,3 @@ static void elan_capture (FpDevice *dev);
 
 static void dev_change_state (FpImageDevice     *dev,
                               FpImageDeviceState state);
-
-#endif

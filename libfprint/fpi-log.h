@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __FPI_LOG_H__
-#define __FPI_LOG_H__
+#pragma once
 
 /**
  * SECTION:fpi-log
@@ -94,5 +93,3 @@
  * Same as BUG_ON() but is always true.
  */
 #define BUG() BUG_ON (1)
-
-#endif

@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _BMKT_H_
-#define _BMKT_H_
+#pragma once
 
 /**< User ID maximum length allowed */
 #define BMKT_MAX_USER_ID_LEN 100
@@ -228,5 +227,3 @@ typedef struct bmkt_user_id
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _BMKT_H_ */

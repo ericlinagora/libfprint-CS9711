@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __AES2550_H
-#define __AES2550_H
+#pragma once
 
 /* Registers bits */
 
@@ -110,5 +109,3 @@ enum aes2550_cmds {
 #define AES2550_HEARTBEAT_MAGIC 0xdb
 
 #define AES2550_EP_IN_BUF_SIZE 8192
-
-#endif

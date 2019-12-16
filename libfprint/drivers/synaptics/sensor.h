@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _SENSOR_H_
-#define _SENSOR_H_
+#pragma once
 
 #include "usb_transport.h"
 #define BMKT_MAX_PENDING_SESSIONS 2
@@ -84,4 +83,3 @@ int bmkt_sensor_handle_response (bmkt_sensor_t   *sensor,
                                  bmkt_msg_resp_t *msg_resp);
 
 int bmkt_sensor_send_async_read_command (bmkt_sensor_t *sensor);
-#endif /* _SENSOR_H_ */

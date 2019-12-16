@@ -19,8 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __DRIVERS_API_H__
-#define __DRIVERS_API_H__
+#pragma once
 
 #include "fpi-assembling.h"
 #include "fpi-device.h"
@@ -30,5 +29,3 @@
 #include "fpi-print.h"
 #include "fpi-usb-transfer.h"
 #include "fpi-ssm.h"
-
-#endif

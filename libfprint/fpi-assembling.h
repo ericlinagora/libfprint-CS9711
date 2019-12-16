@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __FPI_ASSEMBLING_H__
-#define __FPI_ASSEMBLING_H__
+#pragma once
 
 #include <fprint.h>
 
@@ -116,5 +115,3 @@ struct fpi_line_asmbl_ctx
 FpImage *fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,
                              GSList                    *lines,
                              size_t                     num_lines);
-
-#endif

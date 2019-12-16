@@ -17,9 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
-#ifndef _BMKT_RESPONSE_H_
-#define _BMKT_RESPONSE_H_
+#pragma once
 
 #include "bmkt.h"
 
@@ -485,5 +483,3 @@ typedef struct bmkt_response
   int                  complete;        /**< Operation completion status 1: complete / 0: not completed */
   bmkt_response_data_t response;        /**< Operation specific response union */
 } bmkt_response_t;
-
-#endif /* _BMKT_RESPONSE_H_ */

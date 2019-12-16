@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __AES2660_H
-#define __AES2660_H
+#pragma once
 
 #define AES2660_FRAME_SIZE 0x354
 
@@ -1960,5 +1959,3 @@ static const unsigned char aes2660_start_imaging_cmd[] = {
   0x55, 0x07, 0x00, 0x80, 0x42, 0x00, 0xbf, 0x00, 0x00, 0x18,
   0x49, 0x03, 0x00, 0x20, 0x08, 0xc8
 };
-
-#endif

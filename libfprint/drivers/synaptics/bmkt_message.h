@@ -16,10 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
-#ifndef BMKT_MESSAGE_H_
-#define BMKT_MESSAGE_H_
-
+#pragma once
 
 #define BMKT_MESSAGE_HEADER_ID 0xFE
 #define BMKT_MESSAGE_HEADER_LEN (4)
@@ -90,4 +87,3 @@ int bmkt_parse_message_header (uint8_t         *resp_buf,
                                bmkt_msg_resp_t *msg_resp);
 int bmkt_parse_message_payload (bmkt_msg_resp_t *msg_resp,
                                 bmkt_response_t *resp);
-#endif /* BMKT_MESSAGE_H_ */

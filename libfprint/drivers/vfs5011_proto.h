@@ -1,5 +1,4 @@
-#ifndef __VFS5011_PROTO_H
-#define __VFS5011_PROTO_H
+#pragma once
 
 #define VFS5011_LINE_SIZE 240
 #define VFS5011_IMAGE_WIDTH 160
@@ -6182,5 +6181,3 @@ static unsigned char vfs5011_prepare_04[] = { /* 2903 B */
   0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
   0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
 };
-
-#endif

@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __UPEKTC_IMG_H
-#define __UPEKTC_IMG_H
+#pragma once
 
 static const unsigned char upek2020_init_1[] = {
   'C', 'i', 'a', 'o',
@@ -140,5 +139,3 @@ static const unsigned char upek2020_ack_frame[] = {
   0x30,
   0xac, 0x5b /* CRC */
 };
-
-#endif

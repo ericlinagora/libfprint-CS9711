@@ -19,8 +19,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __FPI_BYTE_READER_H__
-#define __FPI_BYTE_READER_H__
+#pragma once
 
 #include <glib.h>
 #include "fpi-byte-utils.h"
@@ -676,5 +675,3 @@ fpi_byte_reader_skip_inline (FpiByteReader * reader, guint nbytes)
 #endif /* FPI_BYTE_READER_DISABLE_INLINES */
 
 G_END_DECLS
-
-#endif /* __FPI_BYTE_READER_H__ */

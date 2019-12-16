@@ -21,9 +21,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-
-#ifndef __FP_UTILS_H__
-#define __FP_UTILS_H__
+#pragma once
 
 #include <glib.h>
 
@@ -485,4 +483,3 @@ FP_WRITE_DOUBLE_BE(guint8 *data, gdouble num)
 G_END_DECLS
 
 #endif /* __GTK_DOC_IGNORE__ */
-#endif /* __FP_UTILS_H__ */
