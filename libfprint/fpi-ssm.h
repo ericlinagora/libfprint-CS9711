@@ -22,7 +22,6 @@
 #pragma once
 
 #include "fp-device.h"
-#include "fpi-usb-transfer.h"
 
 /* async drv <--> lib comms */
 
@@ -101,6 +100,8 @@ int fpi_ssm_get_cur_state (FpiSsm *machine);
 /* Callbacks to be used by the driver instead of implementing their own
  * logic.
  */
+typedef struct _FpiUsbTransfer FpiUsbTransfer;
+
 void fpi_ssm_usb_transfer_cb (FpiUsbTransfer *transfer,
                               FpDevice       *device,
                               gpointer        unused_data,

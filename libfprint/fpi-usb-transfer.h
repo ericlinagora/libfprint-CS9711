@@ -30,8 +30,7 @@ G_BEGIN_DECLS
 #define FPI_USB_ENDPOINT_OUT 0x00
 
 typedef struct _FpiUsbTransfer FpiUsbTransfer;
-
-#include "fpi-ssm.h"
+typedef struct _FpiSsm         FpiSsm;
 
 typedef void (*FpiUsbTransferCallback)(FpiUsbTransfer *transfer,
                                        FpDevice       *dev,
