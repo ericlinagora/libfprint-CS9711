@@ -4,7 +4,6 @@ private_headers = [
     'config.h',
     'nbis-helpers.h',
     'fprint.h',
-    'fp_internal.h',
 
     # Subdirectories to ignore
     'drivers',

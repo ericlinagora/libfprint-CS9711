@@ -19,13 +19,11 @@
 
 #define FP_COMPONENT "aeslib"
 
-#include "fp_internal.h"
+#include "drivers_api.h"
 
 #include <errno.h>
 #include <string.h>
 
-#include "fpi-usb-transfer.h"
-#include "fpi-assembling.h"
 #include "aeslib.h"
 
 #define MAX_REGWRITES_PER_REQUEST 16

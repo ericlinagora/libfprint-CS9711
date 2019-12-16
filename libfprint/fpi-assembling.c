@@ -21,7 +21,8 @@
 
 #define FP_COMPONENT "assembling"
 
-#include "fp_internal.h"
+#include "fpi-log.h"
+#include "fpi-image.h"
 
 #include <string.h>
 
