@@ -203,10 +203,10 @@ subdir('tests')
 
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
-    name: 'libfprint',
+    name: meson.project_name(),
     description: 'Generic C API for fingerprint reader access',
     version: meson.project_version(),
     libraries: libfprint,
-    subdirs: 'libfprint',
-    filebase: 'libfprint2',
+    subdirs: meson.project_name(),
+    filebase: meson.project_name() + '2',
 )

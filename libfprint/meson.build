@@ -251,7 +251,9 @@ libfprint_dep = declare_dependency(link_with: libfprint,
         gusb_dep,
     ])
 
-install_headers(['fprint.h'] + libfprint_public_headers, subdir: 'libfprint')
+install_headers(['fprint.h'] + libfprint_public_headers,
+    subdir: meson.project_name()
+)
 
 libfprint_private_dep = declare_dependency(
     include_directories: include_directories('.'),
