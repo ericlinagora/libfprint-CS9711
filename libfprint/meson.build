@@ -181,7 +181,8 @@ fp_enums_h = fp_enums[1]
 
 fpi_enums = gnome.mkenums_simple('fpi-enums',
     sources: libfprint_private_headers,
-    install_header : false)
+    install_header: false,
+)
 fpi_enums_h = fpi_enums[1]
 
 enums_dep = declare_dependency(
