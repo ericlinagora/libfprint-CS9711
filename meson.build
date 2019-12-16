@@ -208,5 +208,5 @@ pkgconfig.generate(
     version: meson.project_version(),
     libraries: libfprint,
     subdirs: meson.project_name(),
-    filebase: meson.project_name() + '2',
+    filebase: meson.project_name() + '@0@'.format(soversion),
 )

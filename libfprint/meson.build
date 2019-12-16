@@ -293,7 +293,7 @@ if get_option('introspection')
             libfprint_public_headers,
             libfprint_sources,
         ],
-        nsversion : '2.0',
+        nsversion : '@0@.0'.format(soversion),
         namespace : 'FPrint',
         symbol_prefix : 'fp_',
         identifier_prefix : 'Fp',
