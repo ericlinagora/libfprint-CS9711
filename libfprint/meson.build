@@ -191,7 +191,14 @@ drivers_sources += configure_file(input: 'empty_file',
         '\n'.join(drivers_type_list + [] + drivers_type_func)
     ])
 
-deps = [ mathlib_dep, glib_dep, gusb_dep, nss_dep, imaging_dep, gio_dep ]
+deps = [
+    gio_dep,
+    glib_dep,
+    gusb_dep,
+    imaging_dep,
+    mathlib_dep,
+    nss_dep,
+]
 
 deps += declare_dependency(include_directories: [
     root_inc,
