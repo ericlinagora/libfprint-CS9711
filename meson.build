@@ -209,4 +209,4 @@ pkgconfig.generate(
     libraries: libfprint,
     subdirs: 'libfprint',
     filebase: 'libfprint2',
-    install_dir: join_paths(get_option('libdir'), 'pkgconfig'))
+)
