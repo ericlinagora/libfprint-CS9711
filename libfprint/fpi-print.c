@@ -38,15 +38,15 @@
  * @print: A #FpPrint
  * @add: Print to append to @print
  *
- * Appends the single #FP_PRINT_NBIS print from @add to the collection of
- * prints in @print. Both print objects need to be of type #FP_PRINT_NBIS
+ * Appends the single #FPI_PRINT_NBIS print from @add to the collection of
+ * prints in @print. Both print objects need to be of type #FPI_PRINT_NBIS
  * for this to work.
  */
 void
 fpi_print_add_print (FpPrint *print, FpPrint *add)
 {
-  g_return_if_fail (print->type == FP_PRINT_NBIS);
-  g_return_if_fail (add->type == FP_PRINT_NBIS);
+  g_return_if_fail (print->type == FPI_PRINT_NBIS);
+  g_return_if_fail (add->type == FPI_PRINT_NBIS);
 
   g_assert (add->prints->len == 1);
   g_ptr_array_add (print->prints, g_memdup (add->prints->pdata[0], sizeof (struct xyt_struct)));
@@ -62,15 +62,15 @@ fpi_print_add_print (FpPrint *print, FpPrint *add)
  * print passed during enrollment.
  */
 void
-fpi_print_set_type (FpPrint    *print,
-                    FpPrintType type)
+fpi_print_set_type (FpPrint     *print,
+                    FpiPrintType type)
 {
   g_return_if_fail (FP_IS_PRINT (print));
   /* We only allow setting this once! */
-  g_return_if_fail (print->type == FP_PRINT_UNDEFINED);
+  g_return_if_fail (print->type == FPI_PRINT_UNDEFINED);
 
   print->type = type;
-  if (print->type == FP_PRINT_NBIS)
+  if (print->type == FPI_PRINT_NBIS)
     {
       g_assert_null (print->prints);
       print->prints = g_ptr_array_new_with_free_func (g_free);
@@ -143,7 +143,7 @@ minutiae_to_xyt (struct fp_minutiae *minutiae,
  * @error: Return location for error
  *
  * Extracts the minutiae from the given image and adds it to @print of
- * type #FP_PRINT_NBIS.
+ * type #FPI_PRINT_NBIS.
  *
  * The @image will be kept so that API users can get retrieve it e.g.
  * for debugging purposes.
@@ -159,7 +159,7 @@ fpi_print_add_from_image (FpPrint *print,
   struct fp_minutiae _minutiae;
   struct xyt_struct *xyt;
 
-  if (print->type != FP_PRINT_NBIS || !image)
+  if (print->type != FPI_PRINT_NBIS || !image)
     {
       g_set_error (error,
                    G_IO_ERROR,
@@ -203,7 +203,7 @@ fpi_print_add_from_image (FpPrint *print,
  * Match the newly scanned @print (containing exactly one print) against the
  * prints contained in @template which will have been stored during enrollment.
  *
- * Both @template and @print need to be of type #FP_PRINT_NBIS for this to
+ * Both @template and @print need to be of type #FPI_PRINT_NBIS for this to
  * work.
  *
  * Returns: Whether the prints match, @error will be set if #FPI_MATCH_ERROR is returned
@@ -216,7 +216,7 @@ fpi_print_bz3_match (FpPrint *template, FpPrint *print, gint bz3_threshold, GErr
   gint i;
 
   /* XXX: Use a different error type? */
-  if (template->type != FP_PRINT_NBIS || print->type != FP_PRINT_NBIS)
+  if (template->type != FPI_PRINT_NBIS || print->type != FPI_PRINT_NBIS)
     {
       *error = fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
                                          "It is only possible to match NBIS type print data");

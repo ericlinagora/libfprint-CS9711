@@ -81,7 +81,7 @@ fp_device_cancel_in_idle_cb (gpointer user_data)
   FpDevicePrivate *priv = fp_device_get_instance_private (self);
 
   g_assert (cls->cancel);
-  g_assert (priv->current_action != FP_DEVICE_ACTION_NONE);
+  g_assert (priv->current_action != FPI_DEVICE_ACTION_NONE);
 
   g_debug ("Idle cancelling on ongoing operation!");
 
@@ -148,7 +148,7 @@ fp_device_finalize (GObject *object)
   FpDevice *self = (FpDevice *) object;
   FpDevicePrivate *priv = fp_device_get_instance_private (self);
 
-  g_assert (priv->current_action == FP_DEVICE_ACTION_NONE);
+  g_assert (priv->current_action == FPI_DEVICE_ACTION_NONE);
   g_assert (priv->current_task == NULL);
   if (priv->is_open)
     g_warning ("User destroyed open device! Not cleaning up properly!");
@@ -268,7 +268,7 @@ fp_device_async_initable_init_async (GAsyncInitable     *initable,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_PROBE;
+  priv->current_action = FPI_DEVICE_ACTION_PROBE;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (self, cancellable);
 
@@ -584,7 +584,7 @@ fp_device_open (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_OPEN;
+  priv->current_action = FPI_DEVICE_ACTION_OPEN;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
@@ -648,7 +648,7 @@ fp_device_close (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_CLOSE;
+  priv->current_action = FPI_DEVICE_ACTION_CLOSE;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
@@ -709,7 +709,7 @@ fp_device_enroll (FpDevice           *device,
   g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
   FpEnrollData *data;
-  FpPrintType print_type;
+  FpiPrintType print_type;
 
   task = g_task_new (device, cancellable, callback, user_data);
   if (g_task_return_error_if_cancelled (task))
@@ -738,7 +738,7 @@ fp_device_enroll (FpDevice           *device,
     }
 
   g_object_get (template_print, "fp-type", &print_type, NULL);
-  if (print_type != FP_PRINT_UNDEFINED)
+  if (print_type != FPI_PRINT_UNDEFINED)
     {
       g_warning ("Passed print template must be newly created and blank!");
       g_task_return_error (task,
@@ -746,7 +746,7 @@ fp_device_enroll (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_ENROLL;
+  priv->current_action = FPI_DEVICE_ACTION_ENROLL;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
@@ -822,7 +822,7 @@ fp_device_verify (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_VERIFY;
+  priv->current_action = FPI_DEVICE_ACTION_VERIFY;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
@@ -915,7 +915,7 @@ fp_device_identify (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_IDENTIFY;
+  priv->current_action = FPI_DEVICE_ACTION_IDENTIFY;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
@@ -1008,7 +1008,7 @@ fp_device_capture (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_CAPTURE;
+  priv->current_action = FPI_DEVICE_ACTION_CAPTURE;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
@@ -1089,7 +1089,7 @@ fp_device_delete_print (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_DELETE;
+  priv->current_action = FPI_DEVICE_ACTION_DELETE;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
@@ -1159,7 +1159,7 @@ fp_device_list_prints (FpDevice           *device,
       return;
     }
 
-  priv->current_action = FP_DEVICE_ACTION_LIST;
+  priv->current_action = FPI_DEVICE_ACTION_LIST;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 

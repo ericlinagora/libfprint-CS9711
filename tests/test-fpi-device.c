@@ -528,7 +528,7 @@ test_driver_enroll_progress (void)
   device = auto_close_fake_device_new ();
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
-                         "*assertion*current_action*FP_DEVICE_ACTION_ENROLL*failed");
+                         "*assertion*current_action*FPI_DEVICE_ACTION_ENROLL*failed");
   fpi_device_enroll_progress (device, 0, NULL, NULL);
   g_test_assert_expected_messages ();
 
@@ -989,7 +989,7 @@ test_driver_current_action (void)
 {
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
 
-  g_assert_cmpint (fpi_device_get_current_action (device), ==, FP_DEVICE_ACTION_NONE);
+  g_assert_cmpint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_NONE);
 }
 
 static void
@@ -997,7 +997,7 @@ test_driver_current_action_open_vfunc (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FP_DEVICE_ACTION_OPEN);
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_OPEN);
   fake_dev->last_called_function = test_driver_current_action_open_vfunc;
 
   fpi_device_open_complete (device, NULL);
@@ -1015,7 +1015,7 @@ test_driver_current_action_open (void)
   fake_dev = FPI_DEVICE_FAKE (device);
   g_assert (fake_dev->last_called_function == test_driver_current_action_open_vfunc);
 
-  g_assert_cmpint (fpi_device_get_current_action (device), ==, FP_DEVICE_ACTION_NONE);
+  g_assert_cmpint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_NONE);
 }
 
 static void
@@ -1023,7 +1023,7 @@ test_driver_action_get_cancellable_open_vfunc (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FP_DEVICE_ACTION_OPEN);
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_OPEN);
   fake_dev->last_called_function = test_driver_action_get_cancellable_open_vfunc;
 
   g_assert_true (G_IS_CANCELLABLE (fpi_device_get_cancellable (device)));
@@ -1054,7 +1054,7 @@ test_driver_action_get_cancellable_open_fail_vfunc (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FP_DEVICE_ACTION_OPEN);
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_OPEN);
   fake_dev->last_called_function = test_driver_action_get_cancellable_open_fail_vfunc;
 
   g_assert_false (G_IS_CANCELLABLE (fpi_device_get_cancellable (device)));
@@ -1084,7 +1084,7 @@ test_driver_action_get_cancellable_error (void)
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
-                         "*assertion*current_action*FP_DEVICE_ACTION_NONE*failed");
+                         "*assertion*current_action*FPI_DEVICE_ACTION_NONE*failed");
   g_assert_null (fpi_device_get_cancellable (device));
   g_test_assert_expected_messages ();
 }
@@ -1094,7 +1094,7 @@ test_driver_action_is_cancelled_open_vfunc (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FP_DEVICE_ACTION_OPEN);
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_OPEN);
   fake_dev->last_called_function = test_driver_action_is_cancelled_open_vfunc;
 
   g_assert_true (G_IS_CANCELLABLE (fpi_device_get_cancellable (device)));
@@ -1132,7 +1132,7 @@ test_driver_action_is_cancelled_error (void)
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
-                         "*assertion*current_action*FP_DEVICE_ACTION_NONE*failed");
+                         "*assertion*current_action*FPI_DEVICE_ACTION_NONE*failed");
   g_assert_true (fpi_device_action_is_cancelled (device));
   g_test_assert_expected_messages ();
 }
@@ -1194,7 +1194,7 @@ test_driver_action_error_error (void)
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
-                         "*assertion*current_action*FP_DEVICE_ACTION_NONE*failed");
+                         "*assertion*current_action*FPI_DEVICE_ACTION_NONE*failed");
   fpi_device_action_error (device, NULL);
   g_test_assert_expected_messages ();
 }

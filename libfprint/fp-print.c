@@ -272,8 +272,8 @@ fp_print_class_init (FpPrintClass *klass)
     g_param_spec_enum ("fp-type",
                        "Type",
                        "Private: The type of the print data",
-                       FP_TYPE_PRINT_TYPE,
-                       FP_PRINT_RAW,
+                       FPI_TYPE_PRINT_TYPE,
+                       FPI_PRINT_RAW,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   properties[PROP_FPI_DATA] =
@@ -555,8 +555,8 @@ fp_print_equal (FpPrint *self, FpPrint *other)
 {
   g_return_val_if_fail (FP_IS_PRINT (self), FALSE);
   g_return_val_if_fail (FP_IS_PRINT (other), FALSE);
-  g_return_val_if_fail (self->type != FP_PRINT_UNDEFINED, FALSE);
-  g_return_val_if_fail (other->type != FP_PRINT_UNDEFINED, FALSE);
+  g_return_val_if_fail (self->type != FPI_PRINT_UNDEFINED, FALSE);
+  g_return_val_if_fail (other->type != FPI_PRINT_UNDEFINED, FALSE);
 
   if (self->type != other->type)
     return FALSE;
@@ -567,11 +567,11 @@ fp_print_equal (FpPrint *self, FpPrint *other)
   if (g_strcmp0 (self->device_id, other->device_id))
     return FALSE;
 
-  if (self->type == FP_PRINT_RAW)
+  if (self->type == FPI_PRINT_RAW)
     {
       return g_variant_equal (self->data, other->data);
     }
-  else if (self->type == FP_PRINT_NBIS)
+  else if (self->type == FPI_PRINT_NBIS)
     {
       gint i;
 
@@ -595,7 +595,7 @@ fp_print_equal (FpPrint *self, FpPrint *other)
     }
 }
 
-#define FP_PRINT_VARIANT_TYPE G_VARIANT_TYPE ("(issbymsmsia{sv}v)")
+#define FPI_PRINT_VARIANT_TYPE G_VARIANT_TYPE ("(issbymsmsia{sv}v)")
 
 G_STATIC_ASSERT (sizeof (((struct xyt_struct *) NULL)->xcol[0]) == 4);
 
@@ -618,7 +618,7 @@ fp_print_serialize (FpPrint *print,
                     GError **error)
 {
   g_autoptr(GVariant) result = NULL;
-  GVariantBuilder builder = G_VARIANT_BUILDER_INIT (FP_PRINT_VARIANT_TYPE);
+  GVariantBuilder builder = G_VARIANT_BUILDER_INIT (FPI_PRINT_VARIANT_TYPE);
   gsize len;
 
   g_assert (data);
@@ -643,7 +643,7 @@ fp_print_serialize (FpPrint *print,
   g_variant_builder_close (&builder);
 
   /* Insert NBIS print data for type NBIS, otherwise the GVariant directly */
-  if (print->type == FP_PRINT_NBIS)
+  if (print->type == FPI_PRINT_NBIS)
     {
       GVariantBuilder nested = G_VARIANT_BUILDER_INIT (G_VARIANT_TYPE ("(a(aiaiai))"));
       gint i;
@@ -745,7 +745,7 @@ fp_print_deserialize (const guchar *data,
   g_autofree gchar *username = NULL;
   g_autofree gchar *description = NULL;
   gint julian_date;
-  FpPrintType type;
+  FpiPrintType type;
   const gchar *driver;
   const gchar *device_id;
   gboolean device_stored;
@@ -766,7 +766,7 @@ fp_print_deserialize (const guchar *data,
    * longer. */
   aligned_data = g_malloc (length - 3);
   memcpy (aligned_data, data + 3, length - 3);
-  raw_value = g_variant_new_from_data (FP_PRINT_VARIANT_TYPE,
+  raw_value = g_variant_new_from_data (FPI_PRINT_VARIANT_TYPE,
                                        aligned_data, length - 3,
                                        FALSE, g_free, aligned_data);
 
@@ -794,7 +794,7 @@ fp_print_deserialize (const guchar *data,
   finger = finger_int8;
 
   /* Assume data is valid at this point if the values are somewhat sane. */
-  if (type == FP_PRINT_NBIS)
+  if (type == FPI_PRINT_NBIS)
     {
       g_autoptr(GVariant) prints = g_variant_get_child_value (print_data, 0);
       gint i;
@@ -804,7 +804,7 @@ fp_print_deserialize (const guchar *data,
                              "device-id", device_id,
                              "device-stored", device_stored,
                              NULL);
-      fpi_print_set_type (result, FP_PRINT_NBIS);
+      fpi_print_set_type (result, FPI_PRINT_NBIS);
       for (i = 0; i < g_variant_n_children (prints); i++)
         {
           g_autofree struct xyt_struct *xyt = g_new0 (struct xyt_struct, 1);
@@ -841,7 +841,7 @@ fp_print_deserialize (const guchar *data,
           g_ptr_array_add (result->prints, g_steal_pointer (&xyt));
         }
     }
-  else if (type == FP_PRINT_RAW)
+  else if (type == FPI_PRINT_RAW)
     {
       g_autoptr(GVariant) fp_data = g_variant_get_child_value (print_data, 0);
 

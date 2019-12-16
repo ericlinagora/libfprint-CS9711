@@ -25,17 +25,17 @@
 
 typedef struct
 {
-  FpImageDeviceState state;
-  gboolean           active;
-  gboolean           cancelling;
+  FpiImageDeviceState state;
+  gboolean            active;
+  gboolean            cancelling;
 
-  gboolean           enroll_await_on_pending;
-  gint               enroll_stage;
+  gboolean            enroll_await_on_pending;
+  gint                enroll_stage;
 
-  guint              pending_activation_timeout_id;
-  gboolean           pending_activation_timeout_waiting_finger_off;
+  guint               pending_activation_timeout_id;
+  gboolean            pending_activation_timeout_waiting_finger_off;
 
-  gint               bz3_threshold;
+  gint                bz3_threshold;
 } FpImageDevicePrivate;
 
 

@@ -142,39 +142,39 @@ typedef void (*FpTimeoutFunc) (FpDevice *device,
                                gpointer  user_data);
 
 /**
- * FpDeviceAction:
- * @FP_DEVICE_ACTION_NONE: No action is active.
- * @FP_DEVICE_ACTION_PROBE: Probe device for support and information.
- * @FP_DEVICE_ACTION_OPEN: Device is currently being opened.
- * @FP_DEVICE_ACTION_CLOSE: Device is currently being closed.
- * @FP_DEVICE_ACTION_ENROLL: Device is currently enrolling.
- * @FP_DEVICE_ACTION_VERIFY: Device is currently verifying.
- * @FP_DEVICE_ACTION_IDENTIFY: Device is currently identifying.
- * @FP_DEVICE_ACTION_CAPTURE: Device is currently capturing an image.
- * @FP_DEVICE_ACTION_LIST: Device stored prints are being queried.
- * @FP_DEVICE_ACTION_DELETE: Device stored print is being deleted.
+ * FpiDeviceAction:
+ * @FPI_DEVICE_ACTION_NONE: No action is active.
+ * @FPI_DEVICE_ACTION_PROBE: Probe device for support and information.
+ * @FPI_DEVICE_ACTION_OPEN: Device is currently being opened.
+ * @FPI_DEVICE_ACTION_CLOSE: Device is currently being closed.
+ * @FPI_DEVICE_ACTION_ENROLL: Device is currently enrolling.
+ * @FPI_DEVICE_ACTION_VERIFY: Device is currently verifying.
+ * @FPI_DEVICE_ACTION_IDENTIFY: Device is currently identifying.
+ * @FPI_DEVICE_ACTION_CAPTURE: Device is currently capturing an image.
+ * @FPI_DEVICE_ACTION_LIST: Device stored prints are being queried.
+ * @FPI_DEVICE_ACTION_DELETE: Device stored print is being deleted.
  *
  * Current active action of the device. A driver can retrieve the action.
  */
 typedef enum {
-  FP_DEVICE_ACTION_NONE = 0,
-  FP_DEVICE_ACTION_PROBE,
-  FP_DEVICE_ACTION_OPEN,
-  FP_DEVICE_ACTION_CLOSE,
-  FP_DEVICE_ACTION_ENROLL,
-  FP_DEVICE_ACTION_VERIFY,
-  FP_DEVICE_ACTION_IDENTIFY,
-  FP_DEVICE_ACTION_CAPTURE,
-  FP_DEVICE_ACTION_LIST,
-  FP_DEVICE_ACTION_DELETE,
-} FpDeviceAction;
+  FPI_DEVICE_ACTION_NONE = 0,
+  FPI_DEVICE_ACTION_PROBE,
+  FPI_DEVICE_ACTION_OPEN,
+  FPI_DEVICE_ACTION_CLOSE,
+  FPI_DEVICE_ACTION_ENROLL,
+  FPI_DEVICE_ACTION_VERIFY,
+  FPI_DEVICE_ACTION_IDENTIFY,
+  FPI_DEVICE_ACTION_CAPTURE,
+  FPI_DEVICE_ACTION_LIST,
+  FPI_DEVICE_ACTION_DELETE,
+} FpiDeviceAction;
 
 GUsbDevice  *fpi_device_get_usb_device (FpDevice *device);
 const gchar *fpi_device_get_virtual_env (FpDevice *device);
 //const gchar *fpi_device_get_spi_dev (FpDevice *device);
 
 
-FpDeviceAction fpi_device_get_current_action (FpDevice *device);
+FpiDeviceAction fpi_device_get_current_action (FpDevice *device);
 gboolean fpi_device_action_is_cancelled (FpDevice *device);
 
 GError * fpi_device_retry_new (FpDeviceRetry error);

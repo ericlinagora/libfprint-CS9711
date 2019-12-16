@@ -129,7 +129,7 @@ fpi_get_driver_types
 <FILE>fpi-device</FILE>
 FpDeviceClass
 FpTimeoutFunc
-FpDeviceAction
+FpiDeviceAction
 FpIdEntry
 fpi_device_get_usb_device
 fpi_device_get_virtual_env
@@ -173,7 +173,7 @@ fpi_image_resize
 <SECTION>
 <FILE>fpi-image-device</FILE>
 <TITLE>FpImageDevice</TITLE>
-FpImageDeviceState
+FpiImageDeviceState
 FpImageDeviceClass
 fpi_image_device_session_error
 fpi_image_device_open_complete
@@ -197,7 +197,7 @@ BUG
 
 <SECTION>
 <FILE>fpi-print</FILE>
-FpPrintType
+FpiPrintType
 FpiMatchResult
 fpi_print_add_print
 fpi_print_set_type

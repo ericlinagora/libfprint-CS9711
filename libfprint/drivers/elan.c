@@ -73,18 +73,18 @@ struct _FpiDeviceElan
   /* end commands */
 
   /* state */
-  gboolean           deactivating;
-  FpImageDeviceState dev_state;
-  FpImageDeviceState dev_state_next;
-  unsigned char     *last_read;
-  unsigned char      calib_atts_left;
-  unsigned char      calib_status;
-  unsigned short    *background;
-  unsigned char      frame_width;
-  unsigned char      frame_height;
-  unsigned char      raw_frame_height;
-  int                num_frames;
-  GSList            *frames;
+  gboolean            deactivating;
+  FpiImageDeviceState dev_state;
+  FpiImageDeviceState dev_state_next;
+  unsigned char      *last_read;
+  unsigned char       calib_atts_left;
+  unsigned char       calib_status;
+  unsigned short     *background;
+  unsigned char       frame_width;
+  unsigned char       frame_height;
+  unsigned char       raw_frame_height;
+  int                 num_frames;
+  GSList             *frames;
   /* end state */
 };
 G_DECLARE_FINAL_TYPE (FpiDeviceElan, fpi_device_elan, FPI, DEVICE_ELAN,
@@ -481,7 +481,7 @@ stop_capture_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 
 
   /* The device is inactive at this point. */
-  self->dev_state = FP_IMAGE_DEVICE_STATE_INACTIVE;
+  self->dev_state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
 
   if (self->deactivating)
     {
@@ -538,7 +538,7 @@ capture_run_state (FpiSsm *ssm, FpDevice *dev)
       break;
 
     case CAPTURE_READ_DATA:
-      self->dev_state = FP_IMAGE_DEVICE_STATE_CAPTURE;
+      self->dev_state = FPI_IMAGE_DEVICE_STATE_CAPTURE;
 
       /* 0x55 - finger present
        * 0xff - device not calibrated (probably) */
@@ -773,7 +773,7 @@ calibrate_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 
   if (error)
     {
-      self->dev_state = FP_IMAGE_DEVICE_STATE_INACTIVE;
+      self->dev_state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
       fpi_image_device_session_error (FP_IMAGE_DEVICE (dev), error);
     }
   else
@@ -951,7 +951,7 @@ elan_change_state (FpImageDevice *idev)
 {
   FpDevice *dev = FP_DEVICE (idev);
   FpiDeviceElan *self = FPI_DEVICE_ELAN (dev);
-  FpImageDeviceState next_state = self->dev_state_next;
+  FpiImageDeviceState next_state = self->dev_state_next;
 
   if (self->dev_state == next_state)
     {
@@ -965,18 +965,18 @@ elan_change_state (FpImageDevice *idev)
 
   switch (next_state)
     {
-    case FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
+    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
       /* activation completed or another enroll stage started */
-      self->dev_state = FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON;
+      self->dev_state = FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON;
       elan_calibrate (dev);
       break;
 
-    case FP_IMAGE_DEVICE_STATE_CAPTURE:
+    case FPI_IMAGE_DEVICE_STATE_CAPTURE:
       /* not used */
       break;
 
-    case FP_IMAGE_DEVICE_STATE_INACTIVE:
-    case FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF:
+    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
+    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF:
       elan_stop_capture (dev);
       break;
     }
@@ -991,7 +991,7 @@ elan_change_state_async (FpDevice *dev,
 }
 
 static void
-dev_change_state (FpImageDevice *dev, FpImageDeviceState state)
+dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
 {
   FpiDeviceElan *self = FPI_DEVICE_ELAN (dev);
   GSource *timeout;
@@ -999,17 +999,17 @@ dev_change_state (FpImageDevice *dev, FpImageDeviceState state)
   G_DEBUG_HERE ();
 
   /* Inactive and await finger off are equivalent for the elan driver. */
-  if (state == FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF)
-    state = FP_IMAGE_DEVICE_STATE_INACTIVE;
+  if (state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF)
+    state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
 
   if (self->dev_state_next == state)
     fp_dbg ("change to state %d already queued", state);
 
   switch (state)
     {
-    case FP_IMAGE_DEVICE_STATE_INACTIVE:
-    case FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
-    case FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF: {
+    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
+    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
+    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF: {
         char *name;
 
         /* schedule state change instead of calling it directly to allow all actions
@@ -1026,7 +1026,7 @@ dev_change_state (FpImageDevice *dev, FpImageDeviceState state)
         break;
       }
 
-    case FP_IMAGE_DEVICE_STATE_CAPTURE:
+    case FPI_IMAGE_DEVICE_STATE_CAPTURE:
       /* TODO MAYBE: split capture ssm into smaller ssms and use this state */
       self->dev_state = state;
       self->dev_state_next = state;
@@ -1044,7 +1044,7 @@ dev_deactivate (FpImageDevice *dev)
 
   G_DEBUG_HERE ();
 
-  if (self->dev_state == FP_IMAGE_DEVICE_STATE_INACTIVE)
+  if (self->dev_state == FPI_IMAGE_DEVICE_STATE_INACTIVE)
     {
       /* The device is inactive already, complete the operation immediately. */
       fpi_image_device_deactivate_complete (dev, NULL);
@@ -1055,7 +1055,7 @@ dev_deactivate (FpImageDevice *dev)
        * need to signal back deactivation) and then ensure we will change
        * to the inactive state eventually. */
       self->deactivating = TRUE;
-      dev_change_state (dev, FP_IMAGE_DEVICE_STATE_INACTIVE);
+      dev_change_state (dev, FPI_IMAGE_DEVICE_STATE_INACTIVE);
     }
 }
 

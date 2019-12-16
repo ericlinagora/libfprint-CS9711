@@ -350,21 +350,21 @@ fpi_device_get_virtual_env (FpDevice *device)
  * fpi_device_get_current_action:
  * @device: The #FpDevice
  *
- * Get the currently ongoing action or %FP_DEVICE_ACTION_NONE if there
+ * Get the currently ongoing action or %FPI_DEVICE_ACTION_NONE if there
  * is no operation at this time.
  *
  * This is useful for drivers that might share code paths between different
  * actions (e.g. verify and identify) and want to find out again later which
  * action was started in the beginning.
  *
- * Returns: The ongoing #FpDeviceAction
+ * Returns: The ongoing #FpiDeviceAction
  */
-FpDeviceAction
+FpiDeviceAction
 fpi_device_get_current_action (FpDevice *device)
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_return_val_if_fail (FP_IS_DEVICE (device), FP_DEVICE_ACTION_NONE);
+  g_return_val_if_fail (FP_IS_DEVICE (device), FPI_DEVICE_ACTION_NONE);
 
   return priv->current_action;
 }
@@ -387,7 +387,7 @@ fpi_device_action_is_cancelled (FpDevice *device)
   GCancellable *cancellable;
 
   g_return_val_if_fail (FP_IS_DEVICE (device), TRUE);
-  g_return_val_if_fail (priv->current_action != FP_DEVICE_ACTION_NONE, TRUE);
+  g_return_val_if_fail (priv->current_action != FPI_DEVICE_ACTION_NONE, TRUE);
 
   cancellable = g_task_get_cancellable (priv->current_task);
 
@@ -435,7 +435,7 @@ fpi_device_get_enroll_data (FpDevice *device,
   FpEnrollData *data;
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_ENROLL);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_ENROLL);
 
   data = g_task_get_task_data (priv->current_task);
   g_assert (data);
@@ -458,7 +458,7 @@ fpi_device_get_capture_data (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_CAPTURE);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_CAPTURE);
 
   if (wait_for_finger)
     *wait_for_finger = priv->wait_for_finger;
@@ -478,7 +478,7 @@ fpi_device_get_verify_data (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_VERIFY);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_VERIFY);
 
   if (print)
     *print = g_task_get_task_data (priv->current_task);
@@ -498,7 +498,7 @@ fpi_device_get_identify_data (FpDevice   *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_IDENTIFY);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_IDENTIFY);
 
   if (prints)
     *prints = g_task_get_task_data (priv->current_task);
@@ -518,7 +518,7 @@ fpi_device_get_delete_data (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_DELETE);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_DELETE);
 
   if (print)
     *print = g_task_get_task_data (priv->current_task);
@@ -542,7 +542,7 @@ fpi_device_get_cancellable (FpDevice *device)
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_val_if_fail (FP_IS_DEVICE (device), NULL);
-  g_return_val_if_fail (priv->current_action != FP_DEVICE_ACTION_NONE, NULL);
+  g_return_val_if_fail (priv->current_action != FPI_DEVICE_ACTION_NONE, NULL);
 
   return g_task_get_cancellable (priv->current_task);
 }
@@ -564,7 +564,7 @@ fpi_device_action_error (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action != FP_DEVICE_ACTION_NONE);
+  g_return_if_fail (priv->current_action != FPI_DEVICE_ACTION_NONE);
 
   if (error != NULL)
     {
@@ -579,44 +579,44 @@ fpi_device_action_error (FpDevice *device,
 
   switch (priv->current_action)
     {
-    case FP_DEVICE_ACTION_PROBE:
+    case FPI_DEVICE_ACTION_PROBE:
       fpi_device_probe_complete (device, NULL, NULL, error);
       break;
 
-    case FP_DEVICE_ACTION_OPEN:
+    case FPI_DEVICE_ACTION_OPEN:
       fpi_device_open_complete (device, error);
       break;
 
-    case FP_DEVICE_ACTION_CLOSE:
+    case FPI_DEVICE_ACTION_CLOSE:
       fpi_device_close_complete (device, error);
       break;
 
-    case FP_DEVICE_ACTION_ENROLL:
+    case FPI_DEVICE_ACTION_ENROLL:
       fpi_device_enroll_complete (device, NULL, error);
       break;
 
-    case FP_DEVICE_ACTION_VERIFY:
+    case FPI_DEVICE_ACTION_VERIFY:
       fpi_device_verify_complete (device, FPI_MATCH_ERROR, NULL, error);
       break;
 
-    case FP_DEVICE_ACTION_IDENTIFY:
+    case FPI_DEVICE_ACTION_IDENTIFY:
       fpi_device_identify_complete (device, NULL, NULL, error);
       break;
 
-    case FP_DEVICE_ACTION_CAPTURE:
+    case FPI_DEVICE_ACTION_CAPTURE:
       fpi_device_capture_complete (device, NULL, error);
       break;
 
-    case FP_DEVICE_ACTION_DELETE:
+    case FPI_DEVICE_ACTION_DELETE:
       fpi_device_delete_complete (device, error);
       break;
 
-    case FP_DEVICE_ACTION_LIST:
+    case FPI_DEVICE_ACTION_LIST:
       fpi_device_list_complete (device, NULL, error);
       break;
 
     default:
-    case FP_DEVICE_ACTION_NONE:
+    case FPI_DEVICE_ACTION_NONE:
       g_return_if_reached ();
       break;
     }
@@ -663,7 +663,7 @@ fp_device_task_return_in_idle_cb (gpointer user_data)
   g_debug ("Completing action %d in idle!", priv->current_action);
 
   task = g_steal_pointer (&priv->current_task);
-  priv->current_action = FP_DEVICE_ACTION_NONE;
+  priv->current_action = FPI_DEVICE_ACTION_NONE;
   priv->current_task_idle_return_source = NULL;
 
   switch (data->type)
@@ -746,7 +746,7 @@ fpi_device_probe_complete (FpDevice    *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_PROBE);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_PROBE);
 
   g_debug ("Device reported probe completion");
 
@@ -788,7 +788,7 @@ fpi_device_open_complete (FpDevice *device, GError *error)
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_OPEN);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_OPEN);
 
   g_debug ("Device reported open completion");
 
@@ -821,7 +821,7 @@ fpi_device_close_complete (FpDevice *device, GError *error)
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_CLOSE);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_CLOSE);
 
   g_debug ("Device reported close completion");
 
@@ -873,7 +873,7 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_ENROLL);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_ENROLL);
 
   g_debug ("Device reported enroll completion");
 
@@ -923,7 +923,7 @@ fpi_device_verify_complete (FpDevice      *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_VERIFY);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_VERIFY);
 
   g_debug ("Device reported verify completion");
 
@@ -980,7 +980,7 @@ fpi_device_identify_complete (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_IDENTIFY);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_IDENTIFY);
 
   g_debug ("Device reported identify completion");
 
@@ -1027,7 +1027,7 @@ fpi_device_capture_complete (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_CAPTURE);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_CAPTURE);
 
   g_debug ("Device reported capture completion");
 
@@ -1072,7 +1072,7 @@ fpi_device_delete_complete (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_DELETE);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_DELETE);
 
   g_debug ("Device reported deletion completion");
 
@@ -1106,7 +1106,7 @@ fpi_device_list_complete (FpDevice  *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_LIST);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_LIST);
 
   g_debug ("Device reported listing completion");
 
@@ -1150,7 +1150,7 @@ fpi_device_enroll_progress (FpDevice *device,
   FpEnrollData *data;
 
   g_return_if_fail (FP_IS_DEVICE (device));
-  g_return_if_fail (priv->current_action == FP_DEVICE_ACTION_ENROLL);
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_ENROLL);
   g_return_if_fail (error == NULL || error->domain == FP_DEVICE_RETRY);
 
   g_debug ("Device reported enroll progress, reported %i of %i have been completed", completed_stages, priv->nr_enroll_stages);

@@ -90,7 +90,7 @@ fp_image_get_width
 <TITLE>Base class for image devices</TITLE>
 FpImageDevice
 FpImageDeviceClass
-FpImageDeviceState
+FpiImageDeviceState
 </SECTION>
 
 <SECTION>
@@ -114,5 +114,3 @@ FpUsbTransferCallback
 FP_USB_ENDPOINT_IN
 FP_USB_ENDPOINT_OUT
 </SECTION>
-
-

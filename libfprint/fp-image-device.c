@@ -106,7 +106,7 @@ fp_image_device_close (FpDevice *device)
 
   if (!priv->active)
     cls->img_close (self);
-  else if (priv->state != FP_IMAGE_DEVICE_STATE_INACTIVE)
+  else if (priv->state != FPI_IMAGE_DEVICE_STATE_INACTIVE)
     fpi_image_device_deactivate (self);
 }
 
@@ -115,16 +115,16 @@ fp_image_device_cancel_action (FpDevice *device)
 {
   FpImageDevice *self = FP_IMAGE_DEVICE (device);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
-  FpDeviceAction action;
+  FpiDeviceAction action;
 
   action = fpi_device_get_current_action (device);
 
   /* We can only cancel capture operations, in that case, deactivate and return
    * an error immediately. */
-  if (action == FP_DEVICE_ACTION_ENROLL ||
-      action == FP_DEVICE_ACTION_VERIFY ||
-      action == FP_DEVICE_ACTION_IDENTIFY ||
-      action == FP_DEVICE_ACTION_CAPTURE)
+  if (action == FPI_DEVICE_ACTION_ENROLL ||
+      action == FPI_DEVICE_ACTION_VERIFY ||
+      action == FPI_DEVICE_ACTION_IDENTIFY ||
+      action == FPI_DEVICE_ACTION_CAPTURE)
     {
       priv->cancelling = TRUE;
       fpi_image_device_deactivate (self);
@@ -143,14 +143,14 @@ fp_image_device_start_capture_action (FpDevice *device)
 {
   FpImageDevice *self = FP_IMAGE_DEVICE (device);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
-  FpDeviceAction action;
+  FpiDeviceAction action;
 
   /* There is just one action that we cannot support out
    * of the box, which is a capture without first waiting
    * for a finger to be on the device.
    */
   action = fpi_device_get_current_action (device);
-  if (action == FP_DEVICE_ACTION_CAPTURE)
+  if (action == FPI_DEVICE_ACTION_CAPTURE)
     {
       gboolean wait_for_finger;
 
@@ -162,12 +162,12 @@ fp_image_device_start_capture_action (FpDevice *device)
           return;
         }
     }
-  else if (action == FP_DEVICE_ACTION_ENROLL)
+  else if (action == FPI_DEVICE_ACTION_ENROLL)
     {
       FpPrint *enroll_print = NULL;
 
       fpi_device_get_enroll_data (device, &enroll_print);
-      fpi_print_set_type (enroll_print, FP_PRINT_NBIS);
+      fpi_print_set_type (enroll_print, FPI_PRINT_NBIS);
     }
 
   priv->enroll_stage = 0;
@@ -178,14 +178,14 @@ fp_image_device_start_capture_action (FpDevice *device)
    * error (which will usually say that the user should remove the
    * finger).
    */
-  if (priv->state != FP_IMAGE_DEVICE_STATE_INACTIVE || priv->active)
+  if (priv->state != FPI_IMAGE_DEVICE_STATE_INACTIVE || priv->active)
     {
       g_debug ("Got a new request while the device was still active");
       g_assert (priv->pending_activation_timeout_id == 0);
       priv->pending_activation_timeout_id =
         g_timeout_add (100, pending_activation_timeout, device);
 
-      if (priv->state == FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF)
+      if (priv->state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF)
         priv->pending_activation_timeout_waiting_finger_off = TRUE;
       else
         priv->pending_activation_timeout_waiting_finger_off = FALSE;
@@ -271,8 +271,8 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
     g_param_spec_enum ("fp-image-device-state",
                        "Image Device State",
                        "Private: The state of the image device",
-                       FP_TYPE_IMAGE_DEVICE_STATE,
-                       FP_IMAGE_DEVICE_STATE_INACTIVE,
+                       FPI_TYPE_IMAGE_DEVICE_STATE,
+                       FPI_IMAGE_DEVICE_STATE_INACTIVE,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
 
   signals[FPI_STATE_CHANGED] =
@@ -281,7 +281,7 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
                   G_SIGNAL_RUN_FIRST,
                   G_STRUCT_OFFSET (FpImageDeviceClass, change_state),
                   NULL, NULL, NULL,
-                  G_TYPE_NONE, 1, FP_TYPE_IMAGE_DEVICE_STATE);
+                  G_TYPE_NONE, 1, FPI_TYPE_IMAGE_DEVICE_STATE);
 
   g_object_class_install_properties (object_class, N_PROPS, properties);
 }

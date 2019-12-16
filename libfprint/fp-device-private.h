@@ -41,7 +41,7 @@ typedef struct
   GSList      *sources;
 
   /* We always make sure that only one task is run at a time. */
-  FpDeviceAction      current_action;
+  FpiDeviceAction     current_action;
   GTask              *current_task;
   GAsyncReadyCallback current_user_cb;
   gulong              current_cancellable_id;

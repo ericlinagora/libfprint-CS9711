@@ -27,7 +27,7 @@ struct _FpPrint
 {
   GInitiallyUnowned parent_instance;
 
-  FpPrintType       type;
+  FpiPrintType      type;
 
   gchar            *driver;
   gchar            *device_id;

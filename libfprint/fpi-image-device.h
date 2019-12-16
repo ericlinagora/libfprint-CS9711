@@ -23,11 +23,11 @@
 #include "fp-image-device.h"
 
 /**
- * FpImageDeviceState:
- * @FP_IMAGE_DEVICE_STATE_INACTIVE: inactive
- * @FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON: waiting for the finger to be pressed or swiped
- * @FP_IMAGE_DEVICE_STATE_CAPTURE: capturing an image
- * @FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF: waiting for the finger to be removed
+ * FpiImageDeviceState:
+ * @FPI_IMAGE_DEVICE_STATE_INACTIVE: inactive
+ * @FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON: waiting for the finger to be pressed or swiped
+ * @FPI_IMAGE_DEVICE_STATE_CAPTURE: capturing an image
+ * @FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF: waiting for the finger to be removed
  *
  * The state of an imaging device while doing a capture. The state is
  * passed through to the driver using the ::activate() or ::change_state() vfuncs.
@@ -37,11 +37,11 @@
  * unconditionally if the device supports raw capturing.
  */
 typedef enum {
-  FP_IMAGE_DEVICE_STATE_INACTIVE,
-  FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON,
-  FP_IMAGE_DEVICE_STATE_CAPTURE,
-  FP_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF,
-} FpImageDeviceState;
+  FPI_IMAGE_DEVICE_STATE_INACTIVE,
+  FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON,
+  FPI_IMAGE_DEVICE_STATE_CAPTURE,
+  FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF,
+} FpiImageDeviceState;
 
 /**
  * FpImageDeviceClass:
@@ -90,8 +90,8 @@ struct _FpImageDeviceClass
   void          (*img_open)     (FpImageDevice *dev);
   void          (*img_close)    (FpImageDevice *dev);
   void          (*activate)     (FpImageDevice *dev);
-  void          (*change_state) (FpImageDevice     *dev,
-                                 FpImageDeviceState state);
+  void          (*change_state) (FpImageDevice      *dev,
+                                 FpiImageDeviceState state);
   void          (*deactivate)   (FpImageDevice *dev);
 };
 

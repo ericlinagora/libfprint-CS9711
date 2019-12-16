@@ -517,7 +517,7 @@ list_msg_cb (FpiDeviceSynaptics *self,
                                 get_enroll_templates_resp->templates[n].finger_id,
                                 uid);
 
-          fpi_print_set_type (print, FP_PRINT_RAW);
+          fpi_print_set_type (print, FPI_PRINT_RAW);
           fpi_print_set_device_stored (print, TRUE);
           g_object_set (print, "fp-data", data, NULL);
           g_object_set (print, "description", get_enroll_templates_resp->templates[n].user_id, NULL);
@@ -856,7 +856,7 @@ enroll (FpDevice *device)
                         finger,
                         uid);
 
-  fpi_print_set_type (print, FP_PRINT_RAW);
+  fpi_print_set_type (print, FPI_PRINT_RAW);
   fpi_print_set_device_stored (print, TRUE);
   g_object_set (print, "fp-data", data, NULL);
   g_object_set (print, "description", user_id, NULL);

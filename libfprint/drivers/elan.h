@@ -221,5 +221,5 @@ static void elan_cmd_read (FpiSsm   *ssm,
 static void elan_calibrate (FpDevice *dev);
 static void elan_capture (FpDevice *dev);
 
-static void dev_change_state (FpImageDevice     *dev,
-                              FpImageDeviceState state);
+static void dev_change_state (FpImageDevice      *dev,
+                              FpiImageDeviceState state);
