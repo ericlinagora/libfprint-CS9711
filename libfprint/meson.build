@@ -180,7 +180,7 @@ fp_enums_h = fp_enums[1]
 
 fpi_enums = gnome.mkenums_simple('fpi-enums',
     sources: libfprint_private_headers,
-    install_header : true)
+    install_header : false)
 fpi_enums_h = fpi_enums[1]
 
 drivers_sources += configure_file(input: 'empty_file',
