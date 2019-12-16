@@ -205,7 +205,7 @@ libnbis = static_library('nbis',
     install: false)
 
 libfprint_private = static_library('fprint-private',
-    sources: libfprint_private_sources + fpi_enums,
+    sources: libfprint_private_sources + fpi_enums + [ fp_enums_h ],
     dependencies: deps,
     link_with: libnbis,
     install: false)
