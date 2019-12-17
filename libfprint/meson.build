@@ -21,6 +21,7 @@ libfprint_private_sources = [
 libfprint_public_headers = [
     'fp-context.h',
     'fp-device.h',
+    'fp-image-device.h',
     'fp-image.h',
     'fp-print.h',
 ]
