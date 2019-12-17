@@ -43,6 +43,8 @@ G_DECLARE_FINAL_TYPE (FpPrint, fp_print, FP, PRINT, GInitiallyUnowned)
  * @FP_FINGER_RIGHT_MIDDLE: Right middle finger
  * @FP_FINGER_RIGHT_RING: Right ring finger
  * @FP_FINGER_RIGHT_LITTLE: Right little finger
+ * @FP_FINGER_FIRST: The first finger in the fp-print order
+ * @FP_FINGER_LAST: The last finger in the fp-print order
  */
 typedef enum {
   FP_FINGER_UNKNOWN = 0,
@@ -56,6 +58,9 @@ typedef enum {
   FP_FINGER_RIGHT_MIDDLE,
   FP_FINGER_RIGHT_RING,
   FP_FINGER_RIGHT_LITTLE,
+
+  FP_FINGER_FIRST = FP_FINGER_LEFT_THUMB,
+  FP_FINGER_LAST = FP_FINGER_RIGHT_LITTLE,
 } FpFinger;
 
 FpPrint *fp_print_new (FpDevice *device);
