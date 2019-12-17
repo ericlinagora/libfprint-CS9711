@@ -393,9 +393,9 @@ test_driver_enroll (void)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
+  g_autoptr(FpPrint) template_print = fp_print_new (device);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  FpPrint *template_print = fp_print_new (device);
   FpPrint *out_print = NULL;
 
   out_print =
@@ -520,6 +520,7 @@ test_driver_enroll_progress (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
   g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpPrint) enrolled_print = NULL;
   ExpectedEnrollData expected_enroll_data = {0};
   FpiDeviceFake *fake_dev;
 
@@ -535,8 +536,9 @@ test_driver_enroll_progress (void)
   fake_dev = FPI_DEVICE_FAKE (device);
   fake_dev->user_data = &expected_enroll_data;
 
-  fp_device_enroll_sync (device, fp_print_new (device), NULL,
-                         test_driver_enroll_progress_callback, &expected_enroll_data, NULL);
+  enrolled_print = fp_device_enroll_sync (device, fp_print_new (device), NULL,
+                                          test_driver_enroll_progress_callback,
+                                          &expected_enroll_data, NULL);
 
   g_assert (fake_dev->last_called_function == test_driver_enroll_progress_vfunc);
 }

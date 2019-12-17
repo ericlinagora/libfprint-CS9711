@@ -77,7 +77,9 @@ fpi_device_fake_enroll (FpDevice *device)
     fpi_device_get_enroll_data (device, &print);
 
   fake_dev->last_called_function = fpi_device_fake_enroll;
-  fpi_device_enroll_complete (device, print, fake_dev->ret_error);
+  fpi_device_enroll_complete (device,
+                              print ? g_object_ref (print) : NULL,
+                              fake_dev->ret_error);
 }
 
 static void
