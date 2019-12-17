@@ -176,7 +176,9 @@ other_sources = []
 
 fp_enums = gnome.mkenums_simple('fp-enums',
     sources: libfprint_public_headers,
-    install_header : true)
+    install_header: true,
+    install_dir: get_option('includedir') / meson.project_name(),
+)
 fp_enums_h = fp_enums[1]
 
 fpi_enums = gnome.mkenums_simple('fpi-enums',
