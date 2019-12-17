@@ -184,6 +184,10 @@ fpi_enums = gnome.mkenums_simple('fpi-enums',
     install_header : false)
 fpi_enums_h = fpi_enums[1]
 
+enums_dep = declare_dependency(
+    sources: [ fp_enums_h, fpi_enums_h ]
+)
+
 drivers_sources += configure_file(input: 'empty_file',
     output: 'fpi-drivers.c',
     capture: true,
@@ -193,6 +197,7 @@ drivers_sources += configure_file(input: 'empty_file',
     ])
 
 deps = [
+    enums_dep,
     gio_dep,
     glib_dep,
     gusb_dep,
@@ -218,13 +223,16 @@ libnbis = static_library('nbis',
     install: false)
 
 libfprint_private = static_library('fprint-private',
-    sources: libfprint_private_sources + fpi_enums + [ fp_enums_h ],
+    sources: [
+        fpi_enums,
+        libfprint_private_sources,
+    ],
     dependencies: deps,
     link_with: libnbis,
     install: false)
 
 libfprint_drivers = static_library('fprint-drivers',
-    sources: drivers_sources + [ fp_enums_h ],
+    sources: drivers_sources,
     c_args: drivers_cflags,
     dependencies: deps,
     link_with: libfprint_private,
@@ -234,7 +242,11 @@ mapfile = files('libfprint.ver')
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.source_root(), mapfile[0])
 
 libfprint = library('fprint',
-    sources: libfprint_sources + fp_enums + other_sources,
+    sources: [
+        fp_enums,
+        libfprint_sources,
+        other_sources,
+    ],
     soversion: soversion,
     version: libversion,
     link_args : vflag,
@@ -244,9 +256,9 @@ libfprint = library('fprint',
     install: true)
 
 libfprint_dep = declare_dependency(link_with: libfprint,
-    sources: [ fp_enums_h ],
     include_directories: root_inc,
     dependencies: [
+        enums_dep,
         gio_dep,
         glib_dep,
         gusb_dep,
