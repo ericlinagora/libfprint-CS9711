@@ -24,6 +24,7 @@
 #include "fpi-image.h"
 #include "fpi-log.h"
 
+#include <config.h>
 #include <nbis.h>
 
 /**
