@@ -267,16 +267,32 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
   klass->activate = fp_image_device_default_activate;
   klass->deactivate = fp_image_device_default_deactivate;
 
+  /**
+   * FpImageDevice::fpi-image-device-state: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_STATE] =
-    g_param_spec_enum ("fp-image-device-state",
+    g_param_spec_enum ("fpi-image-device-state",
                        "Image Device State",
                        "Private: The state of the image device",
                        FPI_TYPE_IMAGE_DEVICE_STATE,
                        FPI_IMAGE_DEVICE_STATE_INACTIVE,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
 
+  /**
+   * FpImageDevice::fpi-image-device-state-changed: (skip)
+   * @image_device: A #FpImageDevice
+   * @new_state: The new state of the device
+   *
+   * This signal is only for internal purposes.
+   *
+   * Stability: private
+   */
   signals[FPI_STATE_CHANGED] =
-    g_signal_new ("fp-image-device-state-changed",
+    g_signal_new ("fpi-image-device-state-changed",
                   G_TYPE_FROM_CLASS (object_class),
                   G_SIGNAL_RUN_FIRST,
                   G_STRUCT_OFFSET (FpImageDeviceClass, change_state),

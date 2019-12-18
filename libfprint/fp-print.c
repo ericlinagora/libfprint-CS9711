@@ -268,16 +268,30 @@ fp_print_class_init (FpPrintClass *klass)
                         G_TYPE_DATE,
                         G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE);
 
+  /**
+   * FpPrint::fpi-type: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_TYPE] =
-    g_param_spec_enum ("fp-type",
+    g_param_spec_enum ("fpi-type",
                        "Type",
                        "Private: The type of the print data",
                        FPI_TYPE_PRINT_TYPE,
                        FPI_PRINT_RAW,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
+  /**
+   * FpPrint::fpi-data: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_DATA] =
-    g_param_spec_variant ("fp-data",
+    g_param_spec_variant ("fpi-data",
                           "Raw Data",
                           "The raw data for internal use only",
                           G_VARIANT_TYPE_ANY,
@@ -846,11 +860,11 @@ fp_print_deserialize (const guchar *data,
       g_autoptr(GVariant) fp_data = g_variant_get_child_value (print_data, 0);
 
       result = g_object_new (FP_TYPE_PRINT,
-                             "fp-type", type,
+                             "fpi-type", type,
                              "driver", driver,
                              "device-id", device_id,
                              "device-stored", device_stored,
-                             "fp-data", fp_data,
+                             "fpi-data", fp_data,
                              NULL);
     }
   else

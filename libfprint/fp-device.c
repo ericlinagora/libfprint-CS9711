@@ -342,22 +342,43 @@ fp_device_class_init (FpDeviceClass *klass)
                           "Wether the device is open or not", FALSE,
                           G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
 
+  /**
+   * FpDevice::fpi-environ: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_ENVIRON] =
-    g_param_spec_string ("fp-environ",
+    g_param_spec_string ("fpi-environ",
                          "Virtual Environment",
                          "Private: The environment variable for the virtual device",
                          NULL,
                          G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
 
+  /**
+   * FpDevice::fpi-usb-device: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_USB_DEVICE] =
-    g_param_spec_object ("fp-usb-device",
+    g_param_spec_object ("fpi-usb-device",
                          "USB Device",
                          "Private: The USB device for the device",
                          G_USB_TYPE_DEVICE,
                          G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
 
+  /**
+   * FpDevice::fpi-driver-data: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_DRIVER_DATA] =
-    g_param_spec_uint64 ("fp-driver-data",
+    g_param_spec_uint64 ("fpi-driver-data",
                          "Driver Data",
                          "Private: The driver data from the ID table entry",
                          0,
@@ -737,7 +758,7 @@ fp_device_enroll (FpDevice           *device,
       return;
     }
 
-  g_object_get (template_print, "fp-type", &print_type, NULL);
+  g_object_get (template_print, "fpi-type", &print_type, NULL);
   if (print_type != FPI_PRINT_UNDEFINED)
     {
       g_warning ("Passed print template must be newly created and blank!");

@@ -75,7 +75,7 @@ fpi_print_set_type (FpPrint     *print,
       g_assert_null (print->prints);
       print->prints = g_ptr_array_new_with_free_func (g_free);
     }
-  g_object_notify (G_OBJECT (print), "fp-type");
+  g_object_notify (G_OBJECT (print), "fpi-type");
 }
 
 /**

@@ -170,8 +170,8 @@ usb_device_added_cb (FpContext *self, GUsbDevice *device, GUsbContext *usb_ctx)
                               priv->cancellable,
                               async_device_init_done_cb,
                               self,
-                              "fp-usb-device", device,
-                              "fp-driver-data", found_entry->driver_data,
+                              "fpi-usb-device", device,
+                              "fpi-driver-data", found_entry->driver_data,
                               NULL);
 }
 
@@ -373,8 +373,8 @@ fp_context_enumerate (FpContext *context)
                                       priv->cancellable,
                                       async_device_init_done_cb,
                                       context,
-                                      "fp-environ", val,
-                                      "fp-driver-data", entry->driver_data,
+                                      "fpi-environ", val,
+                                      "fpi-driver-data", entry->driver_data,
                                       NULL);
           g_debug ("created");
         }

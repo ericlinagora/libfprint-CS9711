@@ -240,7 +240,7 @@ test_driver_get_usb_device (void)
   g_autoptr(FpDevice) device = NULL;
 
   dev_class->type = FP_DEVICE_TYPE_USB;
-  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fp-usb-device", NULL);
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fpi-usb-device", NULL);
   g_assert_null (fpi_device_get_usb_device (device));
 
   g_clear_object (&device);
@@ -259,7 +259,7 @@ test_driver_get_virtual_env (void)
   g_autoptr(FpDevice) device = NULL;
 
   dev_class->type = FP_DEVICE_TYPE_VIRTUAL;
-  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fp-environ", "TEST_VIRTUAL_ENV_GETTER", NULL);
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fpi-environ", "TEST_VIRTUAL_ENV_GETTER", NULL);
   g_assert_cmpstr (fpi_device_get_virtual_env (device), ==, "TEST_VIRTUAL_ENV_GETTER");
 
   g_clear_object (&device);
@@ -278,7 +278,7 @@ test_driver_get_driver_data (void)
   guint64 driver_data;
 
   driver_data = g_random_int ();
-  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fp-driver-data", driver_data, NULL);
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fpi-driver-data", driver_data, NULL);
   g_assert_cmpuint (fpi_device_get_driver_data (device), ==, driver_data);
 }
 

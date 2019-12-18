@@ -55,7 +55,7 @@ fpi_image_device_activate (FpImageDevice *self)
   /* We don't have a neutral ACTIVE state, but we always will
    * go into WAIT_FINGER_ON afterwards. */
   priv->state = FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON;
-  g_object_notify (G_OBJECT (self), "fp-image-device-state");
+  g_object_notify (G_OBJECT (self), "fpi-image-device-state");
 
   /* We might have been waiting for deactivation to finish before
    * starting the next operation. */
@@ -83,7 +83,7 @@ fpi_image_device_deactivate (FpImageDevice *self)
     g_warning ("Deactivating image device while waiting for finger, this should not happen.");
 
   priv->state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
-  g_object_notify (G_OBJECT (self), "fp-image-device-state");
+  g_object_notify (G_OBJECT (self), "fpi-image-device-state");
 
   fp_dbg ("Deactivating image device\n");
   cls->deactivate (self);
@@ -106,8 +106,8 @@ fp_image_device_change_state (FpImageDevice *self, FpiImageDeviceState state)
   fp_dbg ("Image device internal state change from %d to %d\n", priv->state, state);
 
   priv->state = state;
-  g_object_notify (G_OBJECT (self), "fp-image-device-state");
-  g_signal_emit_by_name (self, "fp-image-device-state-changed", priv->state);
+  g_object_notify (G_OBJECT (self), "fpi-image-device-state");
+  g_signal_emit_by_name (self, "fpi-image-device-state-changed", priv->state);
 }
 
 static void
@@ -563,7 +563,7 @@ fpi_image_device_open_complete (FpImageDevice *self, GError *error)
   g_debug ("Image device open completed");
 
   priv->state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
-  g_object_notify (G_OBJECT (self), "fp-image-device-state");
+  g_object_notify (G_OBJECT (self), "fpi-image-device-state");
 
   fpi_device_open_complete (FP_DEVICE (self), error);
 }
@@ -589,7 +589,7 @@ fpi_image_device_close_complete (FpImageDevice *self, GError *error)
   g_return_if_fail (action == FPI_DEVICE_ACTION_CLOSE);
 
   priv->state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
-  g_object_notify (G_OBJECT (self), "fp-image-device-state");
+  g_object_notify (G_OBJECT (self), "fpi-image-device-state");
 
   fpi_device_close_complete (FP_DEVICE (self), error);
 }

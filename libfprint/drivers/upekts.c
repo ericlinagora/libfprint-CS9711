@@ -1126,7 +1126,7 @@ e_handle_resp02 (FpDevice *dev, unsigned char *data,
                                            data_len - sizeof (scan_comp),
                                            1);
 
-      g_object_set (print, "fp-data", fp_data, NULL);
+      g_object_set (print, "fpi-data", fp_data, NULL);
       g_object_ref (print);
     }
 
@@ -1293,7 +1293,7 @@ verify_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
 
     case VERIFY_INIT:
       fpi_device_get_verify_data (dev, &print);
-      g_object_get (dev, "fp-data", &fp_data, NULL);
+      g_object_get (dev, "fpi-data", &fp_data, NULL);
 
       data = g_variant_get_fixed_array (fp_data, &data_len, 1);
 

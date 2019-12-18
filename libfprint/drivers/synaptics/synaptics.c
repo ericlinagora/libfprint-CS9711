@@ -519,7 +519,7 @@ list_msg_cb (FpiDeviceSynaptics *self,
 
           fpi_print_set_type (print, FPI_PRINT_RAW);
           fpi_print_set_device_stored (print, TRUE);
-          g_object_set (print, "fp-data", data, NULL);
+          g_object_set (print, "fpi-data", data, NULL);
           g_object_set (print, "description", get_enroll_templates_resp->templates[n].user_id, NULL);
 
           /* The format has 24 bytes at the start and some dashes in the right places */
@@ -670,7 +670,7 @@ verify (FpDevice *device)
 
   fpi_device_get_verify_data (device, &print);
 
-  g_object_get (print, "fp-data", &data, NULL);
+  g_object_get (print, "fpi-data", &data, NULL);
   g_debug ("data is %p", data);
   if (!parse_print_data (data, &finger, &user_id, &user_id_len))
     {
@@ -858,7 +858,7 @@ enroll (FpDevice *device)
 
   fpi_print_set_type (print, FPI_PRINT_RAW);
   fpi_print_set_device_stored (print, TRUE);
-  g_object_set (print, "fp-data", data, NULL);
+  g_object_set (print, "fpi-data", data, NULL);
   g_object_set (print, "description", user_id, NULL);
 
   g_debug ("user_id: %s, finger: %d", user_id, finger);
@@ -927,7 +927,7 @@ delete_print (FpDevice *device)
 
   fpi_device_get_delete_data (device, &print);
 
-  g_object_get (print, "fp-data", &data, NULL);
+  g_object_get (print, "fpi-data", &data, NULL);
   g_debug ("data is %p", data);
   if (!parse_print_data (data, &finger, &user_id, &user_id_len))
     {
