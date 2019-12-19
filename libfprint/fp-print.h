@@ -28,6 +28,9 @@ G_BEGIN_DECLS
 #define FP_TYPE_PRINT (fp_print_get_type ())
 G_DECLARE_FINAL_TYPE (FpPrint, fp_print, FP, PRINT, GInitiallyUnowned)
 
+#define FP_FINGER_IS_VALID(finger) \
+  ((finger) >= FP_FINGER_FIRST && (finger) <= FP_FINGER_LAST)
+
 #include "fp-device.h"
 
 /**
