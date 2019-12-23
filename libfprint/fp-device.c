@@ -775,6 +775,7 @@ fp_device_enroll (FpDevice           *device,
   data->print = g_object_ref_sink (template_print);
   data->enroll_progress_cb = progress_cb;
   data->enroll_progress_data = progress_data;
+  data->enroll_progress_destroy = progress_destroy;
 
   // Attach the progress data as task data so that it is destroyed
   g_task_set_task_data (priv->current_task, data, (GDestroyNotify) enroll_data_free);
