@@ -832,7 +832,7 @@ initsm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
 }
 
 static FpiSsm *
-deinitsm_new (FpDevice *dev, void *user_data)
+deinitsm_new (FpDevice *dev)
 {
   return fpi_ssm_new (dev, deinitsm_state_handler, DEINITSM_NUM_STATES);
 }
@@ -988,7 +988,7 @@ static void
 do_enroll_stop (FpDevice *dev, FpPrint *print, GError *error)
 {
   EnrollStopData *data = g_new0 (EnrollStopData, 1);
-  FpiSsm *ssm = deinitsm_new (dev, data);
+  FpiSsm *ssm = deinitsm_new (dev);
 
   data->print = g_object_ref (print);
   data->error = error;
@@ -1251,7 +1251,7 @@ static void
 do_verify_stop (FpDevice *dev, FpiMatchResult res, GError *error)
 {
   VerifyStopData *data = g_new0 (VerifyStopData, 1);
-  FpiSsm *ssm = deinitsm_new (dev, data);
+  FpiSsm *ssm = deinitsm_new (dev);
 
   data->res = res;
   data->error = error;
