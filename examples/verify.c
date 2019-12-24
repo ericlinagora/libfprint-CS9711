@@ -152,6 +152,7 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
 
       g_print ("Print loaded. Time to verify!\n");
       fp_device_verify (dev, verify_print, NULL,
+                        NULL, NULL, NULL,
                         (GAsyncReadyCallback) on_verify_completed,
                         verify_data);
     }
@@ -205,6 +206,7 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
 
       g_print ("Print loaded. Time to verify!\n");
       fp_device_verify (dev, verify_print, NULL,
+                        NULL, NULL, NULL,
                         (GAsyncReadyCallback) on_verify_completed,
                         verify_data);
     }

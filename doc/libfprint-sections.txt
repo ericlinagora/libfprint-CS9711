@@ -26,6 +26,7 @@ FpDeviceError
 fp_device_retry_quark
 fp_device_error_quark
 FpEnrollProgress
+FpMatchCb
 fp_device_get_driver
 fp_device_get_device_id
 fp_device_get_name
@@ -159,6 +160,8 @@ fpi_device_identify_complete
 fpi_device_capture_complete
 fpi_device_delete_complete
 fpi_device_enroll_progress
+fpi_device_verify_report
+fpi_device_identify_report
 </SECTION>
 
 <SECTION>

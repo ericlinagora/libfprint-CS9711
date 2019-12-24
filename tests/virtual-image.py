@@ -220,7 +220,7 @@ class VirtualImage(unittest.TestCase):
 
         self._verify_match = None
         self._verify_fp = None
-        self.dev.verify(fp_whorl, None, verify_cb)
+        self.dev.verify(fp_whorl, callback=verify_cb)
         self.send_image('whorl')
         while self._verify_match is None:
             ctx.iteration(True)
@@ -228,7 +228,7 @@ class VirtualImage(unittest.TestCase):
 
         self._verify_match = None
         self._verify_fp = None
-        self.dev.verify(fp_whorl, None, verify_cb)
+        self.dev.verify(fp_whorl, callback=verify_cb)
         self.send_image('tented_arch')
         while self._verify_match is None:
             ctx.iteration(True)
@@ -250,14 +250,14 @@ class VirtualImage(unittest.TestCase):
             self._identify_match, self._identify_fp = self.dev.identify_finish(res)
 
         self._identify_fp = None
-        self.dev.identify([fp_whorl, fp_tented_arch], None, identify_cb)
+        self.dev.identify([fp_whorl, fp_tented_arch], callback=identify_cb)
         self.send_image('tented_arch')
         while self._identify_fp is None:
             ctx.iteration(True)
         assert(self._identify_match is fp_tented_arch)
 
         self._identify_fp = None
-        self.dev.identify([fp_whorl, fp_tented_arch], None, identify_cb)
+        self.dev.identify([fp_whorl, fp_tented_arch], callback=identify_cb)
         self.send_image('whorl')
         while self._identify_fp is None:
             ctx.iteration(True)
@@ -290,7 +290,7 @@ class VirtualImage(unittest.TestCase):
 
         self._verify_match = None
         self._verify_fp = None
-        self.dev.verify(fp_whorl_new, None, verify_cb)
+        self.dev.verify(fp_whorl_new, callback=verify_cb)
         self.send_image('whorl')
         while self._verify_match is None:
             ctx.iteration(True)
@@ -298,7 +298,7 @@ class VirtualImage(unittest.TestCase):
 
         self._verify_match = None
         self._verify_fp = None
-        self.dev.verify(fp_whorl_new, None, verify_cb)
+        self.dev.verify(fp_whorl_new, callback=verify_cb)
         self.send_image('tented_arch')
         while self._verify_match is None:
             ctx.iteration(True)

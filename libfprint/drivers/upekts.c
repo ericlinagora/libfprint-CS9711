@@ -832,7 +832,7 @@ initsm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
 }
 
 static FpiSsm *
-deinitsm_new (FpDevice *dev)
+deinitsm_new (FpDevice *dev, void *user_data)
 {
   return fpi_ssm_new (dev, deinitsm_state_handler, DEINITSM_NUM_STATES);
 }
@@ -988,7 +988,7 @@ static void
 do_enroll_stop (FpDevice *dev, FpPrint *print, GError *error)
 {
   EnrollStopData *data = g_new0 (EnrollStopData, 1);
-  FpiSsm *ssm = deinitsm_new (dev);
+  FpiSsm *ssm = deinitsm_new (dev, data);
 
   data->print = g_object_ref (print);
   data->error = error;
@@ -1225,8 +1225,7 @@ enroll (FpDevice *dev)
 
 typedef struct
 {
-  FpiMatchResult res;
-  GError        *error;
+  GError *error;
 } VerifyStopData;
 
 static void
@@ -1244,17 +1243,25 @@ verify_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
   if (error)
     fp_warn ("Error deinitializing: %s", error->message);
 
-  fpi_device_verify_complete (dev, data->res, NULL, data->error);
+  if (data->error)
+    fpi_device_verify_complete (dev, data->error);
+  else
+    fpi_device_verify_complete (dev, g_steal_pointer (&error));
+
+  g_error_free (error);
 }
 
 static void
 do_verify_stop (FpDevice *dev, FpiMatchResult res, GError *error)
 {
   VerifyStopData *data = g_new0 (VerifyStopData, 1);
-  FpiSsm *ssm = deinitsm_new (dev);
+  FpiSsm *ssm = deinitsm_new (dev, data);
 
-  data->res = res;
-  data->error = error;
+  /* Report the error immediately if possible, otherwise delay it. */
+  if (!error && error->domain != FP_DEVICE_RETRY)
+    fpi_device_verify_report (dev, res, NULL, error);
+  else
+    data->error = error;
 
   fpi_ssm_start (ssm, verify_stop_deinit_cb);
   fpi_ssm_set_data (ssm, data, (GDestroyNotify) verify_stop_data_free);

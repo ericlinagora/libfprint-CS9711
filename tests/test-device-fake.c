@@ -95,8 +95,16 @@ fpi_device_fake_verify (FpDevice *device)
     fpi_device_get_verify_data (device, &print);
 
   fake_dev->last_called_function = fpi_device_fake_verify;
-  fpi_device_verify_complete (device, fake_dev->ret_result, print,
-                              fake_dev->ret_error);
+
+  if (!fake_dev->ret_error || fake_dev->ret_error->domain == FP_DEVICE_RETRY)
+    {
+      fpi_device_verify_report (device, fake_dev->ret_result, print, fake_dev->ret_error);
+      fpi_device_verify_complete (device, NULL);
+    }
+  else
+    {
+      fpi_device_verify_complete (device, fake_dev->ret_error);
+    }
 }
 
 static void
@@ -128,8 +136,15 @@ fpi_device_fake_identify (FpDevice *device)
     }
 
   fake_dev->last_called_function = fpi_device_fake_identify;
-  fpi_device_identify_complete (device, match, fake_dev->ret_print,
-                                fake_dev->ret_error);
+  if (!fake_dev->ret_error || fake_dev->ret_error->domain == FP_DEVICE_RETRY)
+    {
+      fpi_device_identify_report (device, match, fake_dev->ret_print, fake_dev->ret_error);
+      fpi_device_identify_complete (device, NULL);
+    }
+  else
+    {
+      fpi_device_identify_complete (device, fake_dev->ret_error);
+    }
 }
 
 static void

@@ -592,16 +592,13 @@ verify_msg_cb (FpiDeviceSynaptics *self,
 
   if (error)
     {
-      fpi_device_verify_complete (device, FPI_MATCH_ERROR, NULL, error);
+      fpi_device_verify_complete (device, error);
       return;
     }
 
   if (resp == NULL && self->cmd_complete_on_removal)
     {
-      fpi_device_verify_complete (device,
-                                  GPOINTER_TO_INT (self->cmd_complete_data),
-                                  NULL,
-                                  error);
+      fpi_device_verify_complete (device, NULL);
       return;
     }
 
@@ -638,21 +635,21 @@ verify_msg_cb (FpiDeviceSynaptics *self,
         {
           fp_info ("Print is not in database");
           fpi_device_verify_complete (device,
-                                      FPI_MATCH_ERROR,
-                                      NULL,
                                       fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND));
         }
       else
         {
           fp_warn ("Verify has failed: %d", resp->result);
-          fpi_device_verify_complete (device, FPI_MATCH_FAIL, NULL, NULL);
+          fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, NULL);
+          fpi_device_verify_complete (device, NULL);
         }
       break;
 
     case BMKT_RSP_VERIFY_OK:
       fp_info ("Verify was successful! for user: %s finger: %d score: %f",
                verify_resp->user_id, verify_resp->finger_id, verify_resp->match_result);
-      fpi_device_verify_complete (device, FPI_MATCH_SUCCESS, NULL, NULL);
+      fpi_device_verify_report (device, FPI_MATCH_SUCCESS, NULL, NULL);
+      fpi_device_verify_complete (device, NULL);
       break;
     }
 }
@@ -675,8 +672,6 @@ verify (FpDevice *device)
   if (!parse_print_data (data, &finger, &user_id, &user_id_len))
     {
       fpi_device_verify_complete (device,
-                                  FPI_MATCH_ERROR,
-                                  NULL,
                                   fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID));
       return;
     }

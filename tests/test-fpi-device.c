@@ -1166,12 +1166,12 @@ test_driver_complete_actions_errors (void)
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
                          "*assertion*current_action*failed");
-  fpi_device_verify_complete (device, FPI_MATCH_FAIL, NULL, NULL);
+  fpi_device_verify_complete (device, NULL);
   g_test_assert_expected_messages ();
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
                          "*assertion*current_action*failed");
-  fpi_device_identify_complete (device, NULL, NULL, NULL);
+  fpi_device_identify_complete (device, NULL);
   g_test_assert_expected_messages ();
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,

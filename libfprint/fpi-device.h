@@ -229,13 +229,9 @@ void fpi_device_close_complete (FpDevice *device,
 void fpi_device_enroll_complete (FpDevice *device,
                                  FpPrint  *print,
                                  GError   *error);
-void fpi_device_verify_complete (FpDevice      *device,
-                                 FpiMatchResult result,
-                                 FpPrint       *print,
-                                 GError        *error);
+void fpi_device_verify_complete (FpDevice *device,
+                                 GError   *error);
 void fpi_device_identify_complete (FpDevice *device,
-                                   FpPrint  *match,
-                                   FpPrint  *print,
                                    GError   *error);
 void fpi_device_capture_complete (FpDevice *device,
                                   FpImage  *image,
@@ -248,6 +244,14 @@ void fpi_device_list_complete (FpDevice  *device,
 
 void fpi_device_enroll_progress (FpDevice *device,
                                  gint      completed_stages,
+                                 FpPrint  *print,
+                                 GError   *error);
+void fpi_device_verify_report (FpDevice      *device,
+                               FpiMatchResult result,
+                               FpPrint       *print,
+                               GError        *error);
+void fpi_device_identify_report (FpDevice *device,
+                                 FpPrint  *match,
                                  FpPrint  *print,
                                  GError   *error);
 

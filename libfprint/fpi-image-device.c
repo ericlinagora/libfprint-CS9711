@@ -210,7 +210,9 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
       else
         result = FPI_MATCH_ERROR;
 
-      fpi_device_verify_complete (device, result, g_steal_pointer (&print), error);
+      if (!error || error->domain == FP_DEVICE_RETRY)
+        fpi_device_verify_report (device, result, g_steal_pointer (&print), g_steal_pointer (&error));
+      fpi_device_verify_complete (device, error);
       fpi_image_device_deactivate (self);
     }
   else if (action == FPI_DEVICE_ACTION_IDENTIFY)
@@ -231,7 +233,9 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
             }
         }
 
-      fpi_device_identify_complete (device, result, g_steal_pointer (&print), error);
+      if (!error || error->domain == FP_DEVICE_RETRY)
+        fpi_device_identify_report (device, result, g_steal_pointer (&print), g_steal_pointer (&error));
+      fpi_device_identify_complete (device, error);
       fpi_image_device_deactivate (self);
     }
   else
