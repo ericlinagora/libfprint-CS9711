@@ -92,7 +92,7 @@ on_verify_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
 
   g_print ("Verify again? [Y/n]? ");
   if (fgets (buffer, sizeof (buffer), stdin) &&
-      (buffer[0] == 'Y' || buffer[0] == 'y'))
+      (buffer[0] == 'Y' || buffer[0] == 'y' || buffer[0] == '\n'))
     {
       start_verification (dev, verify_data);
       return;
