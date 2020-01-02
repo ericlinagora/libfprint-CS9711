@@ -404,6 +404,11 @@ fpi_image_device_retry_scan (FpImageDevice *self, FpDeviceRetry retry)
     {
       g_debug ("Reporting retry during enroll");
       fpi_device_enroll_progress (FP_DEVICE (self), priv->enroll_stage, NULL, error);
+
+      /* Wait for finger removal and re-touch.
+       * TODO: Do we need to check that the finger is already off? */
+      priv->enroll_await_on_pending = TRUE;
+      fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF);
     }
   else
     {
