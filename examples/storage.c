@@ -57,7 +57,7 @@ load_data (void)
 {
   GVariantDict *res;
   GVariant *var;
-  g_autofree gchar *contents = NULL;
+  gchar *contents = NULL;
   gsize length = 0;
 
   if (!g_file_get_contents (STORAGE_FILE, &contents, &length, NULL))
@@ -66,7 +66,12 @@ load_data (void)
       return g_variant_dict_new (NULL);
     }
 
-  var = g_variant_new_from_data (G_VARIANT_TYPE_VARDICT, contents, length, FALSE, NULL, NULL);
+  var = g_variant_new_from_data (G_VARIANT_TYPE_VARDICT,
+                                 contents,
+                                 length,
+                                 FALSE,
+                                 g_free,
+                                 contents);
 
   res = g_variant_dict_new (var);
   g_variant_unref (var);
