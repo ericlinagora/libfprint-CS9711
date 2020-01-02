@@ -165,8 +165,11 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
 static void
 start_verification (FpDevice *dev, VerifyData *verify_data)
 {
-  g_print ("Choose the finger to verify:\n");
-  verify_data->finger = finger_chooser ();
+  if (verify_data->finger == FP_FINGER_UNKNOWN)
+    {
+      g_print ("Choose the finger to verify:\n");
+      verify_data->finger = finger_chooser ();
+    }
 
   if (verify_data->finger == FP_FINGER_UNKNOWN)
     {
