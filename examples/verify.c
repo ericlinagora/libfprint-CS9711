@@ -75,13 +75,13 @@ on_verify_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
       return;
     }
 
+  if (print && fp_device_supports_capture (dev) &&
+      print_image_save (print, "verify.pgm"))
+    g_print ("Print image saved as verify.pgm\n");
+
   if (match)
     {
       g_print ("MATCH!\n");
-      if (fp_device_supports_capture (dev) &&
-          print_image_save (print, "verify.pgm"))
-        g_print ("Print image saved as verify.pgm");
-
       verify_data->ret_value = EXIT_SUCCESS;
     }
   else
