@@ -134,7 +134,7 @@ print_data_load (FpDevice *dev, FpFinger finger)
 
   g_autoptr(GVariant) val = NULL;
   g_autoptr(GVariantDict) dict = NULL;
-  g_autofree guchar *stored_data = NULL;
+  const guchar *stored_data = NULL;
   gsize stored_len;
 
   dict = load_data ();
@@ -145,7 +145,7 @@ print_data_load (FpDevice *dev, FpFinger finger)
       FpPrint *print;
       g_autoptr(GError) error = NULL;
 
-      stored_data = (guchar *) g_variant_get_fixed_array (val, &stored_len, 1);
+      stored_data = (const guchar *) g_variant_get_fixed_array (val, &stored_len, 1);
       print = fp_print_deserialize (stored_data, stored_len, &error);
 
       if (error)
