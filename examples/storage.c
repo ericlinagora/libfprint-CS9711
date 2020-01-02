@@ -218,7 +218,7 @@ save_image_to_pgm (FpImage *img, const char *path)
 gboolean
 print_image_save (FpPrint *print, const char *path)
 {
-  g_autoptr(FpImage) img = NULL;
+  FpImage *img = NULL;
 
   g_return_val_if_fail (FP_IS_PRINT (print), FALSE);
   g_return_val_if_fail (path != NULL, FALSE);
