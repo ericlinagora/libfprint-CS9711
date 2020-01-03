@@ -29,6 +29,7 @@ if get_option('introspection')
     endif
 
     drivers_tests = [
+        'elan',
         'vfs5011',
         'synaptics',
     ]
