@@ -22,3 +22,32 @@ Please note, there is no need to use a real finger print in this case. If
 you would like to avoid submitting your own fingerprint then please just
 use e.g. the side of your finger, arm, or anything else that will produce
 an image with the device.
+
+
+Note that umockdev-record groups URBs aggressively. In most cases, manual
+intervention is unfortunately required. In most cases, drivers do a chain
+of commands like e.g. A then B each with a different reply. Umockdev will
+create a file like:
+
+A
+ reply 1
+ reply 2
+B
+ reply 1
+ reply 2
+
+which then needs to be re-ordered to be:
+
+A
+ reply 1
+B
+ reply 1
+A
+ reply 2
+B
+ reply 2
+
+Other changes may be needed to get everything working. For example the elan
+driver relies on a timeout that is not reported correctly. In this case the
+driver works around it by interpreting the protocol error differently in
+the virtual environment.
