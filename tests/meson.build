@@ -16,6 +16,12 @@ envs.set('FP_DRIVERS_WHITELIST', 'virtual_image')
 
 envs.set('NO_AT_BRIDGE', '1')
 
+drivers_tests = [
+    'elan',
+    'vfs5011',
+    'synaptics',
+]
+
 if get_option('introspection')
     envs.prepend('GI_TYPELIB_PATH', join_paths(meson.build_root(), 'libfprint'))
 
@@ -26,25 +32,44 @@ if get_option('introspection')
             env: envs,
             depends: libfprint_typelib,
         )
+    else
+        test('virtual-image',
+            find_program('sh'),
+            args: ['-c', 'exit 77']
+        )
     endif
-
-    drivers_tests = [
-        'elan',
-        'vfs5011',
-        'synaptics',
-    ]
 
     foreach driver_test: drivers_tests
         driver_envs = envs
         driver_envs.set('FP_DRIVERS_WHITELIST', driver_test)
 
+        if driver_test in drivers
+            test(driver_test,
+                find_program('umockdev-test.py'),
+                args: join_paths(meson.current_source_dir(), driver_test),
+                env: driver_envs,
+                suite: ['drivers'],
+                timeout: 10,
+                depends: libfprint_typelib,
+            )
+        else
+            test(driver_test,
+                find_program('sh'),
+                args: ['-c', 'exit 77']
+            )
+        endif
+    endforeach
+else
+    warning('Skipping all driver tests as introspection bindings are missing')
+    test('virtual-image',
+        find_program('sh'),
+        args: ['-c', 'exit 77']
+    )
+
+    foreach driver_test: drivers_tests
         test(driver_test,
-            find_program('umockdev-test.py'),
-            args: join_paths(meson.current_source_dir(), driver_test),
-            env: driver_envs,
-            suite: ['drivers'],
-            timeout: 10,
-            depends: libfprint_typelib,
+            find_program('sh'),
+            args: ['-c', 'exit 77']
         )
     endforeach
 endif
