@@ -1341,6 +1341,8 @@ fp_device_enroll_sync (FpDevice        *device,
  * @device: a #FpDevice
  * @enrolled_print: a #FpPrint to verify
  * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @match_cb: (nullable) (scope call): match reporting callback
+ * @match_data: (closure match_cb): user data for @match_cb
  * @match: (out): Whether the user presented the correct finger
  * @print: (out) (transfer full) (nullable): Location to store the scanned print, or %NULL to ignore
  * @error: Return location for errors, or %NULL to ignore
@@ -1353,6 +1355,8 @@ gboolean
 fp_device_verify_sync (FpDevice     *device,
                        FpPrint      *enrolled_print,
                        GCancellable *cancellable,
+                       FpMatchCb     match_cb,
+                       gpointer      match_data,
                        gboolean     *match,
                        FpPrint     **print,
                        GError      **error)
@@ -1364,7 +1368,7 @@ fp_device_verify_sync (FpDevice     *device,
   fp_device_verify (device,
                     enrolled_print,
                     cancellable,
-                    NULL, NULL, NULL,
+                    match_cb, match_data, NULL,
                     async_result_ready, &task);
   while (!task)
     g_main_context_iteration (NULL, TRUE);
@@ -1377,6 +1381,8 @@ fp_device_verify_sync (FpDevice     *device,
  * @device: a #FpDevice
  * @prints: (element-type FpPrint) (transfer none): #GPtrArray of #FpPrint
  * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @match_cb: (nullable) (scope call): match reporting callback
+ * @match_data: (closure match_cb): user data for @match_cb
  * @match: (out) (transfer full) (nullable): Location for the matched #FpPrint, or %NULL
  * @print: (out) (transfer full) (nullable): Location for the new #FpPrint, or %NULL
  * @error: Return location for errors, or %NULL to ignore
@@ -1389,6 +1395,8 @@ gboolean
 fp_device_identify_sync (FpDevice     *device,
                          GPtrArray    *prints,
                          GCancellable *cancellable,
+                         FpMatchCb     match_cb,
+                         gpointer      match_data,
                          FpPrint     **match,
                          FpPrint     **print,
                          GError      **error)
@@ -1400,7 +1408,7 @@ fp_device_identify_sync (FpDevice     *device,
   fp_device_identify (device,
                       prints,
                       cancellable,
-                      NULL, NULL, NULL,
+                      match_cb, match_data, NULL,
                       async_result_ready, &task);
   while (!task)
     g_main_context_iteration (NULL, TRUE);

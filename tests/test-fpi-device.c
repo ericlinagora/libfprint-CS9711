@@ -555,7 +555,7 @@ test_driver_verify (void)
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_SUCCESS;
-  fp_device_verify_sync (device, enrolled_print, NULL, &match, &out_print, &error);
+  fp_device_verify_sync (device, enrolled_print, NULL, NULL, NULL, &match, &out_print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->verify);
   g_assert (fake_dev->action_data == enrolled_print);
@@ -577,7 +577,7 @@ test_driver_verify_fail (void)
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_FAIL;
-  fp_device_verify_sync (device, enrolled_print, NULL, &match, &out_print, &error);
+  fp_device_verify_sync (device, enrolled_print, NULL, NULL, NULL, &match, &out_print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->verify);
   g_assert_no_error (error);
@@ -599,7 +599,7 @@ test_driver_verify_error (void)
 
   fake_dev->ret_result = FPI_MATCH_ERROR;
   fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
-  fp_device_verify_sync (device, enrolled_print, NULL, &match, &out_print, &error);
+  fp_device_verify_sync (device, enrolled_print, NULL, NULL, NULL, &match, &out_print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->verify);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
@@ -658,7 +658,7 @@ test_driver_identify (void)
   g_assert_true (fp_device_supports_identify (device));
 
   fake_dev->ret_print = fp_print_new (device);
-  fp_device_identify_sync (device, prints, NULL, &matched_print, &print, &error);
+  fp_device_identify_sync (device, prints, NULL, NULL, NULL, &matched_print, &print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
   g_assert (fake_dev->action_data == prints);
@@ -686,7 +686,7 @@ test_driver_identify_fail (void)
   g_assert_true (fp_device_supports_identify (device));
 
   fake_dev->ret_print = fp_print_new (device);
-  fp_device_identify_sync (device, prints, NULL, &matched_print, &print, &error);
+  fp_device_identify_sync (device, prints, NULL, NULL, NULL, &matched_print, &print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
   g_assert_no_error (error);
@@ -717,7 +717,7 @@ test_driver_identify_error (void)
   g_assert_true (fp_device_supports_identify (device));
 
   fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
-  fp_device_identify_sync (device, prints, NULL, &matched_print, &print, &error);
+  fp_device_identify_sync (device, prints, NULL, NULL, NULL, &matched_print, &print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
