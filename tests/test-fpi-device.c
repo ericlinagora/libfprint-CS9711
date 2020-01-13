@@ -715,6 +715,38 @@ test_driver_verify_error (void)
 }
 
 static void
+fake_device_verify_immediate_complete (FpDevice *device)
+{
+  fpi_device_verify_complete (device, NULL);
+}
+
+static void
+test_driver_verify_not_reported (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpPrint) enrolled_print = NULL;
+  g_autoptr(GError) error = NULL;
+
+  dev_class->verify = fake_device_verify_immediate_complete;
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  enrolled_print = g_object_ref_sink (fp_print_new (device));
+
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*reported successful verify complete*not report*result*");
+
+  fp_device_verify_sync (device, enrolled_print, NULL,
+                         NULL, NULL,
+                         NULL, NULL, &error);
+
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+
+  g_test_assert_expected_messages ();
+}
+
+static void
 fake_device_stub_identify (FpDevice *device)
 {
 }
@@ -897,6 +929,42 @@ test_driver_identify_error (void)
   g_assert_null (print);
 
   test_driver_match_data_clear (&match_data);
+}
+
+static void
+fake_device_identify_immediate_complete (FpDevice *device)
+{
+  fpi_device_identify_complete (device, NULL);
+}
+
+static void
+test_driver_identify_not_reported (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
+  g_autoptr(FpPrint) out_print = NULL;
+  g_autoptr(GError) error = NULL;
+  unsigned int i;
+
+  dev_class->identify = fake_device_identify_immediate_complete;
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+
+  for (i = 0; i < 500; ++i)
+    g_ptr_array_add (prints, g_object_ref_sink (fp_print_new (device)));
+
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*reported successful identify complete*not report*result*");
+
+  fp_device_identify_sync (device, prints, NULL,
+                           NULL, NULL,
+                           NULL, NULL, &error);
+
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+
+  g_test_assert_expected_messages ();
 }
 
 static void
@@ -1553,10 +1621,12 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/verify/fail", test_driver_verify_fail);
   g_test_add_func ("/driver/verify/retry", test_driver_verify_retry);
   g_test_add_func ("/driver/verify/error", test_driver_verify_error);
+  g_test_add_func ("/driver/verify/not_reported", test_driver_verify_not_reported);
   g_test_add_func ("/driver/identify", test_driver_identify);
   g_test_add_func ("/driver/identify/fail", test_driver_identify_fail);
   g_test_add_func ("/driver/identify/retry", test_driver_identify_retry);
   g_test_add_func ("/driver/identify/error", test_driver_identify_error);
+  g_test_add_func ("/driver/identify/not_reported", test_driver_identify_not_reported);
   g_test_add_func ("/driver/capture", test_driver_capture);
   g_test_add_func ("/driver/capture/error", test_driver_capture_error);
   g_test_add_func ("/driver/list", test_driver_list);
