@@ -1,6 +1,41 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2019-11-20: v1.90.1 release
+
+This release fixes a lot of the regressions introduced in 1.90.0. Please note
+that both the driver and external APIs have changed, as both the verify and
+the identify functions now have early reporting mechanisms.
+The soname for the library, as well as a number of file locations have also
+changed. While this allows installation in parallel with the 1.0 version of
+libfprint, we recommend installing only one, and migrating from version 1.0 to
+version 2.0 alongside its main consumer (fprintd).
+
+Only major changes are listed below. A lot of other cleanup work and small
+fixes have also been merged.
+
+* Library:
+  - Add support to run tests in gdb/valgrind
+  - Allow testing on all architectures
+  - Avoid image device AWAIT_FINGER_ON to deactivate state transitions
+  - Fix verify/identify error propagation to library user
+  - Correctly read image device information from class data
+  - Continue enroll after an image driver reported a retry error
+  - Change external API to allow reporting match results early
+  - A lot of new unit tests and integration tests have been added
+
+* Drivers API
+  - Support variadic arguments in error functions
+  - Various re-definitions of ownership handling
+  - Add convenience API to change state after a timeout
+  - Add unit tests for all the drivers API
+
+* Drivers:
+  - elan: Ensure correct deactivation of device
+  - uru4000: Fix IRQ handler registration and internal state handling
+  - uru4000: Fix control transfer request type
+  - synaptics: Ensure errors are only reported after finger removal
+
 2019-11-20: v1.90.0 release
 
 This release updates the core of the library to use GLib routines and Gio
