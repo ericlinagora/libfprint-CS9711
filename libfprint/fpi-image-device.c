@@ -226,7 +226,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
 
           if (fpi_print_bz3_match (template, print, priv->bz3_threshold, &error) == FPI_MATCH_SUCCESS)
             {
-              result = g_object_ref (template);
+              result = template;
               break;
             }
         }

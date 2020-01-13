@@ -908,7 +908,7 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
  * fpi_device_verify_complete:
  * @device: The #FpDevice
  * @result: The #FpiMatchResult of the operation
- * @print: The scanned #FpPrint
+ * @print: (transfer floating) The scanned #FpPrint
  * @error: A #GError if result is %FPI_MATCH_ERROR
  *
  * Finish an ongoing verify operation. The returned print should be
@@ -928,6 +928,9 @@ fpi_device_verify_complete (FpDevice      *device,
   g_debug ("Device reported verify completion");
 
   clear_device_cancel_action (device);
+
+  if (print)
+    g_object_ref_sink (print);
 
   g_object_set_data_full (G_OBJECT (priv->current_task),
                           "print",
@@ -963,8 +966,8 @@ fpi_device_verify_complete (FpDevice      *device,
 /**
  * fpi_device_identify_complete:
  * @device: The #FpDevice
- * @match: The matching #FpPrint from the passed gallery, or %NULL if none matched
- * @print: The scanned #FpPrint, may be %NULL
+ * @match: (transfer none): The matching #FpPrint from the passed gallery, or %NULL if none matched
+ * @print: (transfer floating): The scanned #FpPrint, may be %NULL
  * @error: The #GError or %NULL on success
  *
  * Finish an ongoing identify operation. The match that was identified is
@@ -985,6 +988,12 @@ fpi_device_identify_complete (FpDevice *device,
   g_debug ("Device reported identify completion");
 
   clear_device_cancel_action (device);
+
+  if (match)
+    g_object_ref (match);
+
+  if (print)
+    g_object_ref_sink (print);
 
   g_object_set_data_full (G_OBJECT (priv->current_task),
                           "print",
@@ -1134,7 +1143,7 @@ fpi_device_list_complete (FpDevice  *device,
  * fpi_device_enroll_progress:
  * @device: The #FpDevice
  * @completed_stages: The number of stages that are completed at this point
- * @print: (transfer full): The #FpPrint for the newly completed stage or %NULL on failure
+ * @print: (transfer floating): The #FpPrint for the newly completed stage or %NULL on failure
  * @error: (transfer full): The #GError or %NULL on success
  *
  * Notify about the progress of the enroll operation. This is important for UI interaction.
@@ -1154,6 +1163,9 @@ fpi_device_enroll_progress (FpDevice *device,
   g_return_if_fail (error == NULL || error->domain == FP_DEVICE_RETRY);
 
   g_debug ("Device reported enroll progress, reported %i of %i have been completed", completed_stages, priv->nr_enroll_stages);
+
+  if (print)
+    g_object_ref_sink (print);
 
   if (error && print)
     {

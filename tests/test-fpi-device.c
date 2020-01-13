@@ -548,10 +548,10 @@ test_driver_verify (void)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
-  g_autoptr(FpPrint) enrolled_print = fp_print_new (device);
+  g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
+  g_autoptr(FpPrint) out_print = NULL;
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  FpPrint *out_print = NULL;
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_SUCCESS;
@@ -570,10 +570,10 @@ test_driver_verify_fail (void)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
-  g_autoptr(FpPrint) enrolled_print = fp_print_new (device);
+  g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
+  g_autoptr(FpPrint) out_print = NULL;
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  FpPrint *out_print = NULL;
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_FAIL;
@@ -591,10 +591,10 @@ test_driver_verify_error (void)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
-  g_autoptr(FpPrint) enrolled_print = fp_print_new (device);
+  g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
+  g_autoptr(FpPrint) out_print = NULL;
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  FpPrint *out_print = NULL;
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_ERROR;
@@ -641,16 +641,16 @@ test_driver_identify (void)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(FpPrint) print = NULL;
+  g_autoptr(FpPrint) matched_print = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  FpPrint *matched_print;
   FpPrint *expected_matched;
   unsigned int i;
 
   for (i = 0; i < 500; ++i)
-    g_ptr_array_add (prints, fp_print_new (device));
+    g_ptr_array_add (prints, g_object_ref_sink (fp_print_new (device)));
 
   expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
   fp_print_set_description (expected_matched, "fake-verified");
@@ -673,15 +673,15 @@ test_driver_identify_fail (void)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(FpPrint) print = NULL;
+  g_autoptr(FpPrint) matched_print = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  FpPrint *matched_print;
   unsigned int i;
 
   for (i = 0; i < 500; ++i)
-    g_ptr_array_add (prints, fp_print_new (device));
+    g_ptr_array_add (prints, g_object_ref_sink (fp_print_new (device)));
 
   g_assert_true (fp_device_supports_identify (device));
 
@@ -700,16 +700,16 @@ test_driver_identify_error (void)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(FpPrint) print = NULL;
+  g_autoptr(FpPrint) matched_print = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  FpPrint *matched_print;
   FpPrint *expected_matched;
   unsigned int i;
 
   for (i = 0; i < 500; ++i)
-    g_ptr_array_add (prints, fp_print_new (device));
+    g_ptr_array_add (prints, g_object_ref_sink (fp_print_new (device)));
 
   expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
   fp_print_set_description (expected_matched, "fake-verified");
