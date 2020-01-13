@@ -21,6 +21,7 @@
 #define FP_COMPONENT "print"
 
 #include "fp-print-private.h"
+#include "fpi-compat.h"
 #include "fpi-log.h"
 
 /**

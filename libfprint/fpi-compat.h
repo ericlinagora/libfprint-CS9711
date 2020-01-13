@@ -1,8 +1,5 @@
 /*
- * Driver API definitions
- * Copyright (C) 2007-2008 Daniel Drake <dsd@gentoo.org>
- * Copyright (C) 2018 Bastien Nocera <hadess@hadess.net>
- * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
+ * Copyright (C) 2020 Benjamin Berg <bberg@redhat.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,12 +18,16 @@
 
 #pragma once
 
-#include "fpi-compat.h"
-#include "fpi-assembling.h"
-#include "fpi-device.h"
-#include "fpi-image-device.h"
-#include "fpi-image.h"
-#include "fpi-log.h"
-#include "fpi-print.h"
-#include "fpi-usb-transfer.h"
-#include "fpi-ssm.h"
+#include <glib-object.h>
+
+#if !GLIB_CHECK_VERSION (2, 57, 0)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (GTypeClass, g_type_class_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (GParamSpec, g_param_spec_unref);
+#else
+/* Re-define G_SOURCE_FUNC as we are technically not allowed to use it with
+ * the version we depend on currently. */
+#undef G_SOURCE_FUNC
+#endif
+
+#define G_SOURCE_FUNC(f) ((GSourceFunc) (void (*)(void))(f))

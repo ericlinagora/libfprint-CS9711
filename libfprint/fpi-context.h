@@ -20,6 +20,7 @@
 
 #include <gusb.h>
 #include "fp-context.h"
+#include "fpi-compat.h"
 
 /**
  * fpi_get_driver_types:

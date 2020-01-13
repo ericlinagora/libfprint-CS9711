@@ -22,6 +22,7 @@
 #define FP_COMPONENT "device"
 
 #include "fpi-device.h"
+#include "fpi-compat.h"
 #include "fpi-log.h"
 #include "test-device-fake.h"
 
