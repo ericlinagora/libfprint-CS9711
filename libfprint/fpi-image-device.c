@@ -419,7 +419,9 @@ fpi_image_device_retry_scan (FpImageDevice *self, FpDeviceRetry retry)
       /* We abort the operation and let the surrounding code retry in the
        * non-enroll case (this is identical to a session error). */
       g_debug ("Abort current operation due to retry (non-enroll case)");
+      priv->cancelling = TRUE;
       fpi_image_device_deactivate (self);
+      priv->cancelling = FALSE;
       fpi_device_action_error (FP_DEVICE (self), error);
     }
 }
@@ -467,7 +469,9 @@ fpi_image_device_session_error (FpImageDevice *self, GError *error)
   if (error->domain == FP_DEVICE_RETRY)
     g_warning ("Driver should report retries using fpi_image_device_retry_scan!");
 
+  priv->cancelling = TRUE;
   fpi_image_device_deactivate (self);
+  priv->cancelling = FALSE;
   fpi_device_action_error (FP_DEVICE (self), error);
 }
 
