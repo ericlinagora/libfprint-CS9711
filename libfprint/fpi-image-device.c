@@ -414,6 +414,22 @@ fpi_image_device_retry_scan (FpImageDevice *self, FpDeviceRetry retry)
       priv->enroll_await_on_pending = TRUE;
       fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF);
     }
+  else if (action == FPI_DEVICE_ACTION_VERIFY)
+    {
+      fpi_device_verify_report (FP_DEVICE (self), FPI_MATCH_ERROR, NULL, error);
+      priv->cancelling = TRUE;
+      fpi_image_device_deactivate (self);
+      priv->cancelling = FALSE;
+      fpi_device_verify_complete (FP_DEVICE (self), NULL);
+    }
+  else if (action == FPI_DEVICE_ACTION_IDENTIFY)
+    {
+      fpi_device_identify_report (FP_DEVICE (self), NULL, NULL, error);
+      priv->cancelling = TRUE;
+      fpi_image_device_deactivate (self);
+      priv->cancelling = FALSE;
+      fpi_device_identify_complete (FP_DEVICE (self), NULL);
+    }
   else
     {
       /* We abort the operation and let the surrounding code retry in the
