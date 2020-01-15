@@ -585,8 +585,6 @@ capture_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 
   G_DEBUG_HERE ();
 
-  /* XXX: cancellation was specially handled by doing nothing! */
-
   /* either max frames captured or timed out waiting for the next frame */
   if (!error ||
       (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT) &&

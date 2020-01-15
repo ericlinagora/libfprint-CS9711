@@ -448,7 +448,9 @@ fpi_image_device_retry_scan (FpImageDevice *self, FpDeviceRetry retry)
  * @error: The #GError to report
  *
  * Report an error while interacting with the device. This effectively
- * aborts the current ongoing action.
+ * aborts the current ongoing action. Note that doing so will result in
+ * the deactivation handler to be called and this function must not be
+ * used to report an error during deactivation.
  */
 void
 fpi_image_device_session_error (FpImageDevice *self, GError *error)
@@ -475,10 +477,20 @@ fpi_image_device_session_error (FpImageDevice *self, GError *error)
           return;
         }
     }
+  else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
+           fpi_device_action_is_cancelled (FP_DEVICE (self)))
+    {
+      /* Ignore cancellation errors here, as we will explicitly deactivate
+       * anyway (or, may already have done so at this point).
+       */
+      g_debug ("Driver reported a cancellation error, this is expected but not required. Ignoring.");
+      g_clear_error (&error);
+      return;
+    }
   else if (priv->state == FPI_IMAGE_DEVICE_STATE_INACTIVE)
     {
-      g_warning ("Driver reported session error; translating to deactivation failure.");
-      fpi_image_device_deactivate_complete (self, error);
+      g_warning ("Driver reported session error while deactivating already, ignoring. This indicates a driver bug.");
+      g_clear_error (&error);
       return;
     }
 
