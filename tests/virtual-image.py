@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 
-
-import gi
-gi.require_version('FPrint', '2.0')
-from gi.repository import FPrint, GLib, Gio
-
-import os
 import sys
-import unittest
-import socket
-import struct
-import subprocess
-import shutil
-import glob
-import cairo
-import tempfile
+try:
+    import gi
+    gi.require_version('FPrint', '2.0')
+    from gi.repository import FPrint, GLib, Gio
+
+    import os
+    import sys
+    import unittest
+    import socket
+    import struct
+    import subprocess
+    import shutil
+    import glob
+    import cairo
+    import tempfile
+except Exception as e:
+    print("Missing dependencies: %s" % str(e))
+    sys.exit(77)
 
 # Re-run the test with the passed wrapper if set
 wrapper = os.getenv('LIBFPRINT_TEST_WRAPPER')
