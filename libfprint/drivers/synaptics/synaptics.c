@@ -623,6 +623,8 @@ verify_msg_cb (FpiDeviceSynaptics *self,
           self->cmd_complete_on_removal = TRUE;
           self->cmd_complete_data = GINT_TO_POINTER (FPI_MATCH_ERROR);
           self->cmd_complete_error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
+          fpi_device_verify_report (device, FPI_MATCH_ERROR, NULL,
+                                    fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
         }
       else if (resp->result == BMKT_FP_NO_MATCH)
         {
@@ -630,6 +632,7 @@ verify_msg_cb (FpiDeviceSynaptics *self,
           self->cmd_complete_on_removal = TRUE;
           self->cmd_complete_data = GINT_TO_POINTER (FPI_MATCH_FAIL);
           self->cmd_complete_error = NULL;
+          fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, NULL);
         }
       else if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)
         {
