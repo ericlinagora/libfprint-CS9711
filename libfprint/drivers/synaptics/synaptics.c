@@ -279,17 +279,10 @@ cmd_ssm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
   self->cmd_ssm = NULL;
 
   /* Notify about the SSM failure from here instead. */
-  if (error)
-    {
-      callback (self, NULL, error);
-    }
-  else if (self->cmd_complete_on_removal)
-    {
-      callback (self, NULL, self->cmd_complete_error);
-      self->cmd_complete_error = NULL;
-    }
+  if (error || self->cmd_complete_on_removal)
+    callback (self, NULL, error);
+
   self->cmd_complete_on_removal = FALSE;
-  g_clear_pointer (&self->cmd_complete_error, g_error_free);
 }
 
 static void
@@ -621,8 +614,6 @@ verify_msg_cb (FpiDeviceSynaptics *self,
         {
           fp_dbg ("delaying retry error until after finger removal!");
           self->cmd_complete_on_removal = TRUE;
-          self->cmd_complete_data = GINT_TO_POINTER (FPI_MATCH_ERROR);
-          self->cmd_complete_error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
           fpi_device_verify_report (device, FPI_MATCH_ERROR, NULL,
                                     fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
         }
@@ -630,8 +621,6 @@ verify_msg_cb (FpiDeviceSynaptics *self,
         {
           fp_dbg ("delaying match failure until after finger removal!");
           self->cmd_complete_on_removal = TRUE;
-          self->cmd_complete_data = GINT_TO_POINTER (FPI_MATCH_FAIL);
-          self->cmd_complete_error = NULL;
           fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, NULL);
         }
       else if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)

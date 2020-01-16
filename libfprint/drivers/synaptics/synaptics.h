@@ -110,8 +110,6 @@ struct _FpiDeviceSynaptics
   FpiSsm               *cmd_ssm;
   FpiUsbTransfer       *cmd_pending_transfer;
   gboolean              cmd_complete_on_removal;
-  GError               *cmd_complete_error;
-  void                 *cmd_complete_data;
 
   bmkt_sensor_version_t mis_version;
 
