@@ -19,6 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define FP_COMPONENT "example-enroll"
+
 #include <stdio.h>
 #include <libfprint/fprint.h>
 
