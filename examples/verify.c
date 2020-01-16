@@ -143,7 +143,8 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
         {
           g_warning ("Did you remember to enroll your %s finger first?",
                      finger_to_string (verify_data->finger));
-          g_main_loop_quit (verify_data->loop);
+          fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
+                           verify_data);
           return;
         }
 
@@ -176,7 +177,8 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
     {
       g_warning ("Unknown finger selected");
       verify_data->ret_value = EXIT_FAILURE;
-      g_main_loop_quit (verify_data->loop);
+      fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
+                       verify_data);
       return;
     }
 
@@ -200,7 +202,8 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
           g_warning ("Failed to load fingerprint data");
           g_warning ("Did you remember to enroll your %s finger first?",
                      finger_to_string (verify_data->finger));
-          g_main_loop_quit (verify_data->loop);
+          fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,
+                           verify_data);
           return;
         }
 
