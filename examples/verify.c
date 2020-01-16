@@ -117,6 +117,36 @@ on_verify_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
 }
 
 static void
+on_match_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
+             gpointer user_data, GError *error)
+{
+  if (error)
+    {
+      g_warning ("Match report: Finger not matched, retry error reported: %s",
+                 error->message);
+      return;
+    }
+
+  if (match)
+    {
+      char date_str[128];
+
+      g_date_strftime (date_str, G_N_ELEMENTS (date_str), "%Y-%m-%d\0",
+                       fp_print_get_enroll_date (match));
+      g_debug ("Match report: device %s matched finger %s successifully "
+               "with print %s, enrolled on date %s by user %s",
+               fp_device_get_name (dev),
+               finger_to_string (fp_print_get_finger (match)),
+               fp_print_get_description (match), date_str,
+               fp_print_get_username (match));
+    }
+  else
+    {
+      g_debug ("Match report: Finger not matched");
+    }
+}
+
+static void
 on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
 {
   VerifyData *verify_data = user_data;
@@ -166,7 +196,7 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
 
       g_print ("Print loaded. Time to verify!\n");
       fp_device_verify (dev, verify_print, NULL,
-                        NULL, NULL, NULL,
+                        on_match_cb, verify_data, NULL,
                         (GAsyncReadyCallback) on_verify_completed,
                         verify_data);
     }
