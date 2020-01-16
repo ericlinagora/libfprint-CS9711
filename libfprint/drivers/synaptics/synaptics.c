@@ -576,6 +576,22 @@ list (FpDevice *device)
 }
 
 static void
+verify_complete_after_finger_removal (FpiDeviceSynaptics *self)
+{
+  FpDevice *device = FP_DEVICE (self);
+
+  if (self->finger_on_sensor)
+    {
+      fp_dbg ("delaying verify report until after finger removal!");
+      self->cmd_complete_on_removal = TRUE;
+    }
+  else
+    {
+      fpi_device_verify_complete (device, NULL);
+    }
+}
+
+static void
 verify_msg_cb (FpiDeviceSynaptics *self,
                bmkt_response_t    *resp,
                GError             *error)
@@ -610,18 +626,18 @@ verify_msg_cb (FpiDeviceSynaptics *self,
       break;
 
     case BMKT_RSP_VERIFY_FAIL:
-      if(resp->result == BMKT_SENSOR_STIMULUS_ERROR)
+      if (resp->result == BMKT_SENSOR_STIMULUS_ERROR)
         {
-          fp_dbg ("delaying retry error until after finger removal!");
-          self->cmd_complete_on_removal = TRUE;
+          fp_info ("Match error occurred");
           fpi_device_verify_report (device, FPI_MATCH_ERROR, NULL,
                                     fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
+          verify_complete_after_finger_removal (self);
         }
       else if (resp->result == BMKT_FP_NO_MATCH)
         {
-          fp_dbg ("delaying match failure until after finger removal!");
-          self->cmd_complete_on_removal = TRUE;
-          fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, NULL);
+          fp_info ("Print didn't match");
+          fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, error);
+          verify_complete_after_finger_removal (self);
         }
       else if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)
         {
