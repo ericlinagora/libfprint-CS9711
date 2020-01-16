@@ -128,23 +128,36 @@ typedef void (*FpEnrollProgress) (FpDevice *device,
 /**
  * FpMatchCb:
  * @device: a #FpDevice
- * @success: Whether a print was retrieved, %FALSE means @error is set
- * @match: (nullable) (transfer none): The matching print
+ * @match: (nullable) (transfer none): The matching print if any matched @print
  * @print: (nullable) (transfer none): The newly scanned print
  * @user_data: (nullable) (transfer none): User provided data
  * @error: (nullable) (transfer none): #GError or %NULL
  *
- * Report the result of a match (identify or verify) operation. This callback
- * because it makes sense for drivers to wait e.g. on finger removal before
- * finishing the operation. However, the success/failure can often be reported
- * at an earlier time, and there is no need to make the user wait.
+ * Report the result of a match (identify or verify) operation.
  *
- * The passed error is guaranteed to be of type %FP_DEVICE_RETRY if set. Actual
- * error conditions will not be reported using this function. Such an error may
- * still happen even if this callback has been called.
+ * If @match is non-%NULL, then it is set to the matching #FpPrint as passed
+ * to the match operation. In this case @error will always be %NULL.
+ *
+ * If @error is not %NULL then its domain is guaranteed to be
+ * %FP_DEVICE_RETRY. All other error conditions will not be reported using
+ * this callback. If such an error occurs before a match/no-match decision
+ * can be made, then this callback will not be called. Should an error
+ * happen afterwards, then you will get a match report through this callback
+ * and an error when the operation finishes.
+ *
+ * If @match and @error are %NULL, then a finger was presented but it did not
+ * match any known print.
+ *
+ * @print represents the newly scanned print. The driver may or may not
+ * provide this information. Image based devices will provide it and it
+ * allows access to the raw data.
+ *
+ * This callback exists because it makes sense for drivers to wait e.g. on
+ * finger removal before completing the match operation. However, the
+ * success/failure can often be reported at an earlier time, and there is
+ * no need to make the user wait.
  */
 typedef void (*FpMatchCb) (FpDevice *device,
-                           gboolean  success,
                            FpPrint  *match,
                            FpPrint  *print,
                            gpointer  user_data,

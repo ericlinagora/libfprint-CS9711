@@ -1281,7 +1281,7 @@ fpi_device_verify_report (FpDevice      *device,
     }
 
   if (call_cb && data->match_cb)
-    data->match_cb (device, data->error == NULL, data->match, data->print, data->match_data, data->error);
+    data->match_cb (device, data->match, data->print, data->match_data, data->error);
 }
 
 /**
@@ -1357,5 +1357,5 @@ fpi_device_identify_report (FpDevice *device,
     }
 
   if (call_cb && data->match_cb)
-    data->match_cb (device, data->error == NULL, data->match, data->print, data->match_data, data->error);
+    data->match_cb (device, data->match, data->print, data->match_data, data->error);
 }
