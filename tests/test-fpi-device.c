@@ -1,6 +1,5 @@
 /*
- * Example fingerprint device prints listing and deletion
- * Enrolls your right index finger and saves the print to disk
+ * Unit tests for the internal fingerprint drivers API
  * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
