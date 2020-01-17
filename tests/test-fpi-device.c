@@ -561,6 +561,14 @@ test_driver_match_data_clear (MatchCbData *data)
 }
 
 static void
+test_driver_match_data_free (MatchCbData *data)
+{
+  test_driver_match_data_clear (data);
+  g_free (data);
+}
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (MatchCbData, test_driver_match_data_free);
+
+static void
 test_driver_match_cb (FpDevice *device,
                       FpPrint  *match,
                       FpPrint  *print,
@@ -592,29 +600,27 @@ test_driver_verify (void)
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
   g_autoptr(FpPrint) out_print = NULL;
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  MatchCbData match_data = { 0, };
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_SUCCESS;
   fp_device_verify_sync (device, enrolled_print, NULL,
-                         test_driver_match_cb, &match_data,
+                         test_driver_match_cb, match_data,
                          &match, &out_print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->verify);
   g_assert (fake_dev->action_data == enrolled_print);
   g_assert_no_error (error);
 
-  g_assert_true (match_data.called);
-  g_assert_nonnull (match_data.match);
-  g_assert_true (match_data.print == out_print);
-  g_assert_true (match_data.match == enrolled_print);
+  g_assert_true (match_data->called);
+  g_assert_nonnull (match_data->match);
+  g_assert_true (match_data->print == out_print);
+  g_assert_true (match_data->match == enrolled_print);
 
   g_assert (out_print == enrolled_print);
   g_assert_true (match);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
@@ -624,28 +630,26 @@ test_driver_verify_fail (void)
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
   g_autoptr(FpPrint) out_print = NULL;
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  MatchCbData match_data = { 0, };
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_FAIL;
   fp_device_verify_sync (device, enrolled_print, NULL,
-                         test_driver_match_cb, &match_data,
+                         test_driver_match_cb, match_data,
                          &match, &out_print, &error);
 
   g_assert (fake_dev->last_called_function == dev_class->verify);
   g_assert_no_error (error);
 
-  g_assert_true (match_data.called);
-  g_assert_no_error (match_data.error);
-  g_assert_true (match_data.print == out_print);
-  g_assert_null (match_data.match);
+  g_assert_true (match_data->called);
+  g_assert_no_error (match_data->error);
+  g_assert_true (match_data->print == out_print);
+  g_assert_null (match_data->match);
 
   g_assert (out_print == enrolled_print);
   g_assert_false (match);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
@@ -655,27 +659,25 @@ test_driver_verify_retry (void)
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
   g_autoptr(FpPrint) out_print = NULL;
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  MatchCbData match_data = { 0, };
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_ERROR;
   fake_dev->ret_error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
   fp_device_verify_sync (device, enrolled_print, NULL,
-                         test_driver_match_cb, &match_data,
+                         test_driver_match_cb, match_data,
                          &match, &out_print, &error);
 
-  g_assert_true (match_data.called);
-  g_assert_null (match_data.match);
-  g_assert_error (match_data.error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
+  g_assert_true (match_data->called);
+  g_assert_null (match_data->match);
+  g_assert_error (match_data->error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
 
   g_assert (fake_dev->last_called_function == dev_class->verify);
   g_assert_error (error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
   g_assert (error == g_steal_pointer (&fake_dev->ret_error));
   g_assert_false (match);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
@@ -685,27 +687,25 @@ test_driver_verify_error (void)
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
   g_autoptr(FpPrint) out_print = NULL;
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  MatchCbData match_data = { 0, };
   gboolean match;
 
   fake_dev->ret_result = FPI_MATCH_ERROR;
   fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
   fp_device_verify_sync (device, enrolled_print, NULL,
-                         test_driver_match_cb, &match_data,
+                         test_driver_match_cb, match_data,
                          &match, &out_print, &error);
 
-  g_assert_false (match_data.called);
-  g_assert_null (match_data.match);
-  g_assert_no_error (match_data.error);
+  g_assert_false (match_data->called);
+  g_assert_null (match_data->match);
+  g_assert_no_error (match_data->error);
 
   g_assert (fake_dev->last_called_function == dev_class->verify);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_assert (error == g_steal_pointer (&fake_dev->ret_error));
   g_assert_false (match);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
@@ -777,10 +777,10 @@ test_driver_identify (void)
   g_autoptr(FpPrint) matched_print = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
   FpPrint *expected_matched;
-  MatchCbData match_data = { 0, };
   unsigned int i;
 
   for (i = 0; i < 500; ++i)
@@ -793,13 +793,13 @@ test_driver_identify (void)
 
   fake_dev->ret_print = fp_print_new (device);
   fp_device_identify_sync (device, prints, NULL,
-                           test_driver_match_cb, &match_data,
+                           test_driver_match_cb, match_data,
                            &matched_print, &print, &error);
 
-  g_assert_true (match_data.called);
-  g_assert_nonnull (match_data.match);
-  g_assert_true (match_data.match == matched_print);
-  g_assert_true (match_data.print == print);
+  g_assert_true (match_data->called);
+  g_assert_nonnull (match_data->match);
+  g_assert_true (match_data->match == matched_print);
+  g_assert_true (match_data->print == print);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
   g_assert (fake_dev->action_data == prints);
@@ -807,8 +807,6 @@ test_driver_identify (void)
 
   g_assert (print != NULL && print == fake_dev->ret_print);
   g_assert (expected_matched == matched_print);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
@@ -819,9 +817,9 @@ test_driver_identify_fail (void)
   g_autoptr(FpPrint) matched_print = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  MatchCbData match_data = { 0, };
   unsigned int i;
 
   for (i = 0; i < 500; ++i)
@@ -831,22 +829,20 @@ test_driver_identify_fail (void)
 
   fake_dev->ret_print = fp_print_new (device);
   fp_device_identify_sync (device, prints, NULL,
-                           test_driver_match_cb, &match_data,
+                           test_driver_match_cb, match_data,
                            &matched_print, &print, &error);
 
-  g_assert_true (match_data.called);
-  g_assert_null (match_data.match);
-  g_assert_no_error (match_data.error);
-  g_assert_true (match_data.match == matched_print);
-  g_assert_true (match_data.print == print);
+  g_assert_true (match_data->called);
+  g_assert_null (match_data->match);
+  g_assert_no_error (match_data->error);
+  g_assert_true (match_data->match == matched_print);
+  g_assert_true (match_data->print == print);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
   g_assert_no_error (error);
 
   g_assert (print != NULL && print == fake_dev->ret_print);
   g_assert_null (matched_print);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
@@ -857,10 +853,10 @@ test_driver_identify_retry (void)
   g_autoptr(FpPrint) matched_print = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
   FpPrint *expected_matched;
-  MatchCbData match_data = { 0, };
   unsigned int i;
 
   for (i = 0; i < 500; ++i)
@@ -873,20 +869,18 @@ test_driver_identify_retry (void)
 
   fake_dev->ret_error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
   fp_device_identify_sync (device, prints, NULL,
-                           test_driver_match_cb, &match_data,
+                           test_driver_match_cb, match_data,
                            &matched_print, &print, &error);
 
-  g_assert_true (match_data.called);
-  g_assert_null (match_data.match);
-  g_assert_error (match_data.error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
+  g_assert_true (match_data->called);
+  g_assert_null (match_data->match);
+  g_assert_error (match_data->error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
   g_assert_error (error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
   g_assert (error == g_steal_pointer (&fake_dev->ret_error));
   g_assert_null (matched_print);
   g_assert_null (print);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
@@ -897,10 +891,10 @@ test_driver_identify_error (void)
   g_autoptr(FpPrint) matched_print = NULL;
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
   FpPrint *expected_matched;
-  MatchCbData match_data = { 0, };
   unsigned int i;
 
   for (i = 0; i < 500; ++i)
@@ -913,20 +907,18 @@ test_driver_identify_error (void)
 
   fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
   fp_device_identify_sync (device, prints, NULL,
-                           test_driver_match_cb, &match_data,
+                           test_driver_match_cb, match_data,
                            &matched_print, &print, &error);
 
-  g_assert_false (match_data.called);
-  g_assert_null (match_data.match);
-  g_assert_no_error (match_data.error);
+  g_assert_false (match_data->called);
+  g_assert_null (match_data->match);
+  g_assert_no_error (match_data->error);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_assert (error == g_steal_pointer (&fake_dev->ret_error));
   g_assert_null (matched_print);
   g_assert_null (print);
-
-  test_driver_match_data_clear (&match_data);
 }
 
 static void
