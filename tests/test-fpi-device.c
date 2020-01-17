@@ -1691,9 +1691,18 @@ test_driver_error_types (void)
 
   for (i = 0; g_enum_get_value (errors_enum, i); ++i)
     {
-      error = fpi_device_error_new (i);
-      g_assert_error (error, FP_DEVICE_ERROR, i);
-      g_clear_error (&error);
+      g_autoptr(GError) e = NULL;
+      g_autoptr(GError) msg_e = NULL;
+      g_autofree char *expected_msg = NULL;
+      g_autofree char *enum_string = g_enum_to_string (FP_TYPE_DEVICE_ERROR, i);
+
+      e = fpi_device_error_new (i);
+      g_assert_error (e, FP_DEVICE_ERROR, i);
+
+      expected_msg = g_strdup_printf ("Error message %s", enum_string);
+      msg_e = fpi_device_error_new_msg (i, "Error message %s", enum_string);
+      g_assert_error (msg_e, FP_DEVICE_ERROR, i);
+      g_assert_cmpstr (msg_e->message, ==, expected_msg);
     }
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "*Unsupported error*");
@@ -1711,9 +1720,18 @@ test_driver_retry_error_types (void)
 
   for (i = 0; g_enum_get_value (errors_enum, i); ++i)
     {
-      error = fpi_device_retry_new (i);
-      g_assert_error (error, FP_DEVICE_RETRY, i);
-      g_clear_error (&error);
+      g_autoptr(GError) e = NULL;
+      g_autoptr(GError) msg_e = NULL;
+      g_autofree char *expected_msg = NULL;
+      g_autofree char *enum_string = g_enum_to_string (FP_TYPE_DEVICE_RETRY, i);
+
+      e = fpi_device_retry_new (i);
+      g_assert_error (e, FP_DEVICE_RETRY, i);
+
+      expected_msg = g_strdup_printf ("Retry error message %s", enum_string);
+      msg_e = fpi_device_retry_new_msg (i, "Retry error message %s", enum_string);
+      g_assert_error (msg_e, FP_DEVICE_RETRY, i);
+      g_assert_cmpstr (msg_e->message, ==, expected_msg);
     }
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "*Unsupported error*");
