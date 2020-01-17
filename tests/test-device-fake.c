@@ -35,9 +35,15 @@ fpi_device_fake_probe (FpDevice *device)
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
+  fake_dev->last_called_function = fpi_device_fake_probe;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_PROBE);
 
-  fake_dev->last_called_function = fpi_device_fake_probe;
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
   fpi_device_probe_complete (device, dev_class->id, dev_class->full_name,
                              fake_dev->ret_error);
 }
@@ -47,9 +53,15 @@ fpi_device_fake_open (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
+  fake_dev->last_called_function = fpi_device_fake_open;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_OPEN);
 
-  fake_dev->last_called_function = fpi_device_fake_open;
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
   fpi_device_open_complete (device, fake_dev->ret_error);
 }
 
@@ -58,9 +70,15 @@ fpi_device_fake_close (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
+  fake_dev->last_called_function = fpi_device_fake_close;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_CLOSE);
 
-  fake_dev->last_called_function = fpi_device_fake_close;
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
   fpi_device_close_complete (device, fake_dev->ret_error);
 }
 
@@ -70,13 +88,20 @@ fpi_device_fake_enroll (FpDevice *device)
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
   FpPrint *print = fake_dev->ret_print;
 
+  fake_dev->last_called_function = fpi_device_fake_enroll;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_ENROLL);
+
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
   fpi_device_get_enroll_data (device, (FpPrint **) &fake_dev->action_data);
 
   if (!print && !fake_dev->ret_error)
     fpi_device_get_enroll_data (device, &print);
 
-  fake_dev->last_called_function = fpi_device_fake_enroll;
   fpi_device_enroll_complete (device,
                               print ? g_object_ref (print) : NULL,
                               fake_dev->ret_error);
@@ -88,13 +113,19 @@ fpi_device_fake_verify (FpDevice *device)
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
   FpPrint *print = fake_dev->ret_print;
 
+  fake_dev->last_called_function = fpi_device_fake_verify;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_VERIFY);
+
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
   fpi_device_get_verify_data (device, (FpPrint **) &fake_dev->action_data);
 
   if (!print && !fake_dev->ret_error)
     fpi_device_get_verify_data (device, &print);
-
-  fake_dev->last_called_function = fpi_device_fake_verify;
 
   if (!fake_dev->ret_error || fake_dev->ret_error->domain == FP_DEVICE_RETRY)
     {
@@ -113,7 +144,15 @@ fpi_device_fake_identify (FpDevice *device)
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
   FpPrint *match = fake_dev->ret_match;
 
+  fake_dev->last_called_function = fpi_device_fake_identify;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_IDENTIFY);
+
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
   fpi_device_get_identify_data (device, (GPtrArray **) &fake_dev->action_data);
 
   if (!match && !fake_dev->ret_error)
@@ -135,7 +174,6 @@ fpi_device_fake_identify (FpDevice *device)
         }
     }
 
-  fake_dev->last_called_function = fpi_device_fake_identify;
   if (!fake_dev->ret_error || fake_dev->ret_error->domain == FP_DEVICE_RETRY)
     {
       fpi_device_identify_report (device, match, fake_dev->ret_print, fake_dev->ret_error);
@@ -152,10 +190,16 @@ fpi_device_fake_capture (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_CAPTURE);
-  fpi_device_get_capture_data (device, (gboolean *) &fake_dev->action_data);
-
   fake_dev->last_called_function = fpi_device_fake_capture;
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_CAPTURE);
+
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
+  fpi_device_get_capture_data (device, (gboolean *) &fake_dev->action_data);
   fpi_device_capture_complete (device, fake_dev->ret_image, fake_dev->ret_error);
 }
 
@@ -164,9 +208,15 @@ fpi_device_fake_list (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
+  fake_dev->last_called_function = fpi_device_fake_list;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_LIST);
 
-  fake_dev->last_called_function = fpi_device_fake_list;
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
   fpi_device_list_complete (device, fake_dev->ret_list, fake_dev->ret_error);
 }
 
@@ -175,10 +225,16 @@ fpi_device_fake_delete (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_DELETE);
-  fpi_device_get_delete_data (device, (gpointer) & fake_dev->action_data);
-
   fake_dev->last_called_function = fpi_device_fake_delete;
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_DELETE);
+
+  if (fake_dev->return_action_error)
+    {
+      fpi_device_action_error (device, fake_dev->ret_error);
+      return;
+    }
+
+  fpi_device_get_delete_data (device, (gpointer) (&fake_dev->action_data));
   fpi_device_delete_complete (device, fake_dev->ret_error);
 }
 
@@ -187,9 +243,8 @@ fpi_device_fake_cancel (FpDevice *device)
 {
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_cmpuint (fpi_device_get_current_action (device), !=, FPI_DEVICE_ACTION_NONE);
-
   fake_dev->last_called_function = fpi_device_fake_cancel;
+  g_assert_cmpuint (fpi_device_get_current_action (device), !=, FPI_DEVICE_ACTION_NONE);
 }
 
 static void

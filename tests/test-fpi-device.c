@@ -42,6 +42,14 @@ auto_close_fake_device_new (void)
 static void
 auto_close_fake_device_free (FpAutoCloseDevice *device)
 {
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
+  if (fake_dev->return_action_error)
+    {
+      fake_dev->return_action_error = FALSE;
+      fake_dev->ret_error = NULL;
+    }
+
   if (fp_device_is_open (device))
     g_assert_true (fp_device_close_sync (device, NULL, NULL));
 
@@ -87,16 +95,6 @@ on_device_notify (FpDevice *device, GParamSpec *spec, gpointer user_data)
 
   fake_dev->last_called_function = on_device_notify;
   fake_dev->user_data = g_param_spec_ref (spec);
-}
-
-static void
-test_driver_action_error_vfunc (FpDevice *device)
-{
-  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-
-  fake_dev->last_called_function = test_driver_action_error_vfunc;
-
-  fpi_device_action_error (device, fake_dev->user_data);
 }
 
 /* Tests */
@@ -1421,7 +1419,7 @@ test_driver_cancel_fail (void)
   g_cancellable_cancel (cancellable);
 
   while (g_main_context_iteration (NULL, FALSE))
-    ;
+    continue;
 
   g_assert (fake_dev->last_called_function == dev_class->delete);
   g_assert_no_error (error);
@@ -1643,45 +1641,176 @@ test_driver_action_error_error (void)
 }
 
 static void
-test_driver_action_error_open (void)
+test_driver_action_error_all (void)
 {
-  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
-  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpAutoCloseDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
+  g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   g_autoptr(GError) error = NULL;
-  FpiDeviceFake *fake_dev;
+  FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  dev_class->open = test_driver_action_error_vfunc;
-  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   fake_dev = FPI_DEVICE_FAKE (device);
-  fake_dev->user_data = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  fake_dev->return_action_error = TRUE;
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
 
   g_assert_false (fp_device_open_sync (device, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->open);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
 
-  g_assert (fake_dev->last_called_function == test_driver_action_error_vfunc);
+  fake_dev->return_action_error = FALSE;
+  fake_dev->ret_error = NULL;
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  fake_dev->return_action_error = TRUE;
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_false (fp_device_close_sync (device, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->close);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_null (fp_device_enroll_sync (device, fp_print_new (device), NULL,
+                                        NULL, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->enroll);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_false (fp_device_verify_sync (device, enrolled_print, NULL,
+                                         NULL, NULL, NULL, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->verify);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_false (fp_device_identify_sync (device, prints, NULL,
+                                           NULL, NULL, NULL, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->identify);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_null (fp_device_capture_sync (device, TRUE, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->capture);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_null (fp_device_list_prints_sync (device, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->list);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_false (fp_device_delete_print_sync (device, enrolled_print, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->delete);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
 }
 
 static void
-test_driver_action_error_fallback_open (void)
+test_driver_action_error_fallback_all (void)
 {
-  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
-  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpAutoCloseDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  g_autoptr(FpPrint) enrolled_print = g_object_ref_sink (fp_print_new (device));
+  g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   g_autoptr(GError) error = NULL;
-  FpiDeviceFake *fake_dev;
+  FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  dev_class->open = test_driver_action_error_vfunc;
-  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   fake_dev = FPI_DEVICE_FAKE (device);
+  fake_dev->return_action_error = TRUE;
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
                          "*Device failed to pass an error to generic action "
                          "error function*");
 
   g_assert_false (fp_device_open_sync (device, NULL, &error));
-  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
-
-  g_assert (fake_dev->last_called_function == test_driver_action_error_vfunc);
   g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->open);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  fake_dev->return_action_error = FALSE;
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  fake_dev->return_action_error = TRUE;
+  g_assert_false (fp_device_close_sync (device, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->close);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  g_assert_null (fp_device_enroll_sync (device, fp_print_new (device), NULL,
+                                        NULL, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->enroll);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  g_assert_false (fp_device_verify_sync (device, enrolled_print, NULL,
+                                         NULL, NULL, NULL, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->verify);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  g_assert_false (fp_device_identify_sync (device, prints, NULL,
+                                           NULL, NULL, NULL, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->identify);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  g_assert_null (fp_device_capture_sync (device, TRUE, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->capture);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  g_assert_null (fp_device_list_prints_sync (device, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->list);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  g_assert_false (fp_device_delete_print_sync (device, enrolled_print, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->delete);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
 }
 
 static void
@@ -1867,8 +1996,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/action_is_cancelled/error", test_driver_action_is_cancelled_error);
   g_test_add_func ("/driver/complete_action/all/error", test_driver_complete_actions_errors);
   g_test_add_func ("/driver/action_error/error", test_driver_action_error_error);
-  g_test_add_func ("/driver/action_error/open", test_driver_action_error_open);
-  g_test_add_func ("/driver/action_error/fail/open", test_driver_action_error_fallback_open);
+  g_test_add_func ("/driver/action_error/all", test_driver_action_error_all);
+  g_test_add_func ("/driver/action_error/fail", test_driver_action_error_fallback_all);
 
   g_test_add_func ("/driver/timeout", test_driver_add_timeout);
   g_test_add_func ("/driver/timeout/cancelled", test_driver_add_timeout_cancelled);

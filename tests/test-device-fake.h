@@ -30,6 +30,7 @@ struct _FpiDeviceFake
   FpDevice       parent;
 
   gpointer       last_called_function;
+  gboolean       return_action_error;
 
   GError        *ret_error;
   FpPrint       *ret_print;
