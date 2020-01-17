@@ -489,6 +489,59 @@ test_driver_enroll_error (void)
   g_assert_null (out_print);
 }
 
+static void
+test_driver_enroll_complete_simple (FpDevice *device)
+{
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
+  fake_dev->last_called_function = test_driver_enroll_complete_simple;
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_ENROLL);
+
+  fpi_device_enroll_complete (device, fake_dev->ret_print, fake_dev->ret_error);
+}
+
+static void
+test_driver_enroll_error_no_print (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpPrint) out_print = NULL;
+  FpiDeviceFake *fake_dev;
+
+  dev_class->enroll = test_driver_enroll_complete_simple;
+  device = auto_close_fake_device_new ();
+  fake_dev = FPI_DEVICE_FAKE (device);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Driver did not provide a valid print and failed to provide an error*");
+  out_print =
+    fp_device_enroll_sync (device, fp_print_new (device), NULL, NULL, NULL, &error);
+
+  g_test_assert_expected_messages ();
+  g_assert (fake_dev->last_called_function == dev_class->enroll);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_assert_null (out_print);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Driver passed an error but also provided a print, returning error*");
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
+  fake_dev->ret_print = fp_print_new (device);
+  g_object_add_weak_pointer (G_OBJECT (fake_dev->ret_print),
+                             (gpointer) (&fake_dev->ret_print));
+  out_print =
+    fp_device_enroll_sync (device, fp_print_new (device), NULL, NULL, NULL, &error);
+
+  g_test_assert_expected_messages ();
+  g_assert (fake_dev->last_called_function == dev_class->enroll);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_assert_true (error == g_steal_pointer (&fake_dev->ret_error));
+  g_assert_null (out_print);
+  g_assert_null (fake_dev->ret_print);
+}
+
 typedef struct
 {
   gint     completed_stages;
@@ -2136,6 +2189,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/close/error", test_driver_close_error);
   g_test_add_func ("/driver/enroll", test_driver_enroll);
   g_test_add_func ("/driver/enroll/error", test_driver_enroll_error);
+  g_test_add_func ("/driver/enroll/error/no_print", test_driver_enroll_error_no_print);
   g_test_add_func ("/driver/enroll/progress", test_driver_enroll_progress);
   g_test_add_func ("/driver/verify", test_driver_verify);
   g_test_add_func ("/driver/verify/fail", test_driver_verify_fail);
