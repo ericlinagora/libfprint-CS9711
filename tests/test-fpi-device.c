@@ -323,6 +323,69 @@ test_driver_probe (void)
 }
 
 static void
+fake_device_probe_error (FpDevice *device)
+{
+  FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
+
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_PROBE);
+
+  fpi_device_probe_complete (device, dev_class->id, dev_class->full_name,
+                             fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED));
+}
+
+static void
+fake_device_probe_action_error (FpDevice *device)
+{
+  g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_PROBE);
+
+  fpi_device_action_error (device, fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED));
+}
+
+static void
+on_driver_probe_error_async (GObject *initable, GAsyncResult *res, gpointer user_data)
+{
+  g_autoptr(GError) error = NULL;
+  gboolean *out_done = user_data;
+  FpDevice *device;
+
+  device = FP_DEVICE (g_async_initable_new_finish (G_ASYNC_INITABLE (initable), res, &error));
+  g_assert_null (device);
+
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_NOT_SUPPORTED);
+  *out_done = TRUE;
+}
+
+static void
+test_driver_probe_error (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  gboolean done = FALSE;
+
+  dev_class->id = "Error device ID";
+  dev_class->probe = fake_device_probe_error;
+  g_async_initable_new_async (FPI_TYPE_DEVICE_FAKE, G_PRIORITY_DEFAULT, NULL,
+                              on_driver_probe_error_async, &done, NULL);
+
+  while (!done)
+    g_main_context_iteration (NULL, TRUE);
+}
+
+static void
+test_driver_probe_action_error (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  gboolean done = FALSE;
+
+  dev_class->id = "Error device ID";
+  dev_class->probe = fake_device_probe_action_error;
+  g_async_initable_new_async (FPI_TYPE_DEVICE_FAKE, G_PRIORITY_DEFAULT, NULL,
+                              on_driver_probe_error_async, &done, NULL);
+
+  while (!done)
+    g_main_context_iteration (NULL, TRUE);
+}
+
+static void
 test_driver_open (void)
 {
   g_autoptr(GError) error = NULL;
@@ -1766,6 +1829,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/get_driver_data", test_driver_get_driver_data);
 
   g_test_add_func ("/driver/probe", test_driver_probe);
+  g_test_add_func ("/driver/probe/error", test_driver_probe_error);
+  g_test_add_func ("/driver/probe/action_error", test_driver_probe_action_error);
   g_test_add_func ("/driver/open", test_driver_open);
   g_test_add_func ("/driver/open/error", test_driver_open_error);
   g_test_add_func ("/driver/close", test_driver_close);
