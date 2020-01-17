@@ -86,23 +86,13 @@ on_verify_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
   if (!fp_device_verify_finish (dev, res, &match, &print, &error))
     {
       g_warning ("Failed to verify print: %s", error->message);
-      verify_quit (dev, verify_data);
-      return;
-    }
-
-  if (print && fp_device_supports_capture (dev) &&
-      print_image_save (print, "verify.pgm"))
-    g_print ("Print image saved as verify.pgm\n");
-
-  if (match)
-    {
-      g_print ("MATCH!\n");
-      verify_data->ret_value = EXIT_SUCCESS;
-    }
-  else
-    {
-      g_print ("NO MATCH!\n");
       verify_data->ret_value = EXIT_FAILURE;
+
+      if (error->domain != FP_DEVICE_RETRY)
+        {
+          verify_quit (dev, verify_data);
+          return;
+        }
     }
 
   g_print ("Verify again? [Y/n]? ");
@@ -120,6 +110,8 @@ static void
 on_match_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
              gpointer user_data, GError *error)
 {
+  VerifyData *verify_data = user_data;
+
   if (error)
     {
       g_warning ("Match report: Finger not matched, retry error reported: %s",
@@ -127,9 +119,15 @@ on_match_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
       return;
     }
 
+  if (print && fp_device_supports_capture (dev) &&
+      print_image_save (print, "verify.pgm"))
+    g_print ("Print image saved as verify.pgm\n");
+
   if (match)
     {
       char date_str[128];
+
+      verify_data->ret_value = EXIT_SUCCESS;
 
       g_date_strftime (date_str, G_N_ELEMENTS (date_str), "%Y-%m-%d\0",
                        fp_print_get_enroll_date (match));
@@ -139,10 +137,13 @@ on_match_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
                finger_to_string (fp_print_get_finger (match)),
                fp_print_get_description (match), date_str,
                fp_print_get_username (match));
+
+      g_print ("MATCH!\n");
     }
   else
     {
       g_debug ("Match report: Finger not matched");
+      g_print ("NO MATCH!\n");
     }
 }
 
