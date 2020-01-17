@@ -386,6 +386,7 @@ test_driver_close_error (void)
   g_assert (fake_dev->last_called_function == dev_class->close);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_assert (error == g_steal_pointer (&fake_dev->ret_error));
+  g_assert_true (fp_device_is_open (device));
 }
 
 static void

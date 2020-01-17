@@ -851,8 +851,6 @@ fpi_device_close_complete (FpDevice *device, GError *error)
   g_debug ("Device reported close completion");
 
   clear_device_cancel_action (device);
-  priv->is_open = FALSE;
-  g_object_notify (G_OBJECT (device), "open");
 
   switch (priv->type)
     {
@@ -877,10 +875,16 @@ fpi_device_close_complete (FpDevice *device, GError *error)
     }
 
   if (!error)
-    fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
-                                    GUINT_TO_POINTER (TRUE));
+    {
+      priv->is_open = FALSE;
+      g_object_notify (G_OBJECT (device), "open");
+      fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                      GUINT_TO_POINTER (TRUE));
+    }
   else
-    fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
+    {
+      fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
+    }
 }
 
 /**
