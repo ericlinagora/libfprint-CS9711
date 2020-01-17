@@ -980,7 +980,10 @@ fpi_device_verify_complete (FpDevice *device,
       /* Replace a retry error with a general error, this is a driver bug. */
       if (error->domain == FP_DEVICE_RETRY)
         {
-          g_warning ("Driver reported a retry error to fpi_device_verify_complete; reporting operation failure instead!");
+          g_warning ("Driver reported a retry error to fpi_device_verify_complete. "
+                     "This is not permissible and needs to be reported using "
+                     "fpi_device_verify_report, reporting general verification "
+                     "failure instead.");
           g_clear_error (&error);
           error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
         }
@@ -1035,7 +1038,10 @@ fpi_device_identify_complete (FpDevice *device,
       /* Replace a retry error with a general error, this is a driver bug. */
       if (error->domain == FP_DEVICE_RETRY)
         {
-          g_warning ("Driver reported a retry error to fpi_device_identify_complete; reporting operation failure instead!");
+          g_warning ("Driver reported a retry error to fpi_device_identify_complete. "
+                     "This is not permissible and needs to be reported using "
+                     "fpi_device_identify_report, reporting general identification "
+                     "failure instead.");
           g_clear_error (&error);
           error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
         }
