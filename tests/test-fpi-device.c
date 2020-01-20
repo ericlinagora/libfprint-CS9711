@@ -237,7 +237,7 @@ test_driver_get_usb_device (void)
   g_autoptr(FpDevice) device = NULL;
 
   dev_class->type = FP_DEVICE_TYPE_USB;
-  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fpi-usb-device", NULL);
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, "fpi-usb-device", NULL, NULL);
   g_assert_null (fpi_device_get_usb_device (device));
 
   g_clear_object (&device);
