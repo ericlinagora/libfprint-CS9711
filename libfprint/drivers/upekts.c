@@ -902,8 +902,10 @@ enroll_start_sm_cb_msg28 (FpDevice *dev,
   FpiSsm *ssm = user_data;
 
   if (error)
-    fpi_ssm_mark_failed (ssm, error);
-  if (type != READ_MSG_RESPONSE)
+    {
+      fpi_ssm_mark_failed (ssm, error);
+    }
+  else if (type != READ_MSG_RESPONSE)
     {
       fp_err ("expected response, got %d seq=%x", type, seq);
       fpi_ssm_mark_failed (ssm, fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
