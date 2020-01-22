@@ -53,7 +53,7 @@ common_cflags = cc.get_supported_arguments([
     '-DGLIB_VERSION_MIN_REQUIRED=' + glib_version_def,
     '-DGLIB_VERSION_MAX_ALLOWED=' + glib_version_def,
     '-D_GNU_SOURCE',
-    '-DG_LOG_DOMAIN="libfprint"',
+    '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
 ])
 c_cflags = cc.get_supported_arguments([
     '-std=gnu99',
