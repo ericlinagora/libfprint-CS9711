@@ -29,10 +29,7 @@ gnome.gtkdoc(meson.project_name(),
     dependencies: libfprint_dep,
     content_files: content_files,
     expand_content_files: expand_content_files,
-    scan_args: [
-        #'--rebuild-sections',
-        '--ignore-headers=' + ' '.join(private_headers),
-    ],
+    ignore_headers: private_headers,
     fixxref_args: [
         '--html-dir=@0@'.format(docpath),
         '--extra-dir=@0@'.format(join_paths(glib_docpath, 'glib')),
