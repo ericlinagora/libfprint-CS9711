@@ -177,7 +177,7 @@ other_sources = []
 fp_enums = gnome.mkenums_simple('fp-enums',
     sources: libfprint_public_headers,
     install_header: true,
-    install_dir: get_option('includedir') / meson.project_name(),
+    install_dir: get_option('includedir') / versioned_libname,
 )
 fp_enums_h = fp_enums[1]
 
@@ -244,7 +244,7 @@ libfprint_drivers = static_library('fprint-drivers',
 mapfile = files('libfprint.ver')
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.source_root(), mapfile[0])
 
-libfprint = library('fprint',
+libfprint = library(versioned_libname.split('lib')[1],
     sources: [
         fp_enums,
         libfprint_sources,
@@ -268,7 +268,7 @@ libfprint_dep = declare_dependency(link_with: libfprint,
     ])
 
 install_headers(['fprint.h'] + libfprint_public_headers,
-    subdir: meson.project_name()
+    subdir: versioned_libname
 )
 
 libfprint_private_dep = declare_dependency(

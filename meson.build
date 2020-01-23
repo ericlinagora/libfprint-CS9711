@@ -75,6 +75,7 @@ soversion = 2
 current = 0
 revision = 0
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
+versioned_libname = meson.project_name() + '-' + soversion.to_string()
 
 # Dependencies
 glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
@@ -206,10 +207,10 @@ subdir('tests')
 
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
-    name: meson.project_name(),
+    name: versioned_libname,
     description: 'Generic C API for fingerprint reader access',
     version: meson.project_version(),
     libraries: libfprint,
-    subdirs: meson.project_name(),
-    filebase: meson.project_name() + '@0@'.format(soversion),
+    subdirs: versioned_libname,
+    filebase: versioned_libname,
 )
