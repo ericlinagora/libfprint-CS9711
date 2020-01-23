@@ -288,7 +288,7 @@ udev_rules = executable('fprint-list-udev-rules',
 
 if get_option('udev_rules')
     custom_target('udev-rules',
-        output: '60-fprint-autosuspend.rules',
+        output: '60-@0@-autosuspend.rules'.format(versioned_libname),
         capture: true,
         command: [ udev_rules ],
         install: true,
