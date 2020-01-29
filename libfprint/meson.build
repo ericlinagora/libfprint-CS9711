@@ -209,6 +209,10 @@ deps = [
     nss_dep,
 ]
 
+# These are empty and only exist so that the include directories are created
+# in the build tree. This silences a build time warning.
+subdir('nbis/include')
+subdir('nbis/libfprint-include')
 deps += declare_dependency(include_directories: [
     root_inc,
     include_directories('nbis/include'),
