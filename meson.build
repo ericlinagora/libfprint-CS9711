@@ -4,7 +4,7 @@ project('libfprint', [ 'c', 'cpp' ],
     default_options: [
         'buildtype=debugoptimized',
         'warning_level=1',
-        'c_std=c99',
+        'c_std=gnu99',
     ],
     meson_version: '>= 0.49.0')
 
@@ -56,7 +56,6 @@ common_cflags = cc.get_supported_arguments([
     '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
 ])
 c_cflags = cc.get_supported_arguments([
-    '-std=gnu99',
     '-Wimplicit-function-declaration',
     '-Wmissing-prototypes',
     '-Wnested-externs',
