@@ -80,7 +80,7 @@ versioned_libname = meson.project_name() + '-' + soversion.to_string()
 # Dependencies
 glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
 gio_dep = dependency('gio-unix-2.0', version: '>=' + glib_min_version)
-gusb_dep = dependency('gusb', version: '>= 0.3.0')
+gusb_dep = dependency('gusb', version: '>= 0.2.0')
 mathlib_dep = cc.find_library('m', required: false)
 
 # The following dependencies are only used for tests
