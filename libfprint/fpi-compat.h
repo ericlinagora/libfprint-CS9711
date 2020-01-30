@@ -35,4 +35,5 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (GParamSpec, g_param_spec_unref);
 #if !GLIB_CHECK_VERSION (2, 63, 3)
 typedef struct _FpDeviceClass FpDeviceClass;
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpDeviceClass, g_type_class_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (GDate, g_date_free);
 #endif

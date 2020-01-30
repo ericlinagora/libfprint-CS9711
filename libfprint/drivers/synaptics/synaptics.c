@@ -520,8 +520,8 @@ list_msg_cb (FpiDeviceSynaptics *self,
               userid[12] == '-' && userid[14] == '-' && userid[23] == '-')
             {
               g_autofree gchar *copy = g_strdup (userid);
+              g_autoptr(GDate) date = NULL;
               gint32 date_ymd;
-              GDate *date = NULL;
               gint32 finger;
               gchar *username;
               /* Try to parse information from the string. */
@@ -536,7 +536,6 @@ list_msg_cb (FpiDeviceSynaptics *self,
                 date = g_date_new ();
 
               fp_print_set_enroll_date (print, date);
-              g_date_free (date);
 
               copy[14] = '\0';
               finger = g_ascii_strtoll (copy + 13, NULL, 16);

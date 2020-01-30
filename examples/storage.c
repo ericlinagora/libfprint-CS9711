@@ -22,6 +22,7 @@
 #define FP_COMPONENT "example-storage"
 
 #include <libfprint/fprint.h>
+#include <libfprint/fpi-compat.h>
 #include "storage.h"
 
 #include <errno.h>
@@ -163,8 +164,8 @@ FpPrint *
 print_create_template (FpDevice *dev, FpFinger finger)
 {
   g_autoptr(GDateTime) datetime = NULL;
+  g_autoptr(GDate) date = NULL;
   FpPrint *template = NULL;
-  GDate *date = NULL;
   gint year, month, day;
 
   template = fp_print_new (dev);
@@ -174,7 +175,6 @@ print_create_template (FpDevice *dev, FpFinger finger)
   g_date_time_get_ymd (datetime, &year, &month, &day);
   date = g_date_new_dmy (day, month, year);
   fp_print_set_enroll_date (template, date);
-  g_date_free (date);
 
   return template;
 }
