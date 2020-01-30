@@ -64,13 +64,13 @@ static FpAutoResetClass default_fake_dev_class = {0};
 static FpAutoResetClass *
 auto_reset_device_class (void)
 {
-  g_autoptr(GTypeClass) type_class = NULL;
+  g_autoptr(FpDeviceClass) type_class = NULL;
   FpDeviceClass *dev_class = g_type_class_peek_static (FPI_TYPE_DEVICE_FAKE);
 
   if (!dev_class)
     {
       type_class = g_type_class_ref (FPI_TYPE_DEVICE_FAKE);
-      dev_class = (FpDeviceClass *) type_class;
+      dev_class = type_class;
       g_assert_nonnull (dev_class);
     }
 

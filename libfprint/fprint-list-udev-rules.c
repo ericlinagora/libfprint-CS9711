@@ -104,8 +104,7 @@ main (int argc, char **argv)
   for (i = 0; i < drivers->len; i++)
     {
       GType driver = g_array_index (drivers, GType, i);
-      g_autoptr(GTypeClass) type_class = g_type_class_ref (driver);
-      FpDeviceClass *cls = FP_DEVICE_CLASS (type_class);
+      g_autoptr(FpDeviceClass) cls = g_type_class_ref (driver);
 
       if (cls->type != FP_DEVICE_TYPE_USB)
         continue;

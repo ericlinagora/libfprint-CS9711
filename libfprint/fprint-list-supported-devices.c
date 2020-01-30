@@ -38,8 +38,7 @@ insert_drivers (GList *list)
   for (i = 0; i < drivers->len; i++)
     {
       GType driver = g_array_index (drivers, GType, i);
-      g_autoptr(GTypeClass) type_class = g_type_class_ref (driver);
-      FpDeviceClass *cls = FP_DEVICE_CLASS (type_class);
+      g_autoptr(FpDeviceClass) cls = g_type_class_ref (driver);
       const FpIdEntry *entry;
 
       if (cls->type != FP_DEVICE_TYPE_USB)
