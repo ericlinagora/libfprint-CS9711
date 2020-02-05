@@ -107,9 +107,6 @@ test_indent:
 .flatpak_master_template: &flatpak_master
     image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.32
     stage: flatpack
-    except:
-      variables:
-        - $CI_PIPELINE_SOURCE == "schedule"
     variables:
         MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
         # From demo/org.freedesktop.libfprint.Demo.json
@@ -129,8 +126,11 @@ flatpak-manual master:
     <<: *flatpak_master
     when: manual
     except:
-      - tags
-      - master
+      refs:
+        - tags
+        - master
+      variables:
+        - $CI_PIPELINE_SOURCE == "schedule"
 
 # CONTAINERS creation stage
 container_fedora_build:
