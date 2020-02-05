@@ -6,6 +6,7 @@ variables:
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
 include:
+  - local: '.gitlab-ci/libfprint-templates.yaml'
   - project: 'wayland/ci-templates'
     ref: master
     file: '/templates/fedora.yml'
@@ -140,28 +141,4 @@ container_fedora_build:
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
     # a list of packages to install
-    FEDORA_RPMS:
-      doxygen
-      flatpak-builder
-      gcc
-      gcc-c++
-      gcovr
-      git
-      glib2-devel
-      glibc-devel
-      gobject-introspection-devel
-      gtk-doc
-      gtk3-devel
-      libabigail
-      libgusb-devel
-      libX11-devel
-      libXv-devel
-      meson
-      nss-devel
-      pixman-devel
-      python3-cairo
-      python3-gobject
-      systemd
-      umockdev
-      uncrustify
-      valgrind
+    FEDORA_RPMS: $LIBFPRINT_DEPENDENCIES
