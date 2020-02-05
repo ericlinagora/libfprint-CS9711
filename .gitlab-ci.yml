@@ -1,15 +1,16 @@
-variables:
-  FEDORA_TAG: rawhide
-  FEDORA_VERSION: rawhide
-  FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FEDORA_VERSION:$FEDORA_TAG"
-  BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
-  LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
-
 include:
   - local: '.gitlab-ci/libfprint-templates.yaml'
   - project: 'wayland/ci-templates'
     ref: master
     file: '/templates/fedora.yml'
+
+variables:
+  extends: .libfprint_common_variables
+  FEDORA_TAG: rawhide
+  FEDORA_VERSION: rawhide
+  FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FEDORA_VERSION:$FEDORA_TAG"
+  BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
+  LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
 stages:
   - check-source
