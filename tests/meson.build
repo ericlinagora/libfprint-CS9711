@@ -26,12 +26,35 @@ if get_option('introspection')
     envs.prepend('GI_TYPELIB_PATH', join_paths(meson.build_root(), 'libfprint'))
 
     if 'virtual_image' in drivers
-        test('virtual-image',
-            find_program('virtual-image.py'),
-            args: '--verbose',
-            env: envs,
-            depends: libfprint_typelib,
-        )
+        python3 = find_program('python3')
+        unittest_inspector = find_program('unittest_inspector.py')
+        base_args = files('virtual-image.py')
+        suite = []
+
+        r = run_command(unittest_inspector, files('virtual-image.py'))
+        unit_tests = r.stdout().strip().split('\n')
+
+        if r.returncode() == 0 and unit_tests.length() > 0
+            suite += 'virtual-image'
+        else
+            unit_tests = ['virtual-image']
+        endif
+
+        foreach ut: unit_tests
+            ut_suite = suite
+            ut_args = base_args
+            if unit_tests.length() > 1
+                ut_args += ut
+                ut_suite += ut.split('.')[0]
+            endif
+            test(ut,
+                python3,
+                args: ut_args,
+                suite: ut_suite,
+                depends: libfprint_typelib,
+                env: envs,
+            )
+        endforeach
     else
         test('virtual-image',
             find_program('sh'),
