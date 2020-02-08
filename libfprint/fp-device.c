@@ -1213,6 +1213,14 @@ fp_device_list_prints (FpDevice           *device,
       return;
     }
 
+  if (!fp_device_has_storage (device))
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
+                                                     "Device has no storage"));
+      return;
+    }
+
   priv->current_action = FPI_DEVICE_ACTION_LIST;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);

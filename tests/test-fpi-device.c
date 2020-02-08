@@ -1528,6 +1528,24 @@ test_driver_list_error (void)
 }
 
 static void
+test_driver_list_no_storage (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(GPtrArray) prints = NULL;
+  g_autoptr(GError) error = NULL;
+
+  dev_class->list = NULL;
+
+  device = auto_close_fake_device_new ();
+  g_assert_false (fp_device_has_storage (device));
+
+  prints = fp_device_list_prints_sync (device, NULL, &error);
+  g_assert_null (prints);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_NOT_SUPPORTED);
+}
+
+static void
 test_driver_delete (void)
 {
   g_autoptr(GError) error = NULL;
@@ -2210,6 +2228,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/capture/error", test_driver_capture_error);
   g_test_add_func ("/driver/list", test_driver_list);
   g_test_add_func ("/driver/list/error", test_driver_list_error);
+  g_test_add_func ("/driver/list/no_storage", test_driver_list_no_storage);
   g_test_add_func ("/driver/delete", test_driver_delete);
   g_test_add_func ("/driver/delete/error", test_driver_delete_error);
   g_test_add_func ("/driver/cancel", test_driver_cancel);
