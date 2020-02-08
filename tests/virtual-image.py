@@ -101,14 +101,12 @@ class VirtualImage(unittest.TestCase):
         del self.con
         self.dev.close_sync()
 
-    def send_retry(self, retry_error=1, iterate=True):
-        # The default (1) is too-short
+    def send_retry(self, retry_error=FPrint.DeviceRetry.TOO_SHORT, iterate=True):
         self.con.sendall(struct.pack('ii', -1, retry_error))
         while iterate and ctx.pending():
             ctx.iteration(False)
 
-    def send_error(self, device_error=0, iterate=True):
-        # The default (0) is a generic error
+    def send_error(self, device_error=FPrint.DeviceError.GENERAL, iterate=True):
         self.con.sendall(struct.pack('ii', -2, device_error))
         while iterate and ctx.pending():
             ctx.iteration(False)
