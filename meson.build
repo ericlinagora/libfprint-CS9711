@@ -79,6 +79,7 @@ versioned_libname = meson.project_name() + '-' + soversion.to_string()
 # Dependencies
 glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
 gio_dep = dependency('gio-unix-2.0', version: '>=' + glib_min_version)
+gobject_dep = dependency('gobject-2.0', version: '>=' + glib_min_version)
 gusb_dep = dependency('gusb', version: '>= 0.2.0')
 mathlib_dep = cc.find_library('m', required: false)
 
@@ -210,6 +211,7 @@ pkgconfig.generate(
     description: 'Generic C API for fingerprint reader access',
     version: meson.project_version(),
     libraries: libfprint,
+    requires: [gio_dep, gobject_dep],
     subdirs: versioned_libname,
     filebase: versioned_libname,
 )
