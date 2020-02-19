@@ -236,7 +236,7 @@ fpi_device_fake_delete (FpDevice *device)
       return;
     }
 
-  fpi_device_get_delete_data (device, (gpointer) (&fake_dev->action_data));
+  fpi_device_get_delete_data (device, (FpPrint **) (&fake_dev->action_data));
   fpi_device_delete_complete (device, fake_dev->ret_error);
 }
 
