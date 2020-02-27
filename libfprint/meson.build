@@ -31,6 +31,7 @@ libfprint_private_headers = [
     'fpi-byte-reader.h',
     'fpi-byte-utils.h',
     'fpi-byte-writer.h',
+    'fpi-compat.h',
     'fpi-context.h',
     'fpi-device.h',
     'fpi-image-device.h',
