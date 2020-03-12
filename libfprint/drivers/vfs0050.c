@@ -119,7 +119,7 @@ async_abort_callback (FpiUsbTransfer *transfer, FpDevice *device,
   /* In normal case endpoint is empty */
   if (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT))
     {
-      g_free (error);
+      g_error_free (error);
       fpi_ssm_next_state (transfer->ssm);
       return;
     }
