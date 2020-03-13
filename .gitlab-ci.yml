@@ -135,7 +135,7 @@ flatpak-manual master:
 
 # CONTAINERS creation stage
 container_fedora_build:
-  extends: .fedora@container-build
+  extends: .fdo.distribution_image@fedora
   only:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
