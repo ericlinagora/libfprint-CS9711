@@ -16,7 +16,7 @@ stages:
   - check-source
   - build
   - test
-  - flatpack
+  - flatpak
 
 image: "$FEDORA_IMAGE"
 
@@ -107,7 +107,7 @@ test_indent:
 
 .flatpak_master_template: &flatpak_master
     image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.32
-    stage: flatpack
+    stage: flatpak
     variables:
         MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
         # From demo/org.freedesktop.libfprint.Demo.json
