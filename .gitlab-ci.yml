@@ -134,7 +134,7 @@ flatpak-manual master:
         - $CI_PIPELINE_SOURCE == "schedule"
 
 # CONTAINERS creation stage
-.fedora.rawhide@default-build:
+container_fedora_build:
   extends: .fdo.distribution_image@fedora
   only:
     variables:
