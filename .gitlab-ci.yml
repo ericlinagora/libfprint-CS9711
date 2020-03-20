@@ -6,9 +6,9 @@ include:
 
 variables:
   extends: .libfprint_common_variables
-  FEDORA_TAG: rawhide
-  FEDORA_VERSION: rawhide
-  FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FEDORA_VERSION:$FEDORA_TAG"
+  FDO_DISTRIBUTION_TAG: latest
+  FDO_DISTRIBUTION_VERSION: rawhide
+  FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG"
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
@@ -135,11 +135,11 @@ flatpak-manual master:
 
 # CONTAINERS creation stage
 container_fedora_build:
-  extends: .fedora@container-build
+  extends: .fdo.container-build@fedora
   only:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
     # a list of packages to install
-    FEDORA_RPMS: $LIBFPRINT_DEPENDENCIES
+    FDO_DISTRIBUTION_PACKAGES: $LIBFPRINT_DEPENDENCIES
