@@ -259,7 +259,7 @@ libfprint = library(versioned_libname.split('lib')[1],
     version: libversion,
     link_args : vflag,
     link_depends : mapfile,
-    link_with: [libfprint_private, libfprint_drivers],
+    link_with: [libfprint_drivers, libfprint_private],
     dependencies: deps,
     install: true)
 
