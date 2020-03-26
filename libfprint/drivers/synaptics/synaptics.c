@@ -82,10 +82,17 @@ cmd_receive_cb (FpiUsbTransfer *transfer,
       if (msg_resp.payload[0] == 0x01)
         {
           self->finger_on_sensor = TRUE;
+          fpi_device_report_finger_status_changes (device,
+                                                   FP_FINGER_STATUS_PRESENT,
+                                                   FP_FINGER_STATUS_NONE);
         }
       else
         {
           self->finger_on_sensor = FALSE;
+          fpi_device_report_finger_status_changes (device,
+                                                   FP_FINGER_STATUS_NONE,
+                                                   FP_FINGER_STATUS_PRESENT);
+
           if (self->cmd_complete_on_removal)
             {
               fpi_ssm_mark_completed (transfer->ssm);
@@ -596,6 +603,9 @@ verify_msg_cb (FpiDeviceSynaptics *self,
   switch (resp->response_id)
     {
     case BMKT_RSP_VERIFY_READY:
+      fpi_device_report_finger_status_changes (device,
+                                               FP_FINGER_STATUS_NEEDED,
+                                               FP_FINGER_STATUS_NONE);
       fp_info ("Place Finger on the Sensor!");
       break;
 
@@ -839,6 +849,9 @@ enroll_msg_cb (FpiDeviceSynaptics *self,
     case BMKT_RSP_ENROLL_READY:
       {
         self->enroll_stage = 0;
+        fpi_device_report_finger_status_changes (device,
+                                                 FP_FINGER_STATUS_NEEDED,
+                                                 FP_FINGER_STATUS_NONE);
         fp_info ("Place Finger on the Sensor!");
         break;
       }
