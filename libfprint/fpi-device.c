@@ -1394,3 +1394,59 @@ fpi_device_identify_report (FpDevice *device,
   if (call_cb && data->match_cb)
     data->match_cb (device, data->match, data->print, data->match_data, data->error);
 }
+
+/**
+ * fpi_device_report_finger_status:
+ * @device: The #FpDevice
+ * @finger_status: The current #FpFingerStatusFlags to report
+ *
+ * Report the finger status for the @device.
+ * This can be used by UI to give a feedback
+ *
+ * Returns: %TRUE if changed
+ */
+gboolean
+fpi_device_report_finger_status (FpDevice           *device,
+                                 FpFingerStatusFlags finger_status)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  g_autofree char *status_string = NULL;
+
+  if (priv->finger_status == finger_status)
+    return FALSE;
+
+  status_string = g_flags_to_string (FP_TYPE_FINGER_STATUS_FLAGS, finger_status);
+  fp_dbg ("Device reported finger status change: %s", status_string);
+
+  priv->finger_status = finger_status;
+  g_object_notify (G_OBJECT (device), "finger-status");
+
+  return TRUE;
+}
+
+/**
+ * fpi_device_report_finger_status_changes:
+ * @device: The #FpDevice
+ * @added_status: The #FpFingerStatusFlags to add
+ * @added_status: The #FpFingerStatusFlags to remove
+ *
+ * Report the finger status for the @device adding the @added_status flags
+ * and removing the @removed_status flags.
+ *
+ * This can be used by UI to give a feedback
+ *
+ * Returns: %TRUE if changed
+ */
+gboolean
+fpi_device_report_finger_status_changes (FpDevice           *device,
+                                         FpFingerStatusFlags added_status,
+                                         FpFingerStatusFlags removed_status)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpFingerStatusFlags finger_status = priv->finger_status;
+
+  finger_status |= added_status;
+  finger_status &= ~removed_status;
+
+  return fpi_device_report_finger_status (device, finger_status);
+}

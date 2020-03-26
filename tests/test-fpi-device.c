@@ -201,6 +201,147 @@ test_driver_set_scan_type_swipe (void)
 }
 
 static void
+test_driver_finger_status_inactive (void)
+{
+  g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
+  g_signal_connect (device, "notify::finger-status", G_CALLBACK (on_device_notify), NULL);
+
+  g_assert_false (fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE));
+  g_assert_cmpuint (fp_device_get_finger_status (device), ==, FP_FINGER_STATUS_NONE);
+  g_assert (fake_dev->last_called_function != on_device_notify);
+  g_assert_null (g_steal_pointer (&fake_dev->user_data));
+}
+
+static void
+test_driver_finger_status_needed (void)
+{
+  g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  g_autoptr(GParamSpec) pspec = NULL;
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
+  g_signal_connect (device, "notify::finger-status", G_CALLBACK (on_device_notify), NULL);
+
+  g_assert_true (fpi_device_report_finger_status (device, FP_FINGER_STATUS_NEEDED));
+  g_assert_cmpuint (fp_device_get_finger_status (device), ==, FP_FINGER_STATUS_NEEDED);
+
+  g_assert (fake_dev->last_called_function == on_device_notify);
+  pspec = g_steal_pointer (&fake_dev->user_data);
+  g_assert_cmpstr (pspec->name, ==, "finger-status");
+
+  fake_dev->last_called_function = NULL;
+  g_assert_false (fpi_device_report_finger_status (device, FP_FINGER_STATUS_NEEDED));
+  g_assert_null (fake_dev->last_called_function);
+  g_assert_null (g_steal_pointer (&fake_dev->user_data));
+}
+
+static void
+test_driver_finger_status_present (void)
+{
+  g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  g_autoptr(GParamSpec) pspec = NULL;
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
+  g_signal_connect (device, "notify::finger-status", G_CALLBACK (on_device_notify), NULL);
+
+  g_assert_true (fpi_device_report_finger_status (device, FP_FINGER_STATUS_PRESENT));
+  g_assert_cmpuint (fp_device_get_finger_status (device), ==, FP_FINGER_STATUS_PRESENT);
+
+  g_assert (fake_dev->last_called_function == on_device_notify);
+  pspec = g_steal_pointer (&fake_dev->user_data);
+  g_assert_cmpstr (pspec->name, ==, "finger-status");
+
+  fake_dev->last_called_function = NULL;
+  g_assert_false (fpi_device_report_finger_status (device, FP_FINGER_STATUS_PRESENT));
+  g_assert_null (fake_dev->last_called_function);
+  g_assert_null (g_steal_pointer (&fake_dev->user_data));
+}
+
+static void
+driver_finger_status_changes_check (FpDevice *device, gboolean add)
+{
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
+  g_autoptr(GFlagsClass) status_class = g_type_class_ref (FP_TYPE_FINGER_STATUS_FLAGS);
+  guint expected_status;
+  guint initial_value;
+  guint i;
+  gulong signal_id;
+
+  if (add)
+    initial_value = FP_FINGER_STATUS_NONE;
+  else
+    initial_value = status_class->mask;
+
+  g_assert_cmpuint (fp_device_get_finger_status (device), ==, initial_value);
+
+  signal_id = g_signal_connect (device, "notify::finger-status",
+                                G_CALLBACK (on_device_notify), NULL);
+
+  for (i = 0, expected_status = initial_value; i < status_class->n_values; ++i)
+    {
+      g_autoptr(GParamSpec) pspec = NULL;
+      FpFingerStatusFlags finger_status = status_class->values[i].value;
+      FpFingerStatusFlags added_status = add ? finger_status : FP_FINGER_STATUS_NONE;
+      FpFingerStatusFlags removed_status = add ? FP_FINGER_STATUS_NONE : finger_status;
+      gboolean ret;
+
+      fake_dev->last_called_function = NULL;
+      ret = fpi_device_report_finger_status_changes (device,
+                                                     added_status,
+                                                     removed_status);
+      if (finger_status != FP_FINGER_STATUS_NONE)
+        g_assert_true (ret);
+      else
+        g_assert_false (ret);
+
+      expected_status |= added_status;
+      expected_status &= ~removed_status;
+
+      g_assert_cmpuint (fp_device_get_finger_status (device), ==, expected_status);
+
+      if (finger_status != FP_FINGER_STATUS_NONE)
+        {
+          g_assert (fake_dev->last_called_function == on_device_notify);
+          pspec = g_steal_pointer (&fake_dev->user_data);
+          g_assert_cmpstr (pspec->name, ==, "finger-status");
+        }
+
+      fake_dev->last_called_function = NULL;
+      g_assert_false (fpi_device_report_finger_status_changes (device,
+                                                               added_status,
+                                                               removed_status));
+      g_assert_null (fake_dev->last_called_function);
+      g_assert_null (g_steal_pointer (&fake_dev->user_data));
+    }
+
+  if (add)
+    g_assert_cmpuint (fp_device_get_finger_status (device), ==, status_class->mask);
+  else
+    g_assert_cmpuint (fp_device_get_finger_status (device), ==, FP_FINGER_STATUS_NONE);
+
+  fake_dev->last_called_function = NULL;
+  g_assert_false (fpi_device_report_finger_status_changes (device,
+                                                           FP_FINGER_STATUS_NONE,
+                                                           FP_FINGER_STATUS_NONE));
+
+  g_assert_null (fake_dev->last_called_function);
+  g_assert_null (g_steal_pointer (&fake_dev->user_data));
+
+  g_signal_handler_disconnect (device, signal_id);
+}
+
+static void
+test_driver_finger_status_changes (void)
+{
+  g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+
+  driver_finger_status_changes_check (device, TRUE);
+  driver_finger_status_changes_check (device, FALSE);
+}
+
+static void
 test_driver_get_nr_enroll_stages (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
@@ -2207,6 +2348,10 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/get_scan_type/swipe", test_driver_get_scan_type_swipe);
   g_test_add_func ("/driver/set_scan_type/press", test_driver_set_scan_type_press);
   g_test_add_func ("/driver/set_scan_type/swipe", test_driver_set_scan_type_swipe);
+  g_test_add_func ("/driver/finger_status/inactive", test_driver_finger_status_inactive);
+  g_test_add_func ("/driver/finger_status/waiting", test_driver_finger_status_needed);
+  g_test_add_func ("/driver/finger_status/present", test_driver_finger_status_present);
+  g_test_add_func ("/driver/finger_status/changes", test_driver_finger_status_changes);
   g_test_add_func ("/driver/get_nr_enroll_stages", test_driver_get_nr_enroll_stages);
   g_test_add_func ("/driver/set_nr_enroll_stages", test_driver_set_nr_enroll_stages);
   g_test_add_func ("/driver/supports_identify", test_driver_supports_identify);

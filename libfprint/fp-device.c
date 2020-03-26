@@ -46,6 +46,7 @@ enum {
   PROP_OPEN,
   PROP_NR_ENROLL_STAGES,
   PROP_SCAN_TYPE,
+  PROP_FINGER_STATUS,
   PROP_FPI_ENVIRON,
   PROP_FPI_USB_DEVICE,
   PROP_FPI_DRIVER_DATA,
@@ -181,6 +182,10 @@ fp_device_get_property (GObject    *object,
       g_value_set_enum (value, priv->scan_type);
       break;
 
+    case PROP_FINGER_STATUS:
+      g_value_set_enum (value, priv->finger_status);
+      break;
+
     case PROP_DRIVER:
       g_value_set_static_string (value, FP_DEVICE_GET_CLASS (priv)->id);
       break;
@@ -309,6 +314,13 @@ fp_device_class_init (FpDeviceClass *klass)
                        "The scan type of the device",
                        FP_TYPE_SCAN_TYPE, FP_SCAN_TYPE_SWIPE,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
+
+  properties[PROP_FINGER_STATUS] =
+    g_param_spec_flags ("finger-status",
+                        "FingerStatus",
+                        "The status of the finger",
+                        FP_TYPE_FINGER_STATUS_FLAGS, FP_FINGER_STATUS_NONE,
+                        G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
 
   properties[PROP_DRIVER] =
     g_param_spec_string ("driver",
@@ -467,6 +479,26 @@ fp_device_get_scan_type (FpDevice *device)
   g_return_val_if_fail (FP_IS_DEVICE (device), FP_SCAN_TYPE_SWIPE);
 
   return priv->scan_type;
+}
+
+/**
+ * fp_device_get_finger_status:
+ * @device: A #FpDevice
+ *
+ * Retrieves the finger status flags for the device.
+ * This can be used by the UI to present the relevant feedback, although it
+ * is not guaranteed to be a relevant value when not performing any action.
+ *
+ * Returns: The current #FpFingerStatusFlags
+ */
+FpFingerStatusFlags
+fp_device_get_finger_status (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_return_val_if_fail (FP_IS_DEVICE (device), FP_SCAN_TYPE_SWIPE);
+
+  return priv->finger_status;
 }
 
 /**

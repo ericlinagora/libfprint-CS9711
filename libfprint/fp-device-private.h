@@ -49,7 +49,8 @@ typedef struct
   GSource            *current_task_idle_return_source;
 
   /* State for tasks */
-  gboolean wait_for_finger;
+  gboolean            wait_for_finger;
+  FpFingerStatusFlags finger_status;
 } FpDevicePrivate;
 
 

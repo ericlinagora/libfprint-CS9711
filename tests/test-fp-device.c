@@ -179,6 +179,15 @@ test_device_get_scan_type (void)
 }
 
 static void
+test_device_get_finger_status (void)
+{
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+
+  fp_device_open_sync (tctx->device, NULL, NULL);
+  g_assert_cmpint (fp_device_get_finger_status (tctx->device), ==, FP_FINGER_STATUS_NONE);
+}
+
+static void
 test_device_get_nr_enroll_stages (void)
 {
   g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
@@ -229,6 +238,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/device/sync/get_device_id", test_device_get_device_id);
   g_test_add_func ("/device/sync/get_name", test_device_get_name);
   g_test_add_func ("/device/sync/get_scan_type", test_device_get_scan_type);
+  g_test_add_func ("/device/sync/get_finger_status", test_device_get_finger_status);
   g_test_add_func ("/device/sync/get_nr_enroll_stages", test_device_get_nr_enroll_stages);
   g_test_add_func ("/device/sync/supports_identify", test_device_supports_identify);
   g_test_add_func ("/device/sync/supports_capture", test_device_supports_capture);

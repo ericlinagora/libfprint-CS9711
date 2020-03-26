@@ -255,4 +255,10 @@ void fpi_device_identify_report (FpDevice *device,
                                  FpPrint  *print,
                                  GError   *error);
 
+gboolean fpi_device_report_finger_status (FpDevice           *device,
+                                          FpFingerStatusFlags finger_status);
+gboolean fpi_device_report_finger_status_changes (FpDevice           *device,
+                                                  FpFingerStatusFlags added_status,
+                                                  FpFingerStatusFlags removed_status);
+
 G_END_DECLS
