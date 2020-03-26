@@ -959,7 +959,7 @@ test_driver_verify_complete_retry (void)
 
   g_test_assert_expected_messages ();
   g_assert_true (error != g_steal_pointer (&fake_dev->ret_error));
-  g_assert_true (error != g_steal_pointer (&fake_dev->user_data));
+  g_steal_pointer (&fake_dev->user_data);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_assert_true (match_data->called);
   g_assert_error (match_data->error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_TOO_SHORT);
@@ -981,7 +981,7 @@ test_driver_verify_complete_retry (void)
   g_test_assert_expected_messages ();
 
   g_assert_true (error != g_steal_pointer (&fake_dev->ret_error));
-  g_assert_true (error != g_steal_pointer (&fake_dev->user_data));
+  g_steal_pointer (&fake_dev->user_data);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_assert_true (match_data->called);
   g_assert_error (match_data->error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_TOO_SHORT);
@@ -1001,7 +1001,7 @@ test_driver_verify_complete_retry (void)
   g_test_assert_expected_messages ();
 
   g_assert_true (error != g_steal_pointer (&fake_dev->ret_error));
-  g_assert_true (error != g_steal_pointer (&fake_dev->user_data));
+  g_steal_pointer (&fake_dev->user_data);
   g_assert_error (error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
   g_assert_true (match_data->called);
   g_assert_error (match_data->error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL);
@@ -1296,7 +1296,7 @@ test_driver_identify_complete_retry (void)
   g_test_assert_expected_messages ();
 
   g_assert_true (error != g_steal_pointer (&fake_dev->ret_error));
-  g_assert_true (error != g_steal_pointer (&fake_dev->user_data));
+  g_steal_pointer (&fake_dev->user_data);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_assert_true (match_data->called);
   g_assert_error (match_data->error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_TOO_SHORT);
