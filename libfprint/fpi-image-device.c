@@ -140,6 +140,19 @@ fp_image_device_change_state (FpImageDevice *self, FpiImageDeviceState state)
   priv->state = state;
   g_object_notify (G_OBJECT (self), "fpi-image-device-state");
   g_signal_emit_by_name (self, "fpi-image-device-state-changed", priv->state);
+
+  if (state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
+    {
+      fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                               FP_FINGER_STATUS_NEEDED,
+                                               FP_FINGER_STATUS_NONE);
+    }
+  else if (state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF)
+    {
+      fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                               FP_FINGER_STATUS_NONE,
+                                               FP_FINGER_STATUS_NEEDED);
+    }
 }
 
 static void
@@ -394,6 +407,19 @@ fpi_image_device_report_finger_status (FpImageDevice *self,
   FpDevice *device = FP_DEVICE (self);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpiDeviceAction action;
+
+  if (present)
+    {
+      fpi_device_report_finger_status_changes (device,
+                                               FP_FINGER_STATUS_PRESENT,
+                                               FP_FINGER_STATUS_NONE);
+    }
+  else
+    {
+      fpi_device_report_finger_status_changes (device,
+                                               FP_FINGER_STATUS_NONE,
+                                               FP_FINGER_STATUS_PRESENT);
+    }
 
   if (priv->state == FPI_IMAGE_DEVICE_STATE_INACTIVE)
     {
@@ -683,6 +709,8 @@ fpi_image_device_open_complete (FpImageDevice *self, GError *error)
 
   priv->state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
   g_object_notify (G_OBJECT (self), "fpi-image-device-state");
+
+  fpi_device_report_finger_status (FP_DEVICE (self), FP_FINGER_STATUS_NONE);
 
   fpi_device_open_complete (FP_DEVICE (self), error);
 }

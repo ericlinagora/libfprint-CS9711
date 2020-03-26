@@ -172,6 +172,7 @@ class VirtualImage(unittest.TestCase):
         def done_cb(dev, res):
             print("Enroll done")
             fp = dev.enroll_finish(res)
+            self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
             self._enrolled = fp
 
         template = FPrint.Print.new(self.dev)
@@ -182,6 +183,7 @@ class VirtualImage(unittest.TestCase):
         date = GLib.Date()
         date.set_dmy(*datetime.get_ymd()[::-1])
         template.props.enroll_date = date
+        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
         self.dev.enroll(template, None, progress_cb, tuple(), done_cb)
 
         # Note: Assumes 5 enroll steps for this device!
@@ -192,24 +194,35 @@ class VirtualImage(unittest.TestCase):
         # Test the image-device path where the finger is removed after
         # the minutiae scan is completed.
         self.send_finger_automatic(False)
+        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NEEDED)
         self.send_finger_report(True)
+        self.assertEqual(self.dev.get_finger_status(),
+            FPrint.FingerStatusFlags.NEEDED | FPrint.FingerStatusFlags.PRESENT)
         self.send_image(image)
         while self._step < 2:
             ctx.iteration(True)
         self.send_finger_report(False)
+
+        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NEEDED)
 
         self.send_finger_automatic(True)
         self.send_image(image)
         while self._step < 3:
             ctx.iteration(True)
 
+        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NEEDED)
+
         self.send_image(image)
         while self._step < 4:
             ctx.iteration(True)
 
+        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NEEDED)
+
         self.send_image(image)
         while self._enrolled is None:
             ctx.iteration(True)
+
+        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
 
         return self._enrolled
 
