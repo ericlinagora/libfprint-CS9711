@@ -787,6 +787,7 @@ fpi_device_probe_complete (FpDevice    *device,
   g_debug ("Device reported probe completion");
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
     {
@@ -829,6 +830,7 @@ fpi_device_open_complete (FpDevice *device, GError *error)
   g_debug ("Device reported open completion");
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
     {
@@ -862,6 +864,7 @@ fpi_device_close_complete (FpDevice *device, GError *error)
   g_debug ("Device reported close completion");
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   switch (priv->type)
     {
@@ -918,6 +921,7 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
   g_debug ("Device reported enroll completion");
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
     {
@@ -985,6 +989,7 @@ fpi_device_verify_complete (FpDevice *device,
   data = g_task_get_task_data (priv->current_task);
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
     {
@@ -1044,6 +1049,7 @@ fpi_device_identify_complete (FpDevice *device,
   data = g_task_get_task_data (priv->current_task);
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
     {
@@ -1100,6 +1106,7 @@ fpi_device_capture_complete (FpDevice *device,
   g_debug ("Device reported capture completion");
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
     {
@@ -1145,6 +1152,7 @@ fpi_device_delete_complete (FpDevice *device,
   g_debug ("Device reported deletion completion");
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
     fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
@@ -1179,6 +1187,7 @@ fpi_device_list_complete (FpDevice  *device,
   g_debug ("Device reported listing completion");
 
   clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (prints && error)
     {

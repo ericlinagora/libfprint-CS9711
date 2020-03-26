@@ -85,6 +85,8 @@ fp_device_cancel_in_idle_cb (gpointer user_data)
 
   cls->cancel (self);
 
+  fpi_device_report_finger_status (self, FP_FINGER_STATUS_NONE);
+
   return G_SOURCE_REMOVE;
 }
 
@@ -635,6 +637,7 @@ fp_device_open (FpDevice           *device,
   priv->current_action = FPI_DEVICE_ACTION_OPEN;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   FP_DEVICE_GET_CLASS (device)->open (device);
 }
