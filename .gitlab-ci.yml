@@ -59,6 +59,7 @@ test:
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit --timeout-multiplier 3
     - ninja -C _build coverage
+    - cat _build/meson-logs/coverage.txt
   artifacts:
     paths:
       - _build/meson-logs
