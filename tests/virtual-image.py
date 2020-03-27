@@ -3,11 +3,10 @@
 import sys
 try:
     import gi
-    gi.require_version('FPrint', '2.0')
-    from gi.repository import FPrint, GLib, Gio
-
     import os
-    import sys
+
+    from gi.repository import GLib, Gio
+
     import unittest
     import socket
     import struct
@@ -19,6 +18,8 @@ try:
 except Exception as e:
     print("Missing dependencies: %s" % str(e))
     sys.exit(77)
+
+FPrint = None
 
 # Re-run the test with the passed wrapper if set
 wrapper = os.getenv('LIBFPRINT_TEST_WRAPPER')
@@ -101,12 +102,14 @@ class VirtualImage(unittest.TestCase):
         del self.con
         self.dev.close_sync()
 
-    def send_retry(self, retry_error=FPrint.DeviceRetry.TOO_SHORT, iterate=True):
+    def send_retry(self, retry_error=None, iterate=True):
+        retry_error = retry_error if retry_error else FPrint.DeviceRetry.TOO_SHORT
         self.con.sendall(struct.pack('ii', -1, retry_error))
         while iterate and ctx.pending():
             ctx.iteration(False)
 
-    def send_error(self, device_error=FPrint.DeviceError.GENERAL, iterate=True):
+    def send_error(self, device_error=None, iterate=True):
+        device_error = device_error if device_error else FPrint.DeviceError.GENERAL
         self.con.sendall(struct.pack('ii', -2, device_error))
         while iterate and ctx.pending():
             ctx.iteration(False)
@@ -346,5 +349,12 @@ class VirtualImage(unittest.TestCase):
         assert(not self._verify_match)
 
 if __name__ == '__main__':
+    try:
+        gi.require_version('FPrint', '2.0')
+        from gi.repository import FPrint
+    except Exception as e:
+        print("Missing dependencies: %s" % str(e))
+        sys.exit(77)
+
     # avoid writing to stderr
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
