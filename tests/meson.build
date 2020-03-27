@@ -30,6 +30,7 @@ if get_option('introspection')
         unittest_inspector = find_program('unittest_inspector.py')
         base_args = files('virtual-image.py')
         suite = []
+        timeout = 30
 
         r = run_command(unittest_inspector, files('virtual-image.py'))
         unit_tests = r.stdout().strip().split('\n')
@@ -38,6 +39,7 @@ if get_option('introspection')
             suite += 'virtual-image'
         else
             unit_tests = ['virtual-image']
+            timeout = 120
         endif
 
         foreach ut: unit_tests
@@ -53,6 +55,7 @@ if get_option('introspection')
                 suite: ut_suite,
                 depends: libfprint_typelib,
                 env: envs,
+                timeout: timeout,
             )
         endforeach
     else
