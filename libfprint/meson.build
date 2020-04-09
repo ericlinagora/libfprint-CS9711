@@ -155,6 +155,9 @@ foreach driver: drivers
     if driver == 'virtual_image'
         drivers_sources += [ 'drivers/virtual-image.c' ]
     endif
+    if driver == 'virtual_device'
+        drivers_sources += [ 'drivers/virtual-device.c' ]
+    endif
     if driver == 'synaptics'
     drivers_sources += [
         'drivers/synaptics/synaptics.c',
