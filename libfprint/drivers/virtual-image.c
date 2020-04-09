@@ -277,7 +277,7 @@ dev_init (FpImageDevice *dev)
     {
       g_warning ("Could not listen on unix socket: %s", error->message);
 
-      fpi_image_device_open_complete (FP_IMAGE_DEVICE (dev), g_steal_pointer (&error));
+      fpi_image_device_open_complete (dev, g_steal_pointer (&error));
 
       return;
     }
