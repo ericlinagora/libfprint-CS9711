@@ -36,7 +36,7 @@ on_device_opened (FpDevice *dev, GAsyncResult *res, FptContext *tctx)
 static void
 test_device_open_async (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open (tctx->device, NULL, (GAsyncReadyCallback) on_device_opened, tctx);
 
@@ -59,7 +59,7 @@ on_device_closed (FpDevice *dev, GAsyncResult *res, FptContext *tctx)
 static void
 test_device_close_async (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open (tctx->device, NULL, (GAsyncReadyCallback) on_device_opened, tctx);
   while (!tctx->user_data)
@@ -76,7 +76,7 @@ static void
 test_device_open_sync (void)
 {
   g_autoptr(GError) error = NULL;
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, &error);
   g_assert_no_error (error);
@@ -97,7 +97,7 @@ static void
 test_device_open_sync_notify (void)
 {
   g_autoptr(GError) error = NULL;
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   g_signal_connect (tctx->device, "notify::open", G_CALLBACK (on_open_notify), tctx);
   fp_device_open_sync (tctx->device, NULL, &error);
@@ -109,7 +109,7 @@ static void
 test_device_close_sync (void)
 {
   g_autoptr(GError) error = NULL;
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   fp_device_close_sync (tctx->device, NULL, &error);
@@ -131,7 +131,7 @@ static void
 test_device_close_sync_notify (void)
 {
   g_autoptr(GError) error = NULL;
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
 
@@ -144,7 +144,7 @@ test_device_close_sync_notify (void)
 static void
 test_device_get_driver (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_cmpstr (fp_device_get_driver (tctx->device), ==, "virtual_image");
@@ -153,7 +153,7 @@ test_device_get_driver (void)
 static void
 test_device_get_device_id (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_cmpstr (fp_device_get_device_id (tctx->device), ==, "0");
@@ -162,7 +162,7 @@ test_device_get_device_id (void)
 static void
 test_device_get_name (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_cmpstr (fp_device_get_name (tctx->device), ==,
@@ -172,7 +172,7 @@ test_device_get_name (void)
 static void
 test_device_get_scan_type (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_cmpint (fp_device_get_scan_type (tctx->device), ==, FP_SCAN_TYPE_SWIPE);
@@ -181,7 +181,7 @@ test_device_get_scan_type (void)
 static void
 test_device_get_nr_enroll_stages (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_cmpuint (fp_device_get_nr_enroll_stages (tctx->device), ==, 5);
@@ -190,7 +190,7 @@ test_device_get_nr_enroll_stages (void)
 static void
 test_device_supports_identify (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_true (fp_device_supports_identify (tctx->device));
@@ -199,7 +199,7 @@ test_device_supports_identify (void)
 static void
 test_device_supports_capture (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_true (fp_device_supports_capture (tctx->device));
@@ -208,7 +208,7 @@ test_device_supports_capture (void)
 static void
 test_device_has_storage (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_false (fp_device_has_storage (tctx->device));

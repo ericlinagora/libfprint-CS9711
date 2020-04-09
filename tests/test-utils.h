@@ -19,8 +19,15 @@
 
 #include <glib.h>
 
-void fpt_setup_virtual_device_environment (void);
-void fpt_teardown_virtual_device_environment (void);
+typedef enum {
+  FPT_VIRTUAL_DEVICE_IMAGE = 0,
+  FPT_VIRTUAL_DEVICE,
+  FPT_VIRTUAL_DEVICE_IDENTIFY,
+  FPT_NUM_VIRTUAL_DEVICE_TYPES
+} FptVirtualDeviceType;
+
+void fpt_setup_virtual_device_environment (FptVirtualDeviceType devtype);
+void fpt_teardown_virtual_device_environment (FptVirtualDeviceType devtype);
 
 typedef struct _FptContext
 {
@@ -30,7 +37,7 @@ typedef struct _FptContext
 } FptContext;
 
 FptContext * fpt_context_new (void);
-FptContext * fpt_context_new_with_virtual_imgdev (void);
+FptContext * fpt_context_new_with_virtual_device (FptVirtualDeviceType devtype);
 
 void fpt_context_free (FptContext *test_context);
 

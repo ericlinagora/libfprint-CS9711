@@ -49,7 +49,7 @@ test_context_has_virtual_device (void)
   GPtrArray *devices;
   unsigned int i;
 
-  fpt_setup_virtual_device_environment ();
+  fpt_setup_virtual_device_environment (FPT_VIRTUAL_DEVICE_IMAGE);
 
   context = fp_context_new ();
   devices = fp_context_get_devices (context);
@@ -70,7 +70,7 @@ test_context_has_virtual_device (void)
 
   g_assert_true (FP_IS_DEVICE (virtual_device));
 
-  fpt_teardown_virtual_device_environment ();
+  fpt_teardown_virtual_device_environment (FPT_VIRTUAL_DEVICE_IMAGE);
 }
 
 static void
@@ -81,7 +81,7 @@ test_context_enumerates_new_devices (void)
 
   context = fp_context_new ();
 
-  fpt_setup_virtual_device_environment ();
+  fpt_setup_virtual_device_environment (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_context_enumerate (context);
   devices = fp_context_get_devices (context);
@@ -89,7 +89,7 @@ test_context_enumerates_new_devices (void)
   g_assert_nonnull (devices);
   g_assert_cmpuint (devices->len, ==, 1);
 
-  fpt_teardown_virtual_device_environment ();
+  fpt_teardown_virtual_device_environment (FPT_VIRTUAL_DEVICE_IMAGE);
 }
 
 int
