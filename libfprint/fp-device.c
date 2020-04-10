@@ -507,6 +507,9 @@ fp_device_supports_identify (FpDevice *device)
 
   g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
 
+  if (cls->supports_identify != NULL)
+    return cls->supports_identify (device);
+
   return cls->identify != NULL;
 }
 
@@ -945,6 +948,13 @@ fp_device_identify (FpDevice           *device,
   task = g_task_new (device, cancellable, callback, user_data);
   if (g_task_return_error_if_cancelled (task))
     return;
+
+  if (!fp_device_supports_identify (device))
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED));
+      return;
+    }
 
   if (!priv->is_open)
     {

@@ -79,6 +79,7 @@ struct _FpIdEntry
  * @delete: Delete a print from the device
  * @cancel: Called on cancellation, this is a convenience to not need to handle
  *   the #GCancellable directly by using fpi_device_get_cancellable().
+ * @supports_identify: Whether identify operations are supported.
  *
  * NOTE: If your driver is image based, then you should subclass #FpImageDevice
  * instead. #FpImageDevice based drivers use a different way of interacting
@@ -129,6 +130,8 @@ struct _FpDeviceClass
   void (*delete)   (FpDevice * device);
 
   void (*cancel)   (FpDevice *device);
+
+  gboolean (*supports_identify) (FpDevice *device);
 };
 
 /**
