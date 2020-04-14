@@ -20,7 +20,7 @@ typedef enum {
 
 /**
  * FpiMatchResult:
- * @FPI_MATCH_ERROR: An error occured during matching
+ * @FPI_MATCH_ERROR: An error occurred during matching
  * @FPI_MATCH_FAIL: The prints did not match
  * @FPI_MATCH_SUCCESS: The prints matched
  */

@@ -100,7 +100,7 @@ fp_image_device_close (FpDevice *device)
    *  1. We are inactive
    *     -> immediately close
    *  2. We are waiting for finger off
-   *     -> imediately deactivate
+   *     -> immediately deactivate
    *  3. We are deactivating
    *     -> handled by deactivate_complete */
 

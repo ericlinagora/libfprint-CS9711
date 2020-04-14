@@ -51,7 +51,7 @@ enum {
   PROP_IMAGE,
 
   /* The following is metadata that is stored by default for each print.
-   * Drivers may make use of these during enrollment (e.g. to additionaly store
+   * Drivers may make use of these during enrollment (e.g. to additionally store
    * the metadata on the device). */
   PROP_FINGER,
   PROP_USERNAME,

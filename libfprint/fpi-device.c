@@ -28,7 +28,7 @@
  * @title: Internal FpDevice
  * @short_description: Internal device routines
  *
- * The methods that are availabe for drivers to manipulate a device. See
+ * The methods that are available for drivers to manipulate a device. See
  * #FpDeviceClass for more information. Also note that most of these are
  * not relevant for image based devices, see #FpImageDeviceClass in that
  * case.
@@ -100,7 +100,7 @@ fpi_device_error_new (FpDeviceError error)
   switch (error)
     {
     case FP_DEVICE_ERROR_GENERAL:
-      msg = "An unspecified error occured!";
+      msg = "An unspecified error occurred!";
       break;
 
     case FP_DEVICE_ERROR_NOT_SUPPORTED:
@@ -138,7 +138,7 @@ fpi_device_error_new (FpDeviceError error)
     default:
       g_warning ("Unsupported error, returning general error instead!");
       error = FP_DEVICE_ERROR_GENERAL;
-      msg = "An unspecified error occured!";
+      msg = "An unspecified error occurred!";
     }
 
   return g_error_new_literal (FP_DEVICE_ERROR, error, msg);

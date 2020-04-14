@@ -61,7 +61,7 @@ typedef enum  {
  * @length: The requested length of the transfer in bytes.
  * @actual_length: The actual length of the transfer
  *  (see also fpi_usb_transfer_set_short_error())
- * @buffer: The transfered data.
+ * @buffer: The transferred data.
  *
  * Helper for handling USB transfers.
  */

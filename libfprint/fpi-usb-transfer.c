@@ -366,7 +366,7 @@ transfer_finish_cb (GObject *source_object, GAsyncResult *res, gpointer user_dat
  *
  * Note that #FpiUsbTransfer will be stolen when this function is called.
  * So that all associated data will be free'ed automatically, after the
- * callback ran unless fpi_usb_transfer_ref() is explictly called.
+ * callback ran unless fpi_usb_transfer_ref() is explicitly called.
  */
 void
 fpi_usb_transfer_submit (FpiUsbTransfer        *transfer,

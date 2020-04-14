@@ -28,7 +28,7 @@
  * @title: Internal FpDevice
  * @short_description: Internal device routines
  *
- * The methods that are availabe for drivers to manipulate a device. See
+ * The methods that are available for drivers to manipulate a device. See
  * #FpDeviceClass for more information. Also note that most of these are
  * not relevant for image based devices, see #FpImageDeviceClass in that
  * case.
@@ -339,7 +339,7 @@ fp_device_class_init (FpDeviceClass *klass)
   properties[PROP_OPEN] =
     g_param_spec_boolean ("open",
                           "Opened",
-                          "Wether the device is open or not", FALSE,
+                          "Whether the device is open or not", FALSE,
                           G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
 
   /**

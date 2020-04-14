@@ -65,10 +65,10 @@ struct _FpIdEntry
  * @probe: Called immediately for all devices. Most drivers will not need to
  *   implement this. Drivers should setup the device identifier from the probe
  *   callback which will be used to verify the compatibility of stored
- *   #FpPrint's. It is permissable to temporarily open the USB device if this
+ *   #FpPrint's. It is permissible to temporarily open the USB device if this
  *   is required for the operation. If an error is returned, then the device
  *   will be destroyed again immediately and never reported to the API user.
- * @open: Open the device for futher operations. Any of the normal actions are
+ * @open: Open the device for further operations. Any of the normal actions are
  *   guaranteed to only happen when the device is open (this includes delete).
  * @close: Close the device again
  * @enroll: Start an enroll operation

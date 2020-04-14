@@ -79,7 +79,7 @@ typedef enum {
 
 /**
  * FpDeviceError:
- * @FP_DEVICE_ERROR_GENERAL: A general error occured.
+ * @FP_DEVICE_ERROR_GENERAL: A general error occurred.
  * @FP_DEVICE_ERROR_NOT_SUPPORTED: The device does not support the requested
  *  operation.
  * @FP_DEVICE_ERROR_NOT_OPEN: The device needs to be opened to start this
@@ -113,7 +113,7 @@ GQuark fp_device_error_quark (void);
  * FpEnrollProgress:
  * @device: a #FpDevice
  * @completed_stages: Number of completed stages
- * @print: (nullable) (transfer none): The last scaned print
+ * @print: (nullable) (transfer none): The last scanned print
  * @user_data: (nullable) (transfer none): User provided data
  * @error: (nullable) (transfer none): #GError or %NULL
  *
