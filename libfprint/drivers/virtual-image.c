@@ -21,7 +21,7 @@
 /*
  * This is a virtual driver to debug the image based drivers. A small
  * python script is provided to connect to it via a socket, allowing
- * prints to be sent to this device programatically.
+ * prints to be sent to this device programmatically.
  * Using this it is possible to test libfprint and fprintd.
  */
 
