@@ -35,7 +35,7 @@ static const FpIdEntry id_table[] = {
 
 
 static void
-cmd_recieve_cb (FpiUsbTransfer *transfer,
+cmd_receive_cb (FpiUsbTransfer *transfer,
                 FpDevice       *device,
                 gpointer        user_data,
                 GError         *error)
@@ -234,7 +234,7 @@ synaptics_cmd_run_state (FpiSsm   *ssm,
       fpi_usb_transfer_submit (transfer,
                                5000,
                                NULL,
-                               cmd_recieve_cb,
+                               cmd_receive_cb,
                                fpi_ssm_get_data (ssm));
 
       break;
@@ -321,7 +321,7 @@ synaptics_sensor_cmd (FpiDeviceSynaptics *self,
   g_assert (payload || payload_len == 0);
 
   /* seq_num of 0 means a normal command, -1 means the current commands
-   * sequence number should not be udpated (i.e. second async command which
+   * sequence number should not be updated (i.e. second async command which
    * may only be a cancellation currently). */
   if (seq_num <= 0)
     {
@@ -730,7 +730,7 @@ enroll_msg_cb (FpiDeviceSynaptics *self,
         if (enroll_resp->progress < 100)
           done_stages = MIN (done_stages, ENROLL_SAMPLES - 1);
 
-        /* Emit a retry error if there has been no discernable
+        /* Emit a retry error if there has been no discernible
          * progress. Some firmware revisions report more required
          * touches. */
         if (self->enroll_stage == done_stages)
@@ -849,7 +849,7 @@ enroll (FpDevice *device)
   user_id_len = strlen (user_id);
   user_id_len = MIN (BMKT_MAX_USER_ID_LEN, user_id_len);
 
-  /* We currently always use finger 1 from the devices piont of view */
+  /* We currently always use finger 1 from the devices point of view */
   finger = 1;
 
   uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
@@ -1029,7 +1029,7 @@ dev_probe (FpDevice *device)
 
   if (!read_ok)
     {
-      g_warning ("Transfer in response to verison query was too short");
+      g_warning ("Transfer in response to version query was too short");
       error = fpi_device_error_new (FP_DEVICE_ERROR_PROTO);
       goto err_close;
     }
