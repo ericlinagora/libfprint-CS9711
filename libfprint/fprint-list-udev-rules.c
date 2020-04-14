@@ -2,7 +2,7 @@
  * Copyright (C) 2009 Red Hat <mjg@redhat.com>
  * Copyright (C) 2008 Bastien Nocera <hadess@hadess.net>
  * Copyright (C) 2008 Timo Hoenig <thoenig@suse.de>, <thoenig@nouse.net>
- * Coypright (C) 2019 Benjamin Berg <bberg@redhat.com>
+ * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
