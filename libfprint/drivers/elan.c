@@ -733,7 +733,7 @@ calibrate_run_state (FpiSsm *ssm, FpDevice *dev)
           fp_dbg ("calibration failed");
           fpi_ssm_mark_failed (ssm,
                                fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                                         "Callibration failed!"));
+                                                         "Calibration failed!"));
         }
       break;
 
