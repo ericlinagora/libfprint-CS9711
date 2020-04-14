@@ -215,6 +215,7 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
 
       g_warning ("Error accepting a new connection: %s", error->message);
       start_listen (dev);
+      return;
     }
 
   /* Always further connections (but we disconnect them immediately
