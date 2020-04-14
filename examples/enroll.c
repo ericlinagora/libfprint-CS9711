@@ -1,6 +1,6 @@
 /*
  * Example fingerprint enrollment program
- * Enrolls your choosen finger and saves the print to disk
+ * Enrolls your chosen finger and saves the print to disk
  * Copyright (C) 2007 Daniel Drake <dsd@gentoo.org>
  * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
  *
