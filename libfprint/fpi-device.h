@@ -129,7 +129,7 @@ struct _FpDeviceClass
   void (*list)     (FpDevice *device);
   void (*delete)   (FpDevice * device);
 
-  void (*cancel)   (FpDevice *device);
+  void     (*cancel)   (FpDevice *device);
 
   gboolean (*supports_identify) (FpDevice *device);
 };
