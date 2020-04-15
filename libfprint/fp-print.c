@@ -588,7 +588,7 @@ fp_print_equal (FpPrint *self, FpPrint *other)
     }
   else if (self->type == FPI_PRINT_NBIS)
     {
-      gint i;
+      guint i;
 
       if (self->prints->len != other->prints->len)
         return FALSE;
@@ -661,7 +661,7 @@ fp_print_serialize (FpPrint *print,
   if (print->type == FPI_PRINT_NBIS)
     {
       GVariantBuilder nested = G_VARIANT_BUILDER_INIT (G_VARIANT_TYPE ("(a(aiaiai))"));
-      gint i;
+      guint i;
 
       g_variant_builder_open (&nested, G_VARIANT_TYPE ("a(aiaiai)"));
       for (i = 0; i < print->prints->len; i++)
@@ -812,7 +812,7 @@ fp_print_deserialize (const guchar *data,
   if (type == FPI_PRINT_NBIS)
     {
       g_autoptr(GVariant) prints = g_variant_get_child_value (print_data, 0);
-      gint i;
+      guint i;
 
       result = g_object_new (FP_TYPE_PRINT,
                              "driver", driver,
