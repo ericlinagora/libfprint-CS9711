@@ -635,7 +635,7 @@ verify_msg_cb (FpiDeviceSynaptics *self,
       else if (resp->result == BMKT_FP_NO_MATCH)
         {
           fp_info ("Print didn't match");
-          fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, error);
+          fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, NULL);
           verify_complete_after_finger_removal (self);
         }
       else if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)
