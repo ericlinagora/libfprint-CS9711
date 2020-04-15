@@ -1119,7 +1119,6 @@ e_handle_resp02 (FpDevice *dev, unsigned char *data,
   else
     {
       GVariant *fp_data;
-      print = fp_print_new (dev);
 
       fpi_device_get_enroll_data (dev, &print);
 
