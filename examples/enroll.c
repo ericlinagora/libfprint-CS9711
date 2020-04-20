@@ -23,20 +23,25 @@
 
 #include <stdio.h>
 #include <libfprint/fprint.h>
+#include <glib-unix.h>
 
 #include "storage.h"
 #include "utilities.h"
 
 typedef struct _EnrollData
 {
-  GMainLoop *loop;
-  FpFinger   finger;
-  int        ret_value;
+  GMainLoop    *loop;
+  GCancellable *cancellable;
+  unsigned int  sigint_handler;
+  FpFinger      finger;
+  int           ret_value;
 } EnrollData;
 
 static void
 enroll_data_free (EnrollData *enroll_data)
 {
+  g_clear_handle_id (&enroll_data->sigint_handler, g_source_remove);
+  g_clear_object (&enroll_data->cancellable);
   g_main_loop_unref (enroll_data->loop);
   g_free (enroll_data);
 }
@@ -137,9 +142,20 @@ on_device_opened (FpDevice *dev, GAsyncResult *res, void *user_data)
   printf ("Scan your finger now.\n");
 
   print_template = print_create_template (dev, enroll_data->finger);
-  fp_device_enroll (dev, print_template, NULL, on_enroll_progress, NULL,
-                    NULL, (GAsyncReadyCallback) on_enroll_completed,
+  fp_device_enroll (dev, print_template, enroll_data->cancellable,
+                    on_enroll_progress, NULL, NULL,
+                    (GAsyncReadyCallback) on_enroll_completed,
                     enroll_data);
+}
+
+static gboolean
+sigint_cb (void *user_data)
+{
+  EnrollData *enroll_data = user_data;
+
+  g_cancellable_cancel (enroll_data->cancellable);
+
+  return G_SOURCE_CONTINUE;
 }
 
 int
@@ -188,8 +204,15 @@ main (void)
   enroll_data->finger = finger;
   enroll_data->ret_value = EXIT_FAILURE;
   enroll_data->loop = g_main_loop_new (NULL, FALSE);
+  enroll_data->cancellable = g_cancellable_new ();
+  enroll_data->sigint_handler = g_unix_signal_add_full (G_PRIORITY_HIGH,
+                                                        SIGINT,
+                                                        sigint_cb,
+                                                        enroll_data,
+                                                        NULL);
 
-  fp_device_open (dev, NULL, (GAsyncReadyCallback) on_device_opened,
+  fp_device_open (dev, enroll_data->cancellable,
+                  (GAsyncReadyCallback) on_device_opened,
                   enroll_data);
 
   g_main_loop_run (enroll_data->loop);
