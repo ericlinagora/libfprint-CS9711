@@ -207,6 +207,8 @@ fpi_print_set_type
 fpi_print_set_device_stored
 fpi_print_add_from_image
 fpi_print_bz3_match
+fpi_print_generate_user_id
+fpi_print_fill_from_user_id
 </SECTION>
 
 <SECTION>

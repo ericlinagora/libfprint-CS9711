@@ -247,3 +247,115 @@ fpi_print_bz3_match (FpPrint *template, FpPrint *print, gint bz3_threshold, GErr
 
   return FPI_MATCH_FAIL;
 }
+
+/**
+ * fpi_print_generate_user_id:
+ * @print: #FpPrint to generate the ID for
+ *
+ * Generates a string identifier for the represented print. This identifier
+ * encodes some metadata about the print. It also includes a random string
+ * and may be assumed to be unique.
+ *
+ * This is useful if devices are able to store a string identifier, but more
+ * storing more metadata may be desirable. In effect, this means the driver
+ * can provide somewhat more meaningful data to fp_device_list_prints().
+ *
+ * The generated ID may be truncated after 23 characters. However, more space
+ * is required to include the username, and it is recommended to store at
+ * at least 31 bytes.
+ *
+ * The generated format may change in the future. It is versioned though and
+ * decoding should remain functional.
+ *
+ * Returns: A unique string of 23 + strlen(username) characters
+ */
+gchar *
+fpi_print_generate_user_id (FpPrint *print)
+{
+  const gchar *username = NULL;
+  gchar *user_id = NULL;
+  const GDate *date;
+  gint y = 0, m = 0, d = 0;
+  gint32 rand_id = 0;
+
+  g_assert (print);
+  date = fp_print_get_enroll_date (print);
+  if (date && g_date_valid (date))
+    {
+      y = g_date_get_year (date);
+      m = g_date_get_month (date);
+      d = g_date_get_day (date);
+    }
+
+  username = fp_print_get_username (print);
+  if (!username)
+    username = "nobody";
+
+  if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+    rand_id = 0;
+  else
+    rand_id = g_random_int ();
+
+  user_id = g_strdup_printf ("FP1-%04d%02d%02d-%X-%08X-%s",
+                             y, m, d,
+                             fp_print_get_finger (print),
+                             rand_id,
+                             username);
+
+  return user_id;
+
+}
+
+/**
+ * fpi_print_fill_from_user_id:
+ * @print: #FpPrint to fill metadata into
+ * @user_id: An ID that was likely encoded using fpi_print_generate_user_id()
+ *
+ * This is the reverse operation of fpi_print_generate_user_id(), allowing
+ * the driver to encode some print metadata in a string.
+ *
+ * Returns: Whether a valid ID was found
+ */
+gboolean
+fpi_print_fill_from_user_id (FpPrint *print, const char *user_id)
+{
+  g_return_val_if_fail (user_id, FALSE);
+
+  /* The format has 24 bytes at the start and some dashes in the right places */
+  if (g_str_has_prefix (user_id, "FP1-") && strlen (user_id) >= 24 &&
+      user_id[12] == '-' && user_id[14] == '-' && user_id[23] == '-')
+    {
+      g_autofree gchar *copy = g_strdup (user_id);
+      g_autoptr(GDate) date = NULL;
+      gint32 date_ymd;
+      gint32 finger;
+      gchar *username;
+      /* Try to parse information from the string. */
+
+      copy[12] = '\0';
+      date_ymd = g_ascii_strtod (copy + 4, NULL);
+      if (date_ymd > 0)
+        date = g_date_new_dmy (date_ymd % 100,
+                               (date_ymd / 100) % 100,
+                               date_ymd / 10000);
+      else
+        date = g_date_new ();
+
+      fp_print_set_enroll_date (print, date);
+
+      copy[14] = '\0';
+      finger = g_ascii_strtoll (copy + 13, NULL, 16);
+      fp_print_set_finger (print, finger);
+
+      /* We ignore the next chunk, it is just random data.
+       * Then comes the username; nobody is the default if the metadata
+       * is unknown */
+      username = copy + 24;
+      if (strlen (username) > 0 && g_strcmp0 (username, "nobody") != 0)
+        fp_print_set_username (print, username);
+
+      return TRUE;
+    }
+
+  return FALSE;
+}
