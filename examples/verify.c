@@ -23,20 +23,25 @@
 
 #include <stdio.h>
 #include <libfprint/fprint.h>
+#include <glib-unix.h>
 
 #include "storage.h"
 #include "utilities.h"
 
 typedef struct _VerifyData
 {
-  GMainLoop *loop;
-  FpFinger   finger;
-  int        ret_value;
+  GMainLoop    *loop;
+  GCancellable *cancellable;
+  unsigned int  sigint_handler;
+  FpFinger      finger;
+  int           ret_value;
 } VerifyData;
 
 static void
 verify_data_free (VerifyData *verify_data)
 {
+  g_clear_handle_id (&verify_data->sigint_handler, g_source_remove);
+  g_clear_object (&verify_data->cancellable);
   g_main_loop_unref (verify_data->loop);
   g_free (verify_data);
 }
@@ -196,7 +201,7 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
                fp_print_get_description (verify_print));
 
       g_print ("Print loaded. Time to verify!\n");
-      fp_device_verify (dev, verify_print, NULL,
+      fp_device_verify (dev, verify_print, verify_data->cancellable,
                         on_match_cb, verify_data, NULL,
                         (GAsyncReadyCallback) on_verify_completed,
                         verify_data);
@@ -250,7 +255,7 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
         }
 
       g_print ("Print loaded. Time to verify!\n");
-      fp_device_verify (dev, verify_print, NULL,
+      fp_device_verify (dev, verify_print, verify_data->cancellable,
                         NULL, NULL, NULL,
                         (GAsyncReadyCallback) on_verify_completed,
                         verify_data);
@@ -274,6 +279,16 @@ on_device_opened (FpDevice *dev, GAsyncResult *res, void *user_data)
   g_print ("Opened device. ");
 
   start_verification (dev, verify_data);
+}
+
+static gboolean
+sigint_cb (void *user_data)
+{
+  VerifyData *verify_data = user_data;
+
+  g_cancellable_cancel (verify_data->cancellable);
+
+  return G_SOURCE_CONTINUE;
 }
 
 int
@@ -306,8 +321,14 @@ main (void)
   verify_data = g_new0 (VerifyData, 1);
   verify_data->ret_value = EXIT_FAILURE;
   verify_data->loop = g_main_loop_new (NULL, FALSE);
-
-  fp_device_open (dev, NULL, (GAsyncReadyCallback) on_device_opened,
+  verify_data->cancellable = g_cancellable_new ();
+  verify_data->sigint_handler = g_unix_signal_add_full (G_PRIORITY_HIGH,
+                                                        SIGINT,
+                                                        sigint_cb,
+                                                        verify_data,
+                                                        NULL);
+  fp_device_open (dev, verify_data->cancellable,
+                  (GAsyncReadyCallback) on_device_opened,
                   verify_data);
 
   g_main_loop_run (verify_data->loop);
