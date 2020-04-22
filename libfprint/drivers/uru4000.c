@@ -81,7 +81,7 @@ static const struct uru4k_dev_profile
 {
   const char *name;
   gboolean    auth_cr;
-  gboolean    encryption;
+  gboolean    image_not_flipped;
 } uru4k_dev_info[] = {
   [MS_KBD] = {
     .name = "Microsoft Keyboard with Fingerprint Reader",
@@ -106,7 +106,7 @@ static const struct uru4k_dev_profile
   [DP_URU4000B] = {
     .name = "Digital Persona U.are.U 4000B",
     .auth_cr = FALSE,
-    .encryption = TRUE,
+    .image_not_flipped = TRUE, /* See comment in the code where it is used. */
   },
 };
 
@@ -680,17 +680,17 @@ imaging_run_state (FpiSsm *ssm, FpDevice *_dev)
           fpi_ssm_jump_to_state (ssm, IMAGING_CAPTURE);
           return;
         }
-      if (!self->profile->encryption)
+
+      /* Detect whether image is encrypted (by checking how noisy it is) */
+      dev2 = calc_dev2 (img);
+      fp_dbg ("dev2: %d", dev2);
+      if (dev2 < ENC_THRESHOLD)
         {
-          dev2 = calc_dev2 (img);
-          fp_dbg ("dev2: %d", dev2);
-          if (dev2 < ENC_THRESHOLD)
-            {
-              fpi_ssm_jump_to_state (ssm, IMAGING_REPORT_IMAGE);
-              return;
-            }
-          fp_info ("image seems to be encrypted");
+          fpi_ssm_jump_to_state (ssm, IMAGING_REPORT_IMAGE);
+          return;
         }
+      fp_info ("image seems to be encrypted");
+
       buf[0] = img->key_number;
       buf[1] = self->img_enc_seed;
       buf[2] = self->img_enc_seed >> 8;
@@ -769,7 +769,13 @@ imaging_run_state (FpiSsm *ssm, FpDevice *_dev)
         }
 
       fpimg->flags = FPI_IMAGE_COLORS_INVERTED;
-      if (!self->profile->encryption)
+      /* NOTE: For some reason all but U4000B (or rather U4500?) flipped the
+       * image, we retain this behaviour here, but it is not clear whether it
+       * is correct.
+       * It may be that there are different models with the same USB ID that
+       * behave differently.
+       */
+      if (self->profile->image_not_flipped)
         fpimg->flags |= FPI_IMAGE_V_FLIPPED | FPI_IMAGE_H_FLIPPED;
       fpi_image_device_image_captured (dev, fpimg);
 
