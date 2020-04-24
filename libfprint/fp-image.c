@@ -184,10 +184,8 @@ fp_image_detect_minutiae_cb (GObject      *source_object,
   GTask *task = G_TASK (res);
   FpImage *image;
   DetectMinutiaeData *data = g_task_get_task_data (task);
-  GCancellable *cancellable;
 
-  cancellable = g_task_get_cancellable (task);
-  if (!cancellable || !g_cancellable_is_cancelled (cancellable))
+  if (!g_task_had_error (task))
     {
       gint i;
       image = FP_IMAGE (source_object);
