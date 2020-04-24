@@ -314,6 +314,14 @@ fp_image_detect_minutiae_thread_func (GTask        *task,
       return;
     }
 
+  if (!data->minutiae || data->minutiae->num == 0)
+    {
+      g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
+                               "No minutiae found");
+      g_object_unref (task);
+      return;
+    }
+
   g_task_return_boolean (task, TRUE);
   g_object_unref (task);
 }
