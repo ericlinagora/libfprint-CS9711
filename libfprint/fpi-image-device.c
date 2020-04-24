@@ -171,7 +171,16 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
       print = fp_print_new (device);
       fpi_print_set_type (print, FPI_PRINT_NBIS);
       if (!fpi_print_add_from_image (print, image, &error))
-        g_clear_object (&print);
+        {
+          g_clear_object (&print);
+
+          if (error->domain != FP_DEVICE_RETRY)
+            {
+              fpi_device_action_error (device, error);
+              fpi_image_device_deactivate (self);
+              return;
+            }
+        }
     }
 
   if (action == FPI_DEVICE_ACTION_ENROLL)
