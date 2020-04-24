@@ -859,21 +859,29 @@ m_capture_state (FpiSsm *ssm, FpDevice *dev)
         }
       else
         {
-          FpImage *img;
-          unsigned int img_size;
           /* Remove empty parts 2 times for the 2 frames */
           process_removefpi_end (self);
           process_removefpi_end (self);
-          img_size = self->fp_height * FE_WIDTH;
-          img = fp_image_new (FE_WIDTH, self->fp_height);
-          /* Images received are white on black, so invert it. */
-          /* TODO detect sweep direction */
-          img->flags = FPI_IMAGE_COLORS_INVERTED | FPI_IMAGE_V_FLIPPED;
-          img->height = self->fp_height;
-          process_4to8_bpp (self->fp, img_size / 2, img->data);
-          fp_dbg ("Sending the raw fingerprint image (%dx%d)",
-                  img->width, img->height);
-          fpi_image_device_image_captured (idev, img);
+
+          if (self->fp_height >= FE_WIDTH)
+            {
+              FpImage *img = fp_image_new (FE_WIDTH, self->fp_height);
+              unsigned int img_size = self->fp_height * FE_WIDTH;
+
+              /* Images received are white on black, so invert it. */
+              /* TODO detect sweep direction */
+              img->flags = FPI_IMAGE_COLORS_INVERTED | FPI_IMAGE_V_FLIPPED;
+              img->height = self->fp_height;
+              process_4to8_bpp (self->fp, img_size / 2, img->data);
+              fp_dbg ("Sending the raw fingerprint image (%dx%d)",
+                      img->width, img->height);
+              fpi_image_device_image_captured (idev, img);
+            }
+          else
+            {
+              fpi_image_device_retry_scan (idev, FP_DEVICE_RETRY_TOO_SHORT);
+            }
+
           fpi_image_device_report_finger_status (idev, FALSE);
           fpi_ssm_mark_completed (ssm);
         }
