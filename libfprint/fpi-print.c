@@ -23,6 +23,7 @@
 
 #include "fp-print-private.h"
 #include "fpi-device.h"
+#include "fpi-compat.h"
 
 /**
  * SECTION: fpi-print
