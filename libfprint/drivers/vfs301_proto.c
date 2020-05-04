@@ -177,6 +177,7 @@ translate_str (const char **srcL, gssize *len)
       src_len += tmp;
     }
 
+  g_assert (src_len >= 2);
   *len = src_len / 2;
   res = g_malloc0 (*len);
   dst = res;
