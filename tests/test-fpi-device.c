@@ -635,7 +635,7 @@ test_driver_enroll_progress (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
   g_autoptr(FpAutoCloseDevice) device = NULL;
-  g_autoptr(FpPrint) enrolled_print = NULL;
+  G_GNUC_UNUSED g_autoptr(FpPrint) enrolled_print = NULL;
   ExpectedEnrollData expected_enroll_data = {0};
   FpiDeviceFake *fake_dev;
 
@@ -1355,7 +1355,7 @@ test_driver_identify_report_no_callback (void)
   g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   g_autoptr(FpAutoCloseDevice) device = NULL;
-  g_autoptr(FpPrint) enrolled_print = NULL;
+  G_GNUC_UNUSED g_autoptr(FpPrint) enrolled_print = NULL;
   g_autoptr(FpPrint) print = NULL;
   g_autoptr(FpPrint) match = NULL;
   g_autoptr(GError) error = NULL;
