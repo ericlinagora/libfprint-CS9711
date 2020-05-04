@@ -822,7 +822,7 @@ fp_print_deserialize (const guchar *data,
       fpi_print_set_type (result, FPI_PRINT_NBIS);
       for (i = 0; i < g_variant_n_children (prints); i++)
         {
-          g_autofree struct xyt_struct *xyt = g_new0 (struct xyt_struct, 1);
+          g_autofree struct xyt_struct *xyt = NULL;
           const gint32 *xcol, *ycol, *thetacol;
           gsize xlen, ylen, thetalen;
           g_autoptr(GVariant) xyt_data = NULL;
@@ -848,6 +848,7 @@ fp_print_deserialize (const guchar *data,
           if (xlen > G_N_ELEMENTS (xyt->xcol))
             goto invalid_format;
 
+          xyt = g_new0 (struct xyt_struct, 1);
           xyt->nrows = xlen;
           memcpy (xyt->xcol, xcol, sizeof (xcol[0]) * xlen);
           memcpy (xyt->ycol, ycol, sizeof (xcol[0]) * xlen);
