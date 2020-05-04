@@ -988,7 +988,7 @@ static void
 elan_change_state_async (FpDevice *dev,
                          void     *data)
 {
-  g_message ("state change dev: %p", dev);
+  fp_dbg ("state change dev: %p", dev);
   elan_change_state (FP_IMAGE_DEVICE (dev));
 }
 
