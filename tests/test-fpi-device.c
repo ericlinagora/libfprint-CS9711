@@ -1891,7 +1891,7 @@ test_driver_action_error_all (void)
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   g_autoptr(GError) error = NULL;
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
-  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+  FpiDeviceFake *fake_dev;
 
   fake_dev = FPI_DEVICE_FAKE (device);
   fake_dev->return_action_error = TRUE;
@@ -1962,7 +1962,7 @@ test_driver_action_error_fallback_all (void)
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   g_autoptr(GError) error = NULL;
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
-  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+  FpiDeviceFake *fake_dev;
 
   fake_dev = FPI_DEVICE_FAKE (device);
   fake_dev->return_action_error = TRUE;
