@@ -200,7 +200,7 @@ test_ssm_new_full (void)
 static void
 test_ssm_new_no_handler (void)
 {
-  g_autoptr(FpiSsm) ssm = NULL;
+  G_GNUC_UNUSED g_autoptr(FpiSsm) ssm = NULL;
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
                          "*BUG:*handler*");
@@ -211,7 +211,7 @@ test_ssm_new_no_handler (void)
 static void
 test_ssm_new_wrong_states (void)
 {
-  g_autoptr(FpiSsm) ssm = NULL;
+  G_GNUC_UNUSED g_autoptr(FpiSsm) ssm = NULL;
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
                          "*BUG:*nr_states*");
