@@ -440,6 +440,8 @@ int get_centered_contour(int **ocontour_x, int **ocontour_y,
    int *contour_x, *contour_y, *contour_ex, *contour_ey, ncontour;
    int i, j, ret;
 
+   g_assert (half_contour > 0);
+
    /* Compute maximum length of complete contour */
    /* (2 half contours + feature point).         */
    max_contour = (half_contour<<1) + 1;

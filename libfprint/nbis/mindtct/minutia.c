@@ -1625,7 +1625,7 @@ int process_horizontal_scan_minutia_V2(MINUTIAE *minutiae,
                             dmapval, bdata, iw, ih, lfsparms);
 
    /* If minuitia IGNORED and not added to the minutia list ... */
-   if(ret == IGNORE)
+   if(ret != 0)
       /* Deallocate the minutia. */
       free_minutia(minutia);
 
@@ -1776,7 +1776,7 @@ int process_vertical_scan_minutia_V2(MINUTIAE *minutiae,
                             dmapval, bdata, iw, ih, lfsparms);
 
    /* If minuitia IGNORED and not added to the minutia list ... */
-   if(ret == IGNORE)
+   if(ret != 0)
       /* Deallocate the minutia. */
       free_minutia(minutia);
 

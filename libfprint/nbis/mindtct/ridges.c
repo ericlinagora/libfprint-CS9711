@@ -147,6 +147,8 @@ int count_minutia_ridges(const int first, MINUTIAE *minutiae,
 {
    int i, ret, *nbr_list, *nbr_nridges, nnbrs;
 
+   g_assert (lfsparms->max_nbrs > 0);
+
    /* Find up to the maximum number of qualifying neighbors. */
    nbr_list = NULL;
    if((ret = find_neighbors(&nbr_list, &nnbrs, lfsparms->max_nbrs,
@@ -406,6 +408,8 @@ int insert_neighbor(const int pos, const int nbr_index, const double nbr_dist2,
                     int *nnbrs, const int max_nbrs)
 {
    int i;
+
+   g_assert (pos >= 0);
 
    /* If the desired insertion position is beyond one passed the last     */
    /* neighbor in the lists OR greater than equal to the maximum ...      */

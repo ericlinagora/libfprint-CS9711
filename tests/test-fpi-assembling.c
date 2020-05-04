@@ -81,6 +81,8 @@ test_frame_assembling (void)
   ctx.frame_height = 20;
   ctx.image_width = width;
 
+  g_assert (height > ctx.frame_height);
+
   offset = 10;
   test_height = height - (height - ctx.frame_height) % offset;
 
