@@ -24,3 +24,4 @@
     umockdev
     uncrustify
     valgrind
+    clang-analyzer

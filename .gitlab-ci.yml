@@ -75,6 +75,23 @@ test_valgrind:
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit --setup=valgrind
 
+test_scan_build:
+  stage: test
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true
+  script:
+    - meson -Ddrivers=all . _build
+    # This is ugly, the wrapper disables the malloc checker
+    - SCANBUILD=$CI_PROJECT_DIR/.gitlab-ci/scan-build ninja -C _build scan-build
+    # Check that the directory is empty
+    - "! ls -A _build/meson-logs/scanbuild | grep -q ."
+  artifacts:
+    paths:
+      - _build/meson-logs
+    expire_in: 1 week
+
 test_indent:
   stage: check-source
   except:
