@@ -1259,7 +1259,7 @@ do_verify_stop (FpDevice *dev, FpiMatchResult res, GError *error)
   FpiSsm *ssm = deinitsm_new (dev, data);
 
   /* Report the error immediately if possible, otherwise delay it. */
-  if (!error && error->domain != FP_DEVICE_RETRY)
+  if (error && error->domain != FP_DEVICE_RETRY)
     fpi_device_verify_report (dev, res, NULL, error);
   else
     data->error = error;
