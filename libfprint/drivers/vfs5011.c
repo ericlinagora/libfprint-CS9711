@@ -381,9 +381,8 @@ submit_image (FpiSsm          *ssm,
 {
   FpImage *img;
 
-  if (self->lines_recorded == 0)
+  if (self->lines_recorded < VFS5011_IMAGE_WIDTH)
     {
-      /* == FP_ENROLL_RETRY_TOO_SHORT */
       fpi_image_device_retry_scan (dev, FP_DEVICE_RETRY_TOO_SHORT);
       return;
     }
