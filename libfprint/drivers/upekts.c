@@ -857,20 +857,13 @@ dev_init (FpDevice *dev)
 }
 
 static void
-deinitsm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
-{
-  g_usb_device_release_interface (fpi_device_get_usb_device (dev), 0, 0, NULL);
-
-  fpi_device_close_complete (dev, error);
-}
-
-static void
 dev_exit (FpDevice *dev)
 {
-  FpiSsm *ssm;
+  GError *error = NULL;
 
-  ssm = fpi_ssm_new (dev, deinitsm_state_handler, DEINITSM_NUM_STATES);
-  fpi_ssm_start (ssm, deinitsm_done);
+  g_usb_device_release_interface (fpi_device_get_usb_device (dev), 0, 0, &error);
+
+  fpi_device_close_complete (dev, error);
 }
 
 static const unsigned char enroll_init[] = {
