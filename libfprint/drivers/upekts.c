@@ -994,7 +994,7 @@ do_enroll_stop (FpDevice *dev, FpPrint *print, GError *error)
   EnrollStopData *data = g_new0 (EnrollStopData, 1);
   FpiSsm *ssm = deinitsm_new (dev, data);
 
-  data->print = g_object_ref (print);
+  data->print = print;
   data->error = error;
 
   fpi_ssm_start (ssm, enroll_stop_deinit_cb);
