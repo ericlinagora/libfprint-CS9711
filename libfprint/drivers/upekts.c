@@ -700,7 +700,7 @@ initsm_run_state (FpiSsm *ssm, FpDevice *dev)
       break;
 
     case SEND_RESP03:;
-      transfer = alloc_send_cmd28_transfer (dev, ++upekdev->seq, init_resp03, sizeof (init_resp03));
+      transfer = alloc_send_cmdresponse_transfer (dev, ++upekdev->seq, init_resp03, sizeof (init_resp03));
       transfer->ssm = ssm;
       transfer->short_is_error = TRUE;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
