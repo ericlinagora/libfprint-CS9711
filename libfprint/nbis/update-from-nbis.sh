@@ -192,3 +192,6 @@ spatch --sp-file remove-global-y.cocci bozorth3/* include/bozorth.h --in-place
 # The above leaves an unused variable around, triggering a warning
 # remove it.
 patch -p0 < glib-mem-warning.patch
+
+# Also fix some scan-build warnings, mostly by adding assertions
+patch -p0 < fix-scan-build-reports.patch
