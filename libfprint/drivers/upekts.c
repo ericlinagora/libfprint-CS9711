@@ -983,7 +983,9 @@ enroll_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
   if (error)
     fp_warn ("Error deinitializing: %s", error->message);
 
-  fpi_device_enroll_complete (dev, data->print, data->error);
+  fpi_device_enroll_complete (dev,
+                              g_steal_pointer (&data->print),
+                              g_steal_pointer (&data->error));
 }
 
 static void
