@@ -235,11 +235,18 @@ __handle_incoming_msg (FpDevice             *device,
 {
   GError *error = NULL;
   guint8 *buf = udata->buffer;
-  guint16 len = ((buf[5] & 0xf) << 8) | buf[6];
-  guint16 computed_crc = udf_crc (buf + 4, len + 3);
-  guint16 msg_crc = (buf[len + 8] << 8) | buf[len + 7];
+  guint16 len;
+  guint16 computed_crc;
+  guint16 msg_crc;
   unsigned char *retdata = NULL;
   unsigned char code_a, code_b;
+
+  g_assert (udata->buflen >= 6);
+  len = ((buf[5] & 0xf) << 8) | buf[6];
+
+  g_assert (udata->buflen >= len + 9);
+  computed_crc = udf_crc (buf + 4, len + 3);
+  msg_crc = (buf[len + 8] << 8) | buf[len + 7];
 
   if (computed_crc != msg_crc)
     {
