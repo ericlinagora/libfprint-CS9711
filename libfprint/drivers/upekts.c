@@ -238,7 +238,6 @@ __handle_incoming_msg (FpDevice             *device,
   guint16 len;
   guint16 computed_crc;
   guint16 msg_crc;
-  unsigned char *retdata = NULL;
   unsigned char code_a, code_b;
 
   g_assert (udata->buflen >= 6);
@@ -273,12 +272,7 @@ __handle_incoming_msg (FpDevice             *device,
           return;
         }
 
-      if (len > 0)
-        {
-          retdata = g_malloc (len);
-          memcpy (retdata, buf + 7, len);
-        }
-      udata->callback (device, READ_MSG_CMD, code_a, 0, retdata, len,
+      udata->callback (device, READ_MSG_CMD, code_a, 0, buf + 7, len,
                        udata->user_data, NULL);
       goto done;
     }
@@ -315,14 +309,8 @@ __handle_incoming_msg (FpDevice             *device,
       innerlen = innerlen - 3;
       _subcmd = innerbuf[5];
       fp_dbg ("device responds to subcmd %x with %d bytes", _subcmd, innerlen);
-      if (innerlen > 0)
-        {
-          retdata = g_malloc (innerlen);
-          memcpy (retdata, innerbuf + 6, innerlen);
-        }
       udata->callback (device, READ_MSG_RESPONSE, code_b, _subcmd,
-                       retdata, innerlen, udata->user_data, NULL);
-      g_free (retdata);
+                       innerbuf + 6, innerlen, udata->user_data, NULL);
       goto done;
     }
   else
