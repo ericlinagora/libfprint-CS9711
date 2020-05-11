@@ -175,7 +175,7 @@ fpi_image_resize
 
 <SECTION>
 <FILE>fpi-image-device</FILE>
-<TITLE>FpImageDevice</TITLE>
+<TITLE>Internal FpImageDevice</TITLE>
 FpiImageDeviceState
 FpImageDeviceClass
 fpi_image_device_session_error
