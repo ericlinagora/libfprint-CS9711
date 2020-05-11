@@ -24,16 +24,11 @@
 #include "fp-device-private.h"
 
 /**
- * SECTION: fpi-device
- * @title: Internal FpDevice
- * @short_description: Internal device routines
+ * SECTION: fp-device
+ * @title: FpDevice
+ * @short_description: Fingerpint device routines
  *
- * The methods that are available for drivers to manipulate a device. See
- * #FpDeviceClass for more information. Also note that most of these are
- * not relevant for image based devices, see #FpImageDeviceClass in that
- * case.
- *
- * Also see the public #FpDevice routines.
+ * These are the public #FpDevice routines.
  */
 
 static void fp_device_async_initable_iface_init (GAsyncInitableIface *iface);

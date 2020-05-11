@@ -34,8 +34,7 @@
  * @title: Internal FpImage
  * @short_description: Internal image handling routines
  *
- * Internal image handling routines. Also see the public <ulink
- * url="libfprint-FpImage.html">FpImage routines</ulink>.
+ * Internal image handling routines. See #FpImage for public routines.
  */
 
 /**

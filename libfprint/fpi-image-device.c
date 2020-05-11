@@ -24,12 +24,11 @@
 #include "fp-image-device.h"
 
 /**
- * SECTION: fpi-image
- * @title: Internal FpImage
- * @short_description: Internal image handling routines
+ * SECTION: fpi-image-device
+ * @title: Internal FpImageDevice
+ * @short_description: Internal image device functions
  *
- * Internal image handling routines. Also see the public <ulink
- * url="libfprint-FpImage.html">FpImage routines</ulink>.
+ * Internal image device functions. See #FpImageDevice for public routines.
  */
 
 /* Manually redefine what G_DEFINE_* macro does */
