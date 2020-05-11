@@ -130,6 +130,8 @@ driver_sources = {
 }
 
 helper_sources = {
+    'sdcp' :
+        [ 'fp-sdcp-device.c', 'fpi-sdcp-device.c' ],
     'aeslib' :
         [ 'drivers/aeslib.c' ],
     'aesx660' :
@@ -197,6 +199,13 @@ foreach i : helpers + drivers
         nss_dep = dependency('nss', required: false)
         if not nss_dep.found()
             error('nss is required for uru4000')
+        endif
+
+        optional_deps += nss_dep
+    elif i == 'sdcp'
+        nss_dep = dependency('nss', version: '>=3.55', required: false)
+        if not nss_dep.found()
+            error('nss >=3.55 is required for SDCP support (@0@ and possibly others)'.format(driver))
         endif
 
         optional_deps += nss_dep

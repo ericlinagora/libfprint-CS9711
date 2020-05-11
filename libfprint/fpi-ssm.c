@@ -625,7 +625,7 @@ fpi_ssm_jump_to_state_delayed (FpiSsm       *machine,
  *
  * Returns: (transfer none): the #FpDevice.
  */
-FpDevice*
+FpDevice *
 fpi_ssm_get_device (FpiSsm *machine)
 {
   return machine->dev;
