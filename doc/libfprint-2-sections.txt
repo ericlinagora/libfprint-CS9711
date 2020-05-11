@@ -101,6 +101,12 @@ FpImageDevice
 </SECTION>
 
 <SECTION>
+<FILE>fp-sdcp-device</FILE>
+FP_TYPE_SDCP_DEVICE
+FpSdcpDevice
+</SECTION>
+
+<SECTION>
 <FILE>fp-print</FILE>
 FP_TYPE_PRINT
 FpFinger
@@ -213,6 +219,26 @@ fpi_image_device_report_finger_status
 fpi_image_device_image_captured
 fpi_image_device_retry_scan
 fpi_image_device_set_bz3_threshold
+</SECTION>
+
+<SECTION>
+<FILE>fpi-sdcp-device</FILE>
+<TITLE>Internal FpSdcpDevice</TITLE>
+FpiSdcpClaim
+FpSdcpDeviceClass
+fpi_sdcp_claim_copy
+fpi_sdcp_claim_free
+fpi_sdcp_claim_get_type
+fpi_sdcp_claim_new
+fpi_sdcp_device_connect_complete
+fpi_sdcp_device_get_connect_data
+fpi_sdcp_device_get_reconnect_data
+fpi_sdcp_device_reconnect_complete
+fpi_sdcp_device_enroll_commit_complete
+fpi_sdcp_device_enroll_ready
+fpi_sdcp_device_enroll_set_nonce
+fpi_sdcp_device_identify_retry
+fpi_sdcp_device_identify_complete
 </SECTION>
 
 <SECTION>

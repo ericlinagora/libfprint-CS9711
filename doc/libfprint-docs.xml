@@ -28,6 +28,7 @@
     <xi:include href="xml/fp-context.xml"/>
     <xi:include href="xml/fp-device.xml"/>
     <xi:include href="xml/fp-image-device.xml"/>
+    <xi:include href="xml/fp-sdcp-device.xml"/>
     <xi:include href="xml/fp-print.xml"/>
     <xi:include href="xml/fp-image.xml"/>
   </part>
@@ -38,6 +39,7 @@
       <title>Device methods for drivers</title>
       <xi:include href="xml/fpi-device.xml"/>
       <xi:include href="xml/fpi-image-device.xml"/>
+      <xi:include href="xml/fpi-sdcp-device.xml"/>
     </chapter>
 
     <chapter id="driver-helpers">

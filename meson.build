@@ -218,6 +218,13 @@ foreach i : driver_helpers
         endif
 
         optional_deps += nss_dep
+    elif i == 'sdcp'
+        nss_dep = dependency('nss', version: '>=3.55', required: false)
+        if not nss_dep.found()
+            error('nss >=3.55 is required for SDCP support (@0@ and possibly others)'.format(driver))
+        endif
+
+        optional_deps += nss_dep
     elif i == 'udev'
         install_udev_rules = true
 
