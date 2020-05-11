@@ -48,6 +48,11 @@ build:
   <<: *build_one_driver
   <<: *build
 #  <<: *check_abi
+  artifacts:
+    expose_as: "HTML Documentation"
+    paths:
+    - _build/doc/html/
+    expire_in: 1 week
 
 test:
   stage: test
