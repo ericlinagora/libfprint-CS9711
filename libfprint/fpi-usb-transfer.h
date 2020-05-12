@@ -20,6 +20,7 @@
 #pragma once
 
 #include <gusb.h>
+#include "fpi-compat.h"
 #include "fpi-device.h"
 
 G_BEGIN_DECLS
@@ -115,6 +116,7 @@ void               fpi_usb_transfer_fill_bulk (FpiUsbTransfer *transfer,
                                                guint8          endpoint,
                                                gsize           length);
 
+FP_GNUC_ACCESS (read_only, 3, 4)
 void               fpi_usb_transfer_fill_bulk_full (FpiUsbTransfer *transfer,
                                                     guint8          endpoint,
                                                     guint8         *buffer,
@@ -134,6 +136,7 @@ void               fpi_usb_transfer_fill_interrupt (FpiUsbTransfer *transfer,
                                                     guint8          endpoint,
                                                     gsize           length);
 
+FP_GNUC_ACCESS (read_only, 3, 4)
 void               fpi_usb_transfer_fill_interrupt_full (FpiUsbTransfer *transfer,
                                                          guint8          endpoint,
                                                          guint8         *buffer,

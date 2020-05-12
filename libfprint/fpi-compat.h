@@ -37,3 +37,9 @@ typedef struct _FpDeviceClass FpDeviceClass;
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpDeviceClass, g_type_class_unref);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (GDate, g_date_free);
 #endif
+
+#if  __GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 1)
+#define FP_GNUC_ACCESS(m, p, s) __attribute__((access (m, p, s)))
+#else
+#define FP_GNUC_ACCESS(m, p, s)
+#endif
