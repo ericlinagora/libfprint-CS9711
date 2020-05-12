@@ -35,7 +35,6 @@
 #define TIMEOUT 5000
 
 #define MSG_READ_BUF_SIZE 0x40
-#define MAX_DATA_IN_READ_BUF (MSG_READ_BUF_SIZE - 9)
 
 struct _FpiDeviceUpekts
 {
@@ -358,7 +357,8 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
              gpointer user_data, GError *error)
 {
   struct read_msg_data *udata = user_data;
-  guint16 len;
+  guint16 payload_len;
+  gsize packet_len;
 
   if (error)
     {
@@ -383,14 +383,15 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
       goto err;
     }
 
-  len = ((udata->buffer[5] & 0xf) << 8) | udata->buffer[6];
+  payload_len = ((udata->buffer[5] & 0xf) << 8) | udata->buffer[6];
+  packet_len = payload_len + 9;
   if (transfer->actual_length != MSG_READ_BUF_SIZE &&
-      (len + 9) > transfer->actual_length)
+      packet_len > transfer->actual_length)
     {
       /* Check that the length claimed inside the message is in line with
        * the amount of data that was transferred over USB. */
       fp_err ("msg didn't include enough data, expected=%d recv=%d",
-              len + 9, (gint) transfer->actual_length);
+              (gint) packet_len, (gint) transfer->actual_length);
       error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
                                         "Packet from device didn't include data");
       goto err;
@@ -399,14 +400,14 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
   /* We use a 64 byte buffer for reading messages. However, sometimes
    * messages are longer, in which case we have to do another USB bulk read
    * to read the remainder. This is handled below. */
-  if (len > MAX_DATA_IN_READ_BUF)
+  if (packet_len > MSG_READ_BUF_SIZE)
     {
-      int needed = len - MAX_DATA_IN_READ_BUF;
+      int needed = packet_len - MSG_READ_BUF_SIZE;
       FpiUsbTransfer *etransfer = fpi_usb_transfer_new (device);
 
       fp_dbg ("didn't fit in buffer, need to extend by %d bytes", needed);
-      udata->buffer = g_realloc ((gpointer) udata->buffer, len);
-      udata->buflen = len;
+      udata->buffer = g_realloc ((gpointer) udata->buffer, packet_len);
+      udata->buflen = packet_len;
 
       fpi_usb_transfer_fill_bulk_full (etransfer, EP_IN,
                                        udata->buffer + MSG_READ_BUF_SIZE,
