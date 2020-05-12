@@ -288,7 +288,8 @@ dev_init (FpImageDevice *dev)
 
   start_listen (self);
 
-  fpi_image_device_open_complete (dev, NULL);
+  /* Delay result to open up the possibility of testing race conditions. */
+  fpi_device_add_timeout (FP_DEVICE (dev), 100, (FpTimeoutFunc) fpi_image_device_open_complete, NULL, NULL);
 }
 
 static void
@@ -303,7 +304,8 @@ dev_deinit (FpImageDevice *dev)
   g_clear_object (&self->listener);
   g_clear_object (&self->connection);
 
-  fpi_image_device_close_complete (dev, NULL);
+  /* Delay result to open up the possibility of testing race conditions. */
+  fpi_device_add_timeout (FP_DEVICE (dev), 100, (FpTimeoutFunc) fpi_image_device_close_complete, NULL, NULL);
 }
 
 static void
