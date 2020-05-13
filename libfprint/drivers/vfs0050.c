@@ -156,6 +156,8 @@ async_abort (FpDevice *dev, FpiSsm *ssm, int ep)
   else
     fpi_usb_transfer_fill_bulk (transfer, ep, VFS_USB_BUFFER_SIZE);
 
+  transfer->ssm = ssm;
+
   fpi_usb_transfer_submit (transfer, VFS_USB_ABORT_TIMEOUT, NULL,
                            async_abort_callback, NULL);
 }
@@ -464,8 +466,8 @@ receive_callback (FpiUsbTransfer *transfer, FpDevice *device,
   if (error)
     g_error_free (error);
 
-  /* Check if fingerprint data is over */
-  if (transfer->actual_length == 0)
+  /* Capture is done when there is no more data to transfer or device timed out */
+  if (transfer->actual_length <= 0)
     {
       fpi_ssm_next_state (transfer->ssm);
     }
@@ -473,7 +475,7 @@ receive_callback (FpiUsbTransfer *transfer, FpDevice *device,
     {
       self->bytes += transfer->actual_length;
 
-      /* We need more data */
+      /* Try reading more data */
       fpi_ssm_jump_to_state (transfer->ssm,
                              fpi_ssm_get_cur_state (transfer->ssm));
     }
@@ -595,8 +597,7 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
         /* Receive chunk of data */
         transfer = fpi_usb_transfer_new (dev);
         fpi_usb_transfer_fill_bulk_full (transfer, 0x82,
-                                         (guint8 *)
-                                         (self->lines_buffer + self->bytes),
+                                         (guint8 *) self->lines_buffer + self->bytes,
                                          VFS_USB_BUFFER_SIZE, NULL);
         transfer->ssm = ssm;
         fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
