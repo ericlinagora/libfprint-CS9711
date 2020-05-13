@@ -69,6 +69,7 @@ test:
     paths:
       - _build/meson-logs
     expire_in: 1 week
+  coverage: '/^TOTAL.*\s+(\d+\%)$/'
 
 test_valgrind:
   stage: test
