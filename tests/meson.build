@@ -18,8 +18,9 @@ envs.set('NO_AT_BRIDGE', '1')
 
 drivers_tests = [
     'elan',
-    'vfs5011',
     'synaptics',
+    'vfs0050',
+    'vfs5011',
 ]
 
 if get_option('introspection')
