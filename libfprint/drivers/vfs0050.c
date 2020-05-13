@@ -117,9 +117,10 @@ async_abort_callback (FpiUsbTransfer *transfer, FpDevice *device,
   int ep = transfer->endpoint;
 
   /* In normal case endpoint is empty */
-  if (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT))
+  if (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT) ||
+      (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0 && transfer->actual_length == 0))
     {
-      g_error_free (error);
+      g_clear_error (&error);
       fpi_ssm_next_state (transfer->ssm);
       return;
     }
