@@ -912,6 +912,20 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
     {
       if (FP_IS_PRINT (print))
         {
+          FpiPrintType print_type;
+
+          g_object_get (print, "fpi-type", &print_type, NULL);
+          if (print_type == FPI_PRINT_UNDEFINED)
+            {
+              g_warning ("Driver did not set the type on the returned print!");
+              g_clear_object (&print);
+
+              error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                                "Driver provided incorrect print data!");
+              fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
+              return;
+            }
+
           fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_OBJECT, print);
         }
       else
