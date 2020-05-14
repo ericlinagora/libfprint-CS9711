@@ -281,7 +281,7 @@ fp_print_class_init (FpPrintClass *klass)
                        "Type",
                        "Private: The type of the print data",
                        FPI_TYPE_PRINT_TYPE,
-                       FPI_PRINT_RAW,
+                       FPI_PRINT_UNDEFINED,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
