@@ -100,7 +100,10 @@ fpi_device_fake_enroll (FpDevice *device)
   fpi_device_get_enroll_data (device, (FpPrint **) &fake_dev->action_data);
 
   if (!print && !fake_dev->ret_error)
-    fpi_device_get_enroll_data (device, &print);
+    {
+      fpi_device_get_enroll_data (device, &print);
+      fpi_print_set_type (print, FPI_PRINT_RAW);
+    }
 
   fpi_device_enroll_complete (device,
                               print ? g_object_ref (print) : NULL,
