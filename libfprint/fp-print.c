@@ -582,7 +582,7 @@ fp_print_equal (FpPrint *self, FpPrint *other)
   if (g_strcmp0 (self->device_id, other->device_id))
     return FALSE;
 
-  if (self->type == FPI_PRINT_RAW)
+  if (self->type == FPI_PRINT_RAW || self->type == FPI_PRINT_SDCP)
     {
       return g_variant_equal (self->data, other->data);
     }
@@ -847,7 +847,7 @@ fp_print_deserialize (const guchar *data,
           g_ptr_array_add (result->prints, g_steal_pointer (&xyt));
         }
     }
-  else if (type == FPI_PRINT_RAW)
+  else if (type == FPI_PRINT_RAW || type == FPI_PRINT_SDCP)
     {
       g_autoptr(GVariant) fp_data = g_variant_get_child_value (print_data, 0);
 
