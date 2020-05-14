@@ -541,6 +541,24 @@ test_driver_enroll_error_no_print (void)
   g_assert_true (error == g_steal_pointer (&fake_dev->ret_error));
   g_assert_null (out_print);
   g_assert_null (fake_dev->ret_print);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Driver did not set the type on the returned print*");
+
+  fake_dev->ret_error = NULL;
+  fake_dev->ret_print = fp_print_new (device); /* Type not set. */
+  g_object_add_weak_pointer (G_OBJECT (fake_dev->ret_print),
+                             (gpointer) (&fake_dev->ret_print));
+  out_print =
+    fp_device_enroll_sync (device, fp_print_new (device), NULL, NULL, NULL, &error);
+
+  g_test_assert_expected_messages ();
+  g_assert (fake_dev->last_called_function == dev_class->enroll);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_assert_null (out_print);
+  g_assert_null (fake_dev->ret_print);
+  g_clear_error (&error);
 }
 
 typedef struct
