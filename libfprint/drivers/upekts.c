@@ -1118,6 +1118,7 @@ e_handle_resp02 (FpDevice *dev, unsigned char *data,
                                            data_len - sizeof (scan_comp),
                                            1);
 
+      fpi_print_set_type (print, FPI_PRINT_RAW);
       g_object_set (print, "fpi-data", fp_data, NULL);
       g_object_ref (print);
     }
