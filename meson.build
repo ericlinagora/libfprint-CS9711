@@ -96,8 +96,8 @@ virtual_drivers = [
     'virtual_image',
     'virtual_device',
     'virtual_device_storage',
+    'virtual_sdcp',
 ]
-
 default_drivers = [
     'upektc_img',
     'vfs5011',
@@ -159,6 +159,7 @@ driver_helper_mapping = {
     'virtual_image'          : [ 'virtual' ],
     'virtual_device'         : [ 'virtual' ],
     'virtual_device_storage' : [ 'virtual' ],
+    'virtual_sdcp'           : [ 'sdcp' ],
 }
 
 driver_helpers = []
