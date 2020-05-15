@@ -1293,7 +1293,7 @@ verify_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
 
     case VERIFY_INIT:
       fpi_device_get_verify_data (dev, &print);
-      g_object_get (dev, "fpi-data", &fp_data, NULL);
+      g_object_get (print, "fpi-data", &fp_data, NULL);
 
       data = g_variant_get_fixed_array (fp_data, &data_len, 1);
 
