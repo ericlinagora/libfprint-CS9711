@@ -123,6 +123,8 @@ driver_sources = {
         [ 'drivers/virtual-device.c' ],
     'virtual_device_storage' :
         [ 'drivers/virtual-device-storage.c' ],
+    'virtual_sdcp' :
+        [ 'drivers/virtual-sdcp.c' ],
     'synaptics' :
         [ 'drivers/synaptics/synaptics.c', 'drivers/synaptics/bmkt_message.c' ],
     'goodixmoc' :
@@ -153,6 +155,7 @@ driver_helpers = {
     'virtual_image'          : [ 'virtual' ],
     'virtual_device'         : [ 'virtual' ],
     'virtual_device_storage' : [ 'virtual' ],
+    'virtual_sdcp' : [ 'sdcp' ],
 }
 
 helpers = []
