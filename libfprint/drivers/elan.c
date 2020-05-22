@@ -1015,7 +1015,10 @@ dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
     state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
 
   if (self->dev_state_next == state)
-    fp_dbg ("change to state %d already queued", state);
+    {
+      fp_dbg ("change to state %d already queued", state);
+      return;
+    }
 
   switch (state)
     {
