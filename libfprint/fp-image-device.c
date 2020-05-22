@@ -62,17 +62,34 @@ static gboolean
 pending_activation_timeout (gpointer user_data)
 {
   FpImageDevice *self = FP_IMAGE_DEVICE (user_data);
+  FpDevice *device = FP_DEVICE (self);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
+  FpiDeviceAction action = fpi_device_get_current_action (device);
+  GError *error;
 
   priv->pending_activation_timeout_id = 0;
 
   if (priv->pending_activation_timeout_waiting_finger_off)
-    fpi_device_action_error (FP_DEVICE (self),
-                             fpi_device_retry_new_msg (FP_DEVICE_RETRY_REMOVE_FINGER,
-                                                       "Remove finger before requesting another scan operation"));
+    error = fpi_device_retry_new_msg (FP_DEVICE_RETRY_REMOVE_FINGER,
+                                      "Remove finger before requesting another scan operation");
   else
-    fpi_device_action_error (FP_DEVICE (self),
-                             fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
+    error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
+
+  if (action == FPI_DEVICE_ACTION_VERIFY)
+    {
+      fpi_device_verify_report (device, FPI_MATCH_ERROR, NULL, error);
+      fpi_device_verify_complete (device, NULL);
+    }
+  else if (action == FPI_DEVICE_ACTION_IDENTIFY)
+    {
+      fpi_device_identify_report (device, NULL, NULL, error);
+      fpi_device_identify_complete (device, NULL);
+    }
+  else
+    {
+      /* Can this happen for enroll? */
+      fpi_device_action_error (device, error);
+    }
 
   return G_SOURCE_REMOVE;
 }
