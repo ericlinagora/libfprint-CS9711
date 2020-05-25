@@ -1237,11 +1237,11 @@ verify_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
     fp_warn ("Error deinitializing: %s", error->message);
 
   if (data->error)
-    fpi_device_verify_complete (dev, data->error);
+    fpi_device_verify_complete (dev, g_steal_pointer (&data->error));
   else
     fpi_device_verify_complete (dev, g_steal_pointer (&error));
 
-  g_error_free (error);
+  g_clear_error (&error);
 }
 
 static void
