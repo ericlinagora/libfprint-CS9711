@@ -103,7 +103,9 @@ test_indent:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - scripts/uncrustify.sh --check
+    - scripts/uncrustify.sh
+    - git diff
+    - "! git status -s | grep -q ."
 
 .flatpak_script_template: &flatpak_script
     script:
