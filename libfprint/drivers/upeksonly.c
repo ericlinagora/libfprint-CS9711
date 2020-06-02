@@ -560,7 +560,7 @@ img_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
   if (is_capturing (self))
     {
-      fpi_usb_transfer_submit (transfer,
+      fpi_usb_transfer_submit (fpi_usb_transfer_ref (transfer),
                                0,
                                self->img_cancellable,
                                img_data_cb,
@@ -908,7 +908,7 @@ capsm_fire_bulk (FpiSsm   *ssm,
   self->img_cancellable = g_cancellable_new ();
   for (i = 0; i < self->img_transfers->len; i++)
     {
-      fpi_usb_transfer_submit (g_ptr_array_index (self->img_transfers, i),
+      fpi_usb_transfer_submit (fpi_usb_transfer_ref (g_ptr_array_index (self->img_transfers, i)),
                                0,
                                self->img_cancellable,
                                img_data_cb,
@@ -1406,8 +1406,9 @@ dev_activate (FpImageDevice *dev)
   self->capturing = FALSE;
 
   self->num_flying = 0;
+  self->img_transfers = g_ptr_array_new_with_free_func ((GFreeFunc) fpi_usb_transfer_unref);
 
-  for (i = 0; i < self->img_transfers->len; i++)
+  for (i = 0; i < NUM_BULK_TRANSFERS; i++)
     {
       FpiUsbTransfer *transfer;
 
