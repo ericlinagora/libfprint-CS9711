@@ -47,9 +47,6 @@ enum {
 enum sonly_kill_transfers_action {
   NOT_KILLING = 0,
 
-  /* abort a SSM with an error code */
-  ABORT_SSM,
-
   /* report an image session error */
   IMG_SESSION_ERROR,
 
@@ -176,11 +173,6 @@ last_transfer_killed (FpImageDevice *dev)
 
   switch (self->killing_transfers)
     {
-    case ABORT_SSM:
-      fp_dbg ("abort ssm error %s", self->kill_error->message);
-      fpi_ssm_mark_failed (self->kill_ssm, g_steal_pointer (&self->kill_error));
-      return;
-
     case ITERATE_SSM:
       fp_dbg ("iterate ssm");
       fpi_ssm_next_state (self->kill_ssm);
