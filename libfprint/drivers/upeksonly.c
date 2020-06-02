@@ -627,7 +627,7 @@ write_regs_iterate (struct write_regs_data *wrdata)
                                  1);
   transfer->short_is_error = TRUE;
   transfer->ssm = wrdata->ssm;
-  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, write_regs_cb, NULL);
+  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, write_regs_cb, wrdata);
 
   transfer->buffer[0] = regwrite->value;
 }
