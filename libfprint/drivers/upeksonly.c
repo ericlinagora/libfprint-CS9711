@@ -52,9 +52,6 @@ enum sonly_kill_transfers_action {
 
   /* iterate a SSM to the next state */
   ITERATE_SSM,
-
-  /* call a callback */
-  EXEC_CALLBACK,
 };
 
 enum sonly_fs {
@@ -94,13 +91,9 @@ struct _FpiDeviceUpeksonly
 
   enum sonly_kill_transfers_action killing_transfers;
   GError                          *kill_error;
-  union
-  {
-    FpiSsm *kill_ssm;
-    void    (*kill_cb)(FpImageDevice *dev);
-  };
+  FpiSsm                          *kill_ssm;
 
-  struct fpi_line_asmbl_ctx assembling_ctx;
+  struct fpi_line_asmbl_ctx        assembling_ctx;
 };
 G_DECLARE_FINAL_TYPE (FpiDeviceUpeksonly, fpi_device_upeksonly, FPI,
                       DEVICE_UPEKSONLY, FpImageDevice);
