@@ -581,6 +581,8 @@ write_regs_finished (struct write_regs_data *wrdata, GError *error)
     fpi_ssm_next_state (wrdata->ssm);
   else
     fpi_ssm_mark_failed (wrdata->ssm, error);
+
+  g_free (wrdata);
 }
 
 static void write_regs_iterate (struct write_regs_data *wrdata);
