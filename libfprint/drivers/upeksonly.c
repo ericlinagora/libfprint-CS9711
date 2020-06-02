@@ -627,9 +627,9 @@ write_regs_iterate (struct write_regs_data *wrdata)
                                  1);
   transfer->short_is_error = TRUE;
   transfer->ssm = wrdata->ssm;
-  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, write_regs_cb, wrdata);
-
   transfer->buffer[0] = regwrite->value;
+
+  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, write_regs_cb, wrdata);
 }
 
 static void
@@ -668,10 +668,10 @@ sm_write_reg (FpiSsm        *ssm,
                                  1);
   transfer->short_is_error = TRUE;
   transfer->ssm = ssm;
+  transfer->buffer[0] = value;
+
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL,
                            fpi_ssm_usb_transfer_cb, NULL);
-
-  transfer->buffer[0] = value;
 }
 
 static void
