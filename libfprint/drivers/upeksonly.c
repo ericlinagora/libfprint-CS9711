@@ -516,6 +516,14 @@ img_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
       return;
     }
 
+  /* NOTE: The old code assume 4096 bytes are received each time
+   * but there is no reason we need to enforce that. However, we
+   * always need full lines. */
+  if (transfer->actual_length % 64 != 0)
+    error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
+                                      "Data packets need to be multiple of 64 bytes, got %zi bytes",
+                                      transfer->actual_length);
+
   if (error)
     {
       fp_warn ("bad status %s, terminating session", error->message);
@@ -536,7 +544,7 @@ img_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
    * the first 2 bytes are a sequence number
    * then there are 62 bytes for image data
    */
-  for (i = 0; i < 4096; i += 64)
+  for (i = 0; i + 64 <= transfer->actual_length; i += 64)
     {
       if (!is_capturing (self))
         return;
