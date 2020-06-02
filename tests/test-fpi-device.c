@@ -1493,6 +1493,7 @@ test_driver_list (void)
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
   g_autoptr(GPtrArray) prints = g_ptr_array_new_with_free_func (g_object_unref);
   unsigned int i;
 
@@ -1515,6 +1516,7 @@ test_driver_list_error (void)
   g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
   g_autoptr(GPtrArray) prints = NULL;
 
   fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);

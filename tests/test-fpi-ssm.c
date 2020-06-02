@@ -1172,6 +1172,7 @@ test_ssm_subssm_start (void)
   g_autoptr(FpiSsm) subssm =
     ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
+
   g_autoptr(FpiSsmTestData) subdata =
     fpi_ssm_test_data_ref (fpi_ssm_get_data (subssm));
 
@@ -1262,6 +1263,7 @@ test_ssm_subssm_start_with_started (void)
   g_autoptr(FpiSsm) subssm =
     ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
+
   g_autoptr(FpiSsmTestData) subdata =
     fpi_ssm_test_data_ref (fpi_ssm_get_data (subssm));
 
@@ -1305,6 +1307,7 @@ test_ssm_subssm_start_with_delayed (void)
   g_autoptr(FpiSsm) subssm =
     ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
+
   g_autoptr(FpiSsmTestData) subdata =
     fpi_ssm_test_data_ref (fpi_ssm_get_data (subssm));
   gpointer timeout_tracker = GUINT_TO_POINTER (TRUE);

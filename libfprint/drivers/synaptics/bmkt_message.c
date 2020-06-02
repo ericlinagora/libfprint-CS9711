@@ -206,6 +206,7 @@ parse_get_enrolled_users_report (bmkt_msg_resp_t *msg_resp, bmkt_response_t *res
   get_enroll_templates_resp->query_sequence = extract8 (msg_resp->payload, &offset);
 
   int n = 0;
+
   for (n = 0; n < BMKT_MAX_NUM_TEMPLATES_INTERNAL_FLASH; n++)
     {
       if (offset >= msg_resp->payload_len)

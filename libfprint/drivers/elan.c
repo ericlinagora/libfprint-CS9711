@@ -207,6 +207,7 @@ elan_save_img_frame (FpiDeviceElan *elandev)
 
   unsigned int frame_size = elandev->frame_width * elandev->frame_height;
   unsigned short *frame = g_malloc (frame_size * sizeof (short));
+
   elan_save_frame (elandev, frame);
   unsigned int sum = 0;
 
@@ -244,6 +245,7 @@ elan_process_frame_linear (unsigned short *raw_frame,
   G_DEBUG_HERE ();
 
   unsigned short min = 0xffff, max = 0;
+
   for (int i = 0; i < frame_size; i++)
     {
       if (raw_frame[i] < min)
@@ -255,6 +257,7 @@ elan_process_frame_linear (unsigned short *raw_frame,
   g_assert (max != min);
 
   unsigned short px;
+
   for (int i = 0; i < frame_size; i++)
     {
       px = raw_frame[i];
@@ -278,6 +281,7 @@ elan_process_frame_thirds (unsigned short *raw_frame,
 
   unsigned short lvl0, lvl1, lvl2, lvl3;
   unsigned short *sorted = g_malloc (frame_size * sizeof (short));
+
   memcpy (sorted, raw_frame, frame_size * sizeof (short));
   qsort (sorted, frame_size, sizeof (short), cmp_short);
   lvl0 = sorted[0];
@@ -287,6 +291,7 @@ elan_process_frame_thirds (unsigned short *raw_frame,
   g_free (sorted);
 
   unsigned short px;
+
   for (int i = 0; i < frame_size; i++)
     {
       px = raw_frame[i];
@@ -509,6 +514,7 @@ elan_stop_capture (FpDevice *dev)
 
   FpiSsm *ssm =
     fpi_ssm_new (dev, stop_capture_run_state, STOP_CAPTURE_NUM_STATES);
+
   fpi_ssm_start (ssm, stop_capture_complete);
 }
 
@@ -619,6 +625,7 @@ elan_capture (FpDevice *dev)
   elan_dev_reset_state (self);
   FpiSsm *ssm =
     fpi_ssm_new (dev, capture_run_state, CAPTURE_NUM_STATES);
+
   fpi_ssm_start (ssm, capture_complete);
 }
 
@@ -797,6 +804,7 @@ elan_calibrate (FpDevice *dev)
 
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (dev), calibrate_run_state,
                              CALIBRATE_NUM_STATES);
+
   fpi_ssm_start (ssm, calibrate_complete);
 }
 
@@ -892,6 +900,7 @@ elan_activate (FpImageDevice *dev)
   FpiSsm *ssm =
     fpi_ssm_new (FP_DEVICE (dev), activate_run_state,
                  ACTIVATE_NUM_STATES);
+
   fpi_ssm_start (ssm, activate_complete);
 }
 

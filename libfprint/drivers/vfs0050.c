@@ -242,6 +242,7 @@ prepare_image (FpDeviceVfs0050 *vdev)
 
   /* Building GSList */
   GSList *lines = NULL;
+
   for (int i = height - 1; i >= 0; --i)
     lines = g_slist_prepend (lines, vdev->lines_buffer + i);
 
@@ -669,6 +670,7 @@ dev_activate (FpImageDevice *idev)
   self->ssm_active = 1;
 
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), activate_ssm, SSM_STATES);
+
   fpi_ssm_start (ssm, dev_activate_callback);
 }
 
@@ -712,6 +714,7 @@ dev_open (FpImageDevice *idev)
 
   /* Clearing previous device state */
   FpiSsm *ssm = fpi_ssm_new (FP_DEVICE (idev), activate_ssm, SSM_STATES);
+
   fpi_ssm_start (ssm, dev_open_callback);
 }
 

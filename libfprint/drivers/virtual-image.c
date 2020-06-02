@@ -252,6 +252,7 @@ dev_init (FpImageDevice *dev)
   g_autoptr(GSocketListener) listener = NULL;
   FpDeviceVirtualImage *self = FPI_DEVICE_VIRTUAL_IMAGE (dev);
   const char *env;
+
   g_autoptr(GSocketAddress) addr = NULL;
   G_DEBUG_HERE ();
 
