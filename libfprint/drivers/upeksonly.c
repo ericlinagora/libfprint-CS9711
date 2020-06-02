@@ -1403,6 +1403,9 @@ dev_activate (FpImageDevice *dev)
   self->num_flying = 0;
   self->img_transfers = g_ptr_array_new_with_free_func ((GFreeFunc) fpi_usb_transfer_unref);
 
+  /* This might seem odd, but we do need multiple in-flight URBs so that
+   * we never stop polling the device for more data.
+   */
   for (i = 0; i < NUM_BULK_TRANSFERS; i++)
     {
       FpiUsbTransfer *transfer;
