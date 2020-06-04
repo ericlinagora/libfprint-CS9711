@@ -310,6 +310,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
           fp_dbg ("Image size is %lu\n",
                   self->image_size);
           img = fp_image_new (IMAGE_WIDTH, IMAGE_HEIGHT);
+          img->flags |= FPI_IMAGE_PARTIAL;
           memcpy (img->data, self->image_bits,
                   IMAGE_SIZE);
           fpi_image_device_image_captured (dev, img);

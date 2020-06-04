@@ -331,6 +331,7 @@ capture_set_idle_cmd_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
       priv->strips = g_slist_reverse (priv->strips);
       img = fpi_assemble_frames (cls->assembling_ctx, priv->strips);
+      img->flags |= FPI_IMAGE_PARTIAL;
       g_slist_foreach (priv->strips, (GFunc) g_free, NULL);
       g_slist_free (priv->strips);
       priv->strips = NULL;

@@ -37,6 +37,7 @@ typedef enum {
   FPI_IMAGE_V_FLIPPED       = 1 << 0,
   FPI_IMAGE_H_FLIPPED       = 1 << 1,
   FPI_IMAGE_COLORS_INVERTED = 1 << 2,
+  FPI_IMAGE_PARTIAL         = 1 << 3,
 } FpiImageFlags;
 
 /**

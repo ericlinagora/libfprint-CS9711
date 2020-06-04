@@ -281,6 +281,7 @@ fp_image_detect_minutiae_thread_func (GTask        *task,
   gint map_w, map_h;
   gint bw, bh, bd;
   gint r;
+  g_autofree LFSPARMS *lfsparms;
 
   /* Normalize the image first */
   if (data->flags & FPI_IMAGE_H_FLIPPED)
@@ -294,12 +295,15 @@ fp_image_detect_minutiae_thread_func (GTask        *task,
 
   data->flags &= ~(FPI_IMAGE_H_FLIPPED | FPI_IMAGE_V_FLIPPED | FPI_IMAGE_COLORS_INVERTED);
 
+  lfsparms = g_memdup (&g_lfsparms_V2, sizeof (LFSPARMS));
+  lfsparms->remove_perimeter_pts = data->flags & FPI_IMAGE_PARTIAL ? TRUE : FALSE;
+
   timer = g_timer_new ();
   r = get_minutiae (&minutiae, &quality_map, &direction_map,
                     &low_contrast_map, &low_flow_map, &high_curve_map,
                     &map_w, &map_h, &bdata, &bw, &bh, &bd,
                     data->image, data->width, data->height, 8,
-                    data->ppmm, &g_lfsparms_V2);
+                    data->ppmm, lfsparms);
   g_timer_stop (timer);
   fp_dbg ("Minutiae scan completed in %f secs", g_timer_elapsed (timer, NULL));
 

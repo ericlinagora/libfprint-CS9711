@@ -458,6 +458,7 @@ capture_read_strip_cb (FpiUsbTransfer *transfer, FpDevice *_dev,
           fpi_do_movement_estimation (&assembling_ctx, self->strips);
           img = fpi_assemble_frames (&assembling_ctx,
                                      self->strips);
+          img->flags |= FPI_IMAGE_PARTIAL;
           g_slist_free_full (self->strips, g_free);
           self->strips = NULL;
           self->strips_len = 0;
