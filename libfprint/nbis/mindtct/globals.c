@@ -150,6 +150,8 @@ LFSPARMS g_lfsparms = {
    PORES_STEPS_BWD,
    PORES_MIN_DIST2,
    PORES_MAX_RATIO,
+   FALSE, /* not removing perimeter points by default */
+   PERIMETER_PTS_DISTANCE,
 
    /* Ridge Counting Controls */
    MAX_NBRS,
@@ -234,6 +236,8 @@ LFSPARMS g_lfsparms_V2 = {
    PORES_STEPS_BWD,
    PORES_MIN_DIST2,
    PORES_MAX_RATIO,
+   FALSE, /* not removing perimeter points by default */
+   PERIMETER_PTS_DISTANCE,
 
    /* Ridge Counting Controls */
    MAX_NBRS,

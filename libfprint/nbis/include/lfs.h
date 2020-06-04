@@ -260,6 +260,8 @@ typedef struct g_lfsparms{
    int    pores_steps_bwd;
    double pores_min_dist2;
    double pores_max_ratio;
+   int    remove_perimeter_pts;
+   int    min_pp_distance;
 
    /* Ridge Counting Controls */
    int    max_nbrs;
@@ -608,6 +610,9 @@ typedef struct g_lfsparms{
 /* Max ratio of computed distances between pairs of forward and backward */
 /* contour points to be considered a pore.                               */
 #define PORES_MAX_RATIO          2.25
+
+/* Points which are closer than this distance to scan perimeter will be removed */
+#define PERIMETER_PTS_DISTANCE 10
 
 
 /***** RIDGE COUNTING CONSTANTS *****/
@@ -1123,6 +1128,9 @@ extern int remove_or_adjust_side_minutiae(MINUTIAE *, unsigned char *,
 extern int remove_or_adjust_side_minutiae_V2(MINUTIAE *,
                   unsigned char *, const int, const int,
                   int *, const int, const int, const LFSPARMS *);
+extern int remove_perimeter_pts(MINUTIAE *minutiae,
+                  unsigned char *bdata, const int iw, const int ih,
+                  const LFSPARMS *lfsparms);
 
 /* results.c */
 extern int write_text_results(char *, const int, const int, const int,

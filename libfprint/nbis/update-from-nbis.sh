@@ -195,3 +195,6 @@ patch -p0 < glib-mem-warning.patch
 
 # Also fix some scan-build warnings, mostly by adding assertions
 patch -p0 < fix-scan-build-reports.patch
+
+# Add pass to remove perimeter points
+patch -p0 < remove-perimeter-pts.patch
