@@ -1,6 +1,16 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2020-06-08: v1.90.2 release
+
+This release contains a large amount of bug and regression fixes. These
+are not listed explicitly, but affect the majority of drivers.
+
+Highlights:
+ * A patch for nbis required for some sensors was accidentally dropped in
+   an earlier release. Users of these sensors/drivers (aes1610, aes2501,
+   aes2550, aes1660, aes2660, elan, upektc_img) need to re-enroll (#142).
+
 2019-11-20: v1.90.1 release
 
 This release fixes a lot of the regressions introduced in 1.90.0. Please note
