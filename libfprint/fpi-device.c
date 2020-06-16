@@ -391,7 +391,7 @@ fpi_device_action_is_cancelled (FpDevice *device)
 
   cancellable = g_task_get_cancellable (priv->current_task);
 
-  return cancellable ? g_cancellable_is_cancelled (cancellable) : FALSE;
+  return g_cancellable_is_cancelled (cancellable);
 }
 
 /**
