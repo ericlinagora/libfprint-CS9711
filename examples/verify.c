@@ -124,7 +124,7 @@ on_match_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
       return;
     }
 
-  if (print && fp_device_supports_capture (dev) &&
+  if (print && fp_print_get_image (print) &&
       print_image_save (print, "verify.pgm"))
     g_print ("Print image saved as verify.pgm\n");
 
