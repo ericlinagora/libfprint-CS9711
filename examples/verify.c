@@ -256,7 +256,7 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
 
       g_print ("Print loaded. Time to verify!\n");
       fp_device_verify (dev, verify_print, verify_data->cancellable,
-                        NULL, NULL, NULL,
+                        on_match_cb, verify_data, NULL,
                         (GAsyncReadyCallback) on_verify_completed,
                         verify_data);
     }
