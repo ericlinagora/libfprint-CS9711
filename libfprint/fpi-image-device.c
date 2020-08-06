@@ -306,7 +306,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
                                   g_steal_pointer (&print), error);
 
       /* Start another scan or deactivate. */
-      if (priv->enroll_stage == IMG_ENROLL_STAGES)
+      if (priv->enroll_stage == fp_device_get_nr_enroll_stages (device))
         {
           fp_image_device_maybe_complete_action (self, g_steal_pointer (&error));
           fpi_image_device_deactivate (self, FALSE);

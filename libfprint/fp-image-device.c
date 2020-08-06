@@ -190,9 +190,7 @@ fp_image_device_constructed (GObject *obj)
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpImageDeviceClass *cls = FP_IMAGE_DEVICE_GET_CLASS (self);
 
-  /* Set default values. */
-  fpi_device_set_nr_enroll_stages (FP_DEVICE (self), IMG_ENROLL_STAGES);
-
+  /* Set default threshold. */
   priv->bz3_threshold = BOZORTH3_DEFAULT_THRESHOLD;
   if (cls->bz3_threshold > 0)
     priv->bz3_threshold = cls->bz3_threshold;
@@ -209,6 +207,9 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
   object_class->finalize = fp_image_device_finalize;
   object_class->get_property = fp_image_device_get_property;
   object_class->constructed = fp_image_device_constructed;
+
+  /* Set default enroll stage count. */
+  fp_device_class->nr_enroll_stages = IMG_ENROLL_STAGES;
 
   fp_device_class->open = fp_image_device_open;
   fp_device_class->close = fp_image_device_close;
