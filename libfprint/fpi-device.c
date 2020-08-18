@@ -760,7 +760,7 @@ fp_device_task_return_in_idle_cb (gpointer user_data)
       g_task_return_error (task, fpi_device_error_new (FP_DEVICE_ERROR_REMOVED));
 
       /* NOTE: The removed signal will be emitted from the GTask
-       *       notify::completed if that is neccessary. */
+       *       notify::completed if that is necessary. */
 
       return G_SOURCE_REMOVE;
     }

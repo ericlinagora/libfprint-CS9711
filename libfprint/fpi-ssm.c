@@ -74,7 +74,7 @@
  * upon success (or fails).
  *
  * Your completion callback should examine the return value of
- * fpi_ssm_get_error() in ordater to determine whether the #FpiSsm completed or
+ * fpi_ssm_get_error() in order to determine whether the #FpiSsm completed or
  * failed. An error code of zero indicates successful completion.
  */
 

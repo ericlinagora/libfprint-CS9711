@@ -792,7 +792,7 @@ fp_device_close_finish (FpDevice     *device,
  * in. The driver may make use of this metadata, when e.g. storing the print on
  * device memory. It is undefined whether this print is filled in by the driver
  * and returned, or whether the driver will return a newly created print after
- * enrollment successed.
+ * enrollment succeeded.
  */
 void
 fp_device_enroll (FpDevice           *device,

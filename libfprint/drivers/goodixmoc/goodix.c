@@ -742,7 +742,7 @@ fp_finger_mode_cb (FpiDeviceGoodixMoc  *self,
       fpi_ssm_mark_failed (self->task_ssm, error);
       return;
     }
-  /* if reach max timeout(5sec) finger not up, swtich to finger up again */
+  /* if reach max timeout(5sec) finger not up, switch to finger up again */
   if (resp->finger_status.status == GX_ERROR_WAIT_FINGER_UP_TIMEOUT)
     {
       fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_WAIT_FINGER_UP);

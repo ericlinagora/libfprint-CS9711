@@ -121,7 +121,7 @@ cmd_receive_cb (FpiUsbTransfer *transfer,
     {
       if (resp.response_id == BMKT_RSP_CANCEL_OP_OK)
         {
-          fp_dbg ("Received cancellation success resonse");
+          fp_dbg ("Received cancellation success response");
           fpi_ssm_mark_failed (transfer->ssm,
                                g_error_new_literal (G_IO_ERROR,
                                                     G_IO_ERROR_CANCELLED,
