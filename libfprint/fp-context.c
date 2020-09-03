@@ -290,7 +290,7 @@ fp_context_init (FpContext *self)
   priv->usb_ctx = g_usb_context_new (&error);
   if (!priv->usb_ctx)
     {
-      fp_warn ("Could not initialise USB Subsystem: %s", error->message);
+      g_message ("Could not initialise USB Subsystem: %s", error->message);
     }
   else
     {
