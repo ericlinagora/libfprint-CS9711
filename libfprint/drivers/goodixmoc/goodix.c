@@ -879,7 +879,8 @@ fp_init_version_cb (FpiDeviceGoodixMoc  *self,
                     gxfp_cmd_response_t *resp,
                     GError              *error)
 {
-  char nullstring[GX_VERSION_LEN + 1] = { 0 };
+  g_autofree gchar *fw_type = NULL;
+  g_autofree gchar *fw_version = NULL;
 
   if (error)
     {
@@ -888,16 +889,20 @@ fp_init_version_cb (FpiDeviceGoodixMoc  *self,
     }
 
   G_STATIC_ASSERT (sizeof (resp->version_info.fwtype) == 8);
-  G_STATIC_ASSERT (sizeof (resp->version_info.algversion) == 8);
   G_STATIC_ASSERT (sizeof (resp->version_info.fwversion) == 8);
 
-  memcpy (nullstring, resp->version_info.fwtype, sizeof (resp->version_info.fwtype));
-  fp_info ("Firmware type: %s", nullstring);
-  memcpy (nullstring, resp->version_info.algversion, sizeof (resp->version_info.algversion));
-  fp_info ("Algversion version: %s", nullstring);
-  memcpy (nullstring, resp->version_info.fwversion, sizeof (resp->version_info.fwversion));
-  fp_info ("Firmware version: %s", nullstring);
+  fw_type = g_strndup ((const char *) resp->version_info.fwtype, sizeof (resp->version_info.fwtype));
 
+  fp_info ("Firmware type: %s", fw_type);
+  if (g_strcmp0 (fw_type, "APP") != 0)
+    {
+      fpi_ssm_mark_failed (self->task_ssm,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
+                                                     "Please update firmware using fwupd"));
+      return;
+    }
+  fw_version = g_strndup ((const char *) resp->version_info.fwversion, sizeof (resp->version_info.fwversion));
+  fp_info ("Firmware version: %s", fw_version);
   fpi_ssm_next_state (self->task_ssm);
 }
 
