@@ -143,6 +143,10 @@ fpi_device_error_new (FpDeviceError error)
       msg = "This device has been removed from the system.";
       break;
 
+    case FP_DEVICE_ERROR_UNTRUSTED:
+      msg = "Could not verify integrity of the device, it cannot be trusted!";
+      break;
+
     default:
       g_warning ("Unsupported error, returning general error instead!");
       error = FP_DEVICE_ERROR_GENERAL;
