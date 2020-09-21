@@ -92,6 +92,8 @@ void fpi_ssm_mark_failed (FpiSsm *machine,
 void fpi_ssm_set_data (FpiSsm        *machine,
                        gpointer       ssm_data,
                        GDestroyNotify ssm_data_destroy);
+
+FpDevice * fpi_ssm_get_device (FpiSsm *machine);
 gpointer fpi_ssm_get_data (FpiSsm *machine);
 GError * fpi_ssm_get_error (FpiSsm *machine);
 GError * fpi_ssm_dup_error (FpiSsm *machine);

@@ -618,6 +618,20 @@ fpi_ssm_jump_to_state_delayed (FpiSsm       *machine,
 }
 
 /**
+ * fpi_ssm_get_device:
+ * @machine: an #FpiSsm state machine
+ *
+ * Returns the device that the SSM has been associated with.
+ *
+ * Returns: (transfer none): the #FpDevice.
+ */
+FpDevice*
+fpi_ssm_get_device (FpiSsm *machine)
+{
+  return machine->dev;
+}
+
+/**
  * fpi_ssm_get_cur_state:
  * @machine: an #FpiSsm state machine
  *
