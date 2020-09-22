@@ -660,6 +660,155 @@ verify (FpDevice *device)
 }
 
 static void
+identify_complete_after_finger_removal (FpiDeviceSynaptics *self)
+{
+  FpDevice *device = FP_DEVICE (self);
+
+  if (self->finger_on_sensor)
+    {
+      fp_dbg ("delaying identify report until after finger removal!");
+      self->cmd_complete_on_removal = TRUE;
+    }
+  else
+    {
+      fpi_device_identify_complete (device, NULL);
+    }
+}
+
+
+static void
+identify_msg_cb (FpiDeviceSynaptics *self,
+                 bmkt_response_t    *resp,
+                 GError             *error)
+{
+  FpDevice *device = FP_DEVICE (self);
+
+  if (error)
+    {
+      fpi_device_identify_complete (device, error);
+      return;
+    }
+
+  if (resp == NULL && self->cmd_complete_on_removal)
+    {
+      fpi_device_identify_complete (device, NULL);
+      return;
+    }
+
+  g_assert (resp != NULL);
+
+  switch (resp->response_id)
+    {
+    case BMKT_RSP_ID_READY:
+      fp_info ("Place Finger on the Sensor!");
+      break;
+
+    case BMKT_RSP_ID_FAIL:
+      if (resp->result == BMKT_SENSOR_STIMULUS_ERROR)
+        {
+          fp_info ("Match error occurred");
+          fpi_device_identify_report (device, NULL, NULL,
+                                      fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
+          identify_complete_after_finger_removal (self);
+        }
+      else if (resp->result == BMKT_FP_NO_MATCH)
+        {
+          fp_info ("Print didn't match");
+          fpi_device_identify_report (device, NULL, NULL, NULL);
+          identify_complete_after_finger_removal (self);
+        }
+      else if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)
+        {
+          fp_info ("Print is not in database");
+          fpi_device_identify_complete (device,
+                                        fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND));
+        }
+      else
+        {
+          fp_warn ("identify has failed: %d", resp->result);
+          fpi_device_identify_complete (device,
+                                        fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
+                                                                  "Unexpected result from device %d",
+                                                                  resp->result));
+        }
+      break;
+
+    case BMKT_RSP_ID_OK:
+      {
+        FpPrint *print = NULL;
+        GPtrArray *prints = NULL;
+        g_autoptr(GVariant) data = NULL;
+        guint8 finger;
+        const guint8 *user_id;
+        gsize user_id_len = 0;
+        gint cnt = 0;
+        gboolean find = FALSE;
+
+        fpi_device_get_identify_data (device, &prints);
+
+        for (cnt = 0; cnt < prints->len; cnt++)
+          {
+            print = g_ptr_array_index (prints, cnt);
+            g_object_get (print, "fpi-data", &data, NULL);
+            g_debug ("data is %p", data);
+            parse_print_data (data, &finger, &user_id, &user_id_len);
+            if (user_id)
+              {
+                if (memcmp (resp->response.id_resp.user_id, user_id, user_id_len) == 0)
+                  {
+                    find = TRUE;
+                    break;
+                  }
+              }
+          }
+        if(find)
+          {
+            fpi_device_identify_report (device, print, print, NULL);
+            fpi_device_identify_complete (device, NULL);
+          }
+        else
+          {
+            fpi_device_identify_report (device, NULL, NULL, NULL);
+            identify_complete_after_finger_removal (self);
+          }
+      }
+    }
+}
+
+static void
+identify (FpDevice *device)
+{
+  FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
+  FpPrint *print = NULL;
+  GPtrArray *prints = NULL;
+
+  g_autoptr(GVariant) data = NULL;
+  guint8 finger;
+  const guint8 *user_id;
+  gsize user_id_len = 0;
+  gint cnt = 0;
+
+  fpi_device_get_identify_data (device, &prints);
+
+  for (cnt = 0; cnt < prints->len; cnt++)
+    {
+      print = g_ptr_array_index (prints, cnt);
+      g_object_get (print, "fpi-data", &data, NULL);
+      g_debug ("data is %p", data);
+      if (!parse_print_data (data, &finger, &user_id, &user_id_len))
+        {
+          fpi_device_identify_complete (device,
+                                        fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID));
+          return;
+        }
+    }
+  G_DEBUG_HERE ();
+
+  synaptics_sensor_cmd (self, 0, BMKT_CMD_ID_USER, NULL, 0, identify_msg_cb);
+}
+
+
+static void
 enroll_msg_cb (FpiDeviceSynaptics *self,
                bmkt_response_t    *resp,
                GError             *error)
@@ -1152,6 +1301,7 @@ fpi_device_synaptics_class_init (FpiDeviceSynapticsClass *klass)
   dev_class->close = dev_exit;
   dev_class->probe = dev_probe;
   dev_class->verify = verify;
+  dev_class->identify = identify;
   dev_class->enroll = enroll;
   dev_class->delete = delete_print;
   dev_class->cancel = cancel;
