@@ -71,7 +71,7 @@ fpi_image_device_deactivate (FpImageDevice *self)
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpImageDeviceClass *cls = FP_IMAGE_DEVICE_GET_CLASS (device);
 
-  if (!priv->active)
+  if (!priv->active || priv->state == FPI_IMAGE_DEVICE_STATE_INACTIVE)
     {
       /* XXX: We currently deactivate both from minutiae scan result
        *      and finger off report. */
