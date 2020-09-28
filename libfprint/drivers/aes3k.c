@@ -76,6 +76,7 @@ img_cb (FpiUsbTransfer *transfer, FpDevice *device,
 {
   FpImageDevice *dev = FP_IMAGE_DEVICE (device);
   FpiDeviceAes3k *self = FPI_DEVICE_AES3K (device);
+  FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
   FpiDeviceAes3kClass *cls = FPI_DEVICE_AES3K_GET_CLASS (self);
   unsigned char *ptr = transfer->buffer;
   FpImage *tmp;
@@ -90,11 +91,14 @@ img_cb (FpiUsbTransfer *transfer, FpDevice *device,
         {
           /* Cancellation implies we are deactivating. */
           g_error_free (error);
+          g_clear_object (&priv->img_trf_cancel);
           fpi_image_device_deactivate_complete (dev, NULL);
           return;
         }
 
       fpi_image_device_session_error (dev, error);
+      g_clear_object (&priv->img_trf_cancel);
+      return;
     }
 
   fpi_image_device_report_finger_status (dev, TRUE);
@@ -144,9 +148,14 @@ do_capture (FpImageDevice *dev)
 static void
 init_reqs_cb (FpImageDevice *dev, GError *result, void *user_data)
 {
+  FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (FPI_DEVICE_AES3K (dev));
+
   fpi_image_device_activate_complete (dev, result);
   if (!result)
-    do_capture (dev);
+    {
+      priv->img_trf_cancel = g_cancellable_new ();
+      do_capture (dev);
+    }
 }
 
 static void
@@ -157,7 +166,6 @@ aes3k_dev_activate (FpImageDevice *dev)
   FpiDeviceAes3kClass *cls = FPI_DEVICE_AES3K_GET_CLASS (self);
 
   g_assert (!priv->img_trf_cancel);
-  priv->img_trf_cancel = g_cancellable_new ();
   aes_write_regv (dev, cls->init_reqs, cls->init_reqs_len, init_reqs_cb, NULL);
 }
 
@@ -167,8 +175,11 @@ aes3k_dev_deactivate (FpImageDevice *dev)
   FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
   FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
 
-  /* Deactivation always finishes from the cancellation handler */
-  g_cancellable_cancel (priv->img_trf_cancel);
+  /* Deactivation finishes from the cancellation handler */
+  if (priv->img_trf_cancel)
+    g_cancellable_cancel (priv->img_trf_cancel);
+  else
+    fpi_image_device_deactivate_complete (dev, NULL);
 }
 
 static void
