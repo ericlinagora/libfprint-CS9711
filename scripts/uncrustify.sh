@@ -12,8 +12,11 @@ case "$1" in
         ;;
 esac
 
+ARGS=4
+JOBS=4
+
 pushd "$SRCROOT"
-uncrustify -c "$CFG" $OPTS `git ls-tree --name-only -r HEAD | grep -E '.*\.[ch]$' | grep -v nbis | grep -v fpi-byte | grep -v build/`
+git ls-tree --name-only -r HEAD | grep -E '.*\.[ch]$' | grep -v nbis | grep -v fpi-byte | grep -v build/ | xargs -n$ARGS -P $JOBS uncrustify -c "$CFG" $OPTS
 RES=$?
 popd
 exit $RES
