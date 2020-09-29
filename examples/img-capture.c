@@ -58,7 +58,7 @@ on_device_closed (FpDevice *dev, GAsyncResult *res, void *user_data)
   fp_device_close_finish (dev, res, &error);
 
   if (error)
-    g_warning ("Failed closing device %s\n", error->message);
+    g_warning ("Failed closing device %s", error->message);
 
   g_main_loop_quit (capture_data->loop);
 }

@@ -193,7 +193,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
   if (self->deactivating)
     {
-      fp_dbg ("Deactivate requested\n");
+      fp_dbg ("Deactivate requested");
       fpi_ssm_mark_completed (transfer->ssm);
       return;
     }
@@ -208,7 +208,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
   if (fpi_ssm_get_cur_state (transfer->ssm) == CAPTURE_READ_DATA_TERM)
     {
-      fp_dbg ("Terminating SSM\n");
+      fp_dbg ("Terminating SSM");
       fpi_ssm_mark_completed (transfer->ssm);
       return;
     }
@@ -219,7 +219,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
       response_size += 9;           /* 7 bytes for header, 2 for CRC */
       if (response_size > transfer->actual_length)
         {
-          fp_dbg ("response_size is %lu, actual_length is %d\n",
+          fp_dbg ("response_size is %lu, actual_length is %d",
                   response_size, (gint) transfer->actual_length);
           fp_dbg ("Waiting for rest of transfer");
           BUG_ON (self->response_rest);
@@ -237,7 +237,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
         {
         /* No finger */
         case 0x28:
-          fp_dbg ("18th byte is %.2x\n", data[18]);
+          fp_dbg ("18th byte is %.2x", data[18]);
           switch (data[18])
             {
             case 0x0c:
@@ -254,7 +254,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
             case 0x1e:
               /* short scan */
-              fp_err ("short scan, aborting\n");
+              fp_err ("short scan, aborting");
               fpi_image_device_retry_scan (dev,
                                            FP_DEVICE_RETRY_TOO_SHORT);
               fpi_image_device_report_finger_status (dev,
@@ -265,7 +265,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
             case 0x1d:
               /* too much horisontal movement */
-              fp_err ("too much horisontal movement, aborting\n");
+              fp_err ("too much horisontal movement, aborting");
               fpi_image_device_retry_scan (dev,
                                            FP_DEVICE_RETRY_CENTER_FINGER);
               fpi_image_device_report_finger_status (dev,
@@ -276,7 +276,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
             default:
               /* some error happened, cancel scan */
-              fp_err ("something bad happened, stop scan\n");
+              fp_err ("something bad happened, stop scan");
               fpi_image_device_retry_scan (dev,
                                            FP_DEVICE_RETRY);
               fpi_image_device_report_finger_status (dev,
@@ -307,7 +307,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
             upektc_img_process_image_frame (self->image_bits + self->image_size,
                                             data);
           BUG_ON (self->image_size != IMAGE_SIZE);
-          fp_dbg ("Image size is %lu\n",
+          fp_dbg ("Image size is %lu",
                   self->image_size);
           img = fp_image_new (IMAGE_WIDTH, IMAGE_HEIGHT);
           img->flags |= FPI_IMAGE_PARTIAL;
@@ -320,7 +320,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
           break;
 
         default:
-          fp_err ("Unknown response!\n");
+          fp_err ("Unknown response!");
           fpi_ssm_mark_failed (transfer->ssm, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
           break;
         }
@@ -331,7 +331,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
       break;
 
     default:
-      fp_err ("Not handled response!\n");
+      fp_err ("Not handled response!");
       fpi_ssm_mark_failed (transfer->ssm, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
     }
 }

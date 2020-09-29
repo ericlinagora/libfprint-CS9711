@@ -171,7 +171,7 @@ finger_present (unsigned char *img, size_t len, int sum_threshold)
     if (img[i] < 160)
       sum++;
 
-  fp_dbg ("finger_present: sum is %d\n", sum);
+  fp_dbg ("finger_present: sum is %d", sum);
   return sum < sum_threshold ? 0 : 1;
 }
 
@@ -184,7 +184,7 @@ finger_det_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
   if (error)
     {
-      fp_dbg ("data transfer status %s\n", error->message);
+      fp_dbg ("data transfer status %s", error->message);
       fpi_image_device_session_error (dev, error);
       return;
     }
@@ -212,7 +212,7 @@ finger_det_cmd_cb (FpiUsbTransfer *t, FpDevice *device,
 
   if (error)
     {
-      fp_dbg ("req transfer status %s\n", error->message);
+      fp_dbg ("req transfer status %s", error->message);
       fpi_image_device_session_error (dev, error);
       return;
     }
@@ -411,7 +411,7 @@ dev_init (FpImageDevice *dev)
       break;
 
     default:
-      fp_err ("Device variant %lu is not known\n", driver_data);
+      fp_err ("Device variant %lu is not known", driver_data);
       g_assert_not_reached ();
       fpi_image_device_open_complete (dev, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
       return;

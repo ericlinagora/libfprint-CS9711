@@ -723,7 +723,7 @@ imaging_run_state (FpiSsm *ssm, FpDevice *_dev)
                   num_lines);
           if (flags & BLOCKF_CHANGE_KEY)
             {
-              fp_dbg ("changing encryption keys.\n");
+              fp_dbg ("changing encryption keys.");
               img->block_info[self->img_block].flags &= ~BLOCKF_CHANGE_KEY;
               img->key_number++;
               self->img_enc_seed = rand ();

@@ -60,7 +60,7 @@ fpi_image_device_activate (FpImageDevice *self)
    * starting the next operation. */
   g_clear_handle_id (&priv->pending_activation_timeout_id, g_source_remove);
 
-  fp_dbg ("Activating image device\n");
+  fp_dbg ("Activating image device");
   cls->activate (self);
 }
 
@@ -84,7 +84,7 @@ fpi_image_device_deactivate (FpImageDevice *self)
   priv->state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
   g_object_notify (G_OBJECT (self), "fpi-image-device-state");
 
-  fp_dbg ("Deactivating image device\n");
+  fp_dbg ("Deactivating image device");
   cls->deactivate (self);
 }
 
@@ -106,7 +106,7 @@ fp_image_device_change_state (FpImageDevice *self, FpiImageDeviceState state)
 
   prev_state_str = g_enum_to_string (FPI_TYPE_IMAGE_DEVICE_STATE, priv->state);
   state_str = g_enum_to_string (FPI_TYPE_IMAGE_DEVICE_STATE, state);
-  fp_dbg ("Image device internal state change from %s to %s\n",
+  fp_dbg ("Image device internal state change from %s to %s",
           prev_state_str, state_str);
 
   priv->state = state;

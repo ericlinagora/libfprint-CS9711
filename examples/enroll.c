@@ -57,7 +57,7 @@ on_device_closed (FpDevice *dev, GAsyncResult *res, void *user_data)
   fp_device_close_finish (dev, res, &error);
 
   if (error)
-    g_warning ("Failed closing device %s\n", error->message);
+    g_warning ("Failed closing device %s", error->message);
 
   g_main_loop_quit (enroll_data->loop);
 }
@@ -89,7 +89,7 @@ on_enroll_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
     }
   else
     {
-      g_warning ("Enroll failed with error %s\n", error->message);
+      g_warning ("Enroll failed with error %s", error->message);
     }
 
   fp_device_close (dev, NULL, (GAsyncReadyCallback) on_device_closed,

@@ -197,12 +197,12 @@ process_strip_data (FpiSsm *ssm, FpImageDevice *dev,
 
   if (data[0] != AES2550_EDATA_MAGIC)
     {
-      fp_dbg ("Bogus magic: %.2x\n", (int) (data[0]));
+      fp_dbg ("Bogus magic: %.2x", (int) (data[0]));
       return FALSE;
     }
   len = data[1] * 256 + data[2];
   if (len != (AES2550_STRIP_SIZE - 3))
-    fp_dbg ("Bogus frame len: %.4x\n", len);
+    fp_dbg ("Bogus frame len: %.4x", len);
   stripe = g_malloc0 (FRAME_WIDTH * FRAME_HEIGHT / 2 + sizeof (struct fpi_frame));     /* 4 bits per pixel */
   stripe->delta_x = (int8_t) data[6];
   stripe->delta_y = -(int8_t) data[7];
