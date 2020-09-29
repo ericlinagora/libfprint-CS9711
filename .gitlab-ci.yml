@@ -149,5 +149,17 @@ container_fedora_build:
       - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
-    # a list of packages to install
-    FDO_DISTRIBUTION_PACKAGES: $LIBFPRINT_DEPENDENCIES
+    # a list of packages to install; we only include mbedtls here
+    FDO_DISTRIBUTION_PACKAGES: $LIBFPRINT_DEPENDENCIES mbedtls-devel
+    FDO_DISTRIBUTION_EXEC: |
+      cd /tmp
+      mkdir -p /usr/local/bin
+      git clone https://github.com/benzea/SecureDeviceConnectionProtocol.git
+      # Don't bother with cmake
+      gcc -l mbedcrypto -I SecureDeviceConnectionProtocol/src/include \
+        SecureDeviceConnectionProtocol/src/test/virt_device.c \
+        SecureDeviceConnectionProtocol/src/client/client.c \
+        SecureDeviceConnectionProtocol/src/test/helpers.c \
+        SecureDeviceConnectionProtocol/src/test/testkeys.c \
+        -o /usr/local/bin/sdcp_virt_device
+      rm -rf SecureDeviceConnectionProtocol
