@@ -61,7 +61,7 @@ test:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - meson --werror -Ddrivers=all -Db_coverage=true . _build
+    - meson --werror -Ddrivers=all -Db_coverage=true -Dsdcp_virt_binary=/usr/local/bin/sdcp_virt_device . _build
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit --timeout-multiplier 3
     - ninja -C _build coverage
@@ -78,7 +78,7 @@ test_valgrind:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - meson -Ddrivers=all . _build
+    - meson -Ddrivers=all -Dsdcp_virt_binary=/usr/local/bin/sdcp_virt_device . _build
     - ninja -C _build
     - meson test -C _build --verbose --no-stdsplit --setup=valgrind
 
