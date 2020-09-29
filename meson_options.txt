@@ -22,3 +22,8 @@ option('doc',
        description: 'Whether to build the API documentation',
        type: 'boolean',
        value: true)
+
+option('sdcp_virt_binary',
+       description: 'Path to virtual SDCP test binary, please refer to CI for more details.',
+       type: 'string',
+       value: '')
