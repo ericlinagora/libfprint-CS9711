@@ -167,8 +167,20 @@ container_fedora_build:
       vala
       libpcap-devel
       libudev-devel
+      mbedtls-devel
     FDO_DISTRIBUTION_EXEC: |
       git clone https://github.com/martinpitt/umockdev.git && \
         cd umockdev && \
         meson _build --prefix=/usr && \
         ninja -C _build && ninja -C _build install
+      cd /tmp
+      mkdir -p /usr/local/bin
+      git clone https://github.com/benzea/SecureDeviceConnectionProtocol.git
+      # Don't bother with cmake
+      gcc -l mbedcrypto -I SecureDeviceConnectionProtocol/src/include \
+        SecureDeviceConnectionProtocol/src/test/virt_device.c \
+        SecureDeviceConnectionProtocol/src/client/client.c \
+        SecureDeviceConnectionProtocol/src/test/helpers.c \
+        SecureDeviceConnectionProtocol/src/test/testkeys.c \
+        -o /usr/local/bin/sdcp_virt_device
+      rm -rf SecureDeviceConnectionProtocol
