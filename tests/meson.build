@@ -12,6 +12,9 @@ envs.prepend('LD_LIBRARY_PATH', join_paths(meson.build_root(), 'libfprint'))
 # random numbers rather than proper ones)
 envs.set('FP_DEVICE_EMULATION', '1')
 
+# Path to SDCP virtual device binary, only used for virtual-sdcp test
+envs.set('SDCP_VIRT_BINARY', get_option('sdcp_virt_binary'))
+
 # Set a colon-separated list of native drivers we enable in tests
 envs.set('FP_DRIVERS_WHITELIST', ':'.join([
     'virtual_image',
@@ -97,6 +100,43 @@ if get_option('introspection')
             )
         endif
     endforeach
+
+    if 'virtual_sdcp' in drivers and get_option('sdcp_virt_binary') != ''
+        python3 = find_program('python3')
+        unittest_inspector = find_program('unittest_inspector.py')
+        base_args = files('virtual-sdcp.py')
+        suite = []
+
+        r = run_command(unittest_inspector, files('virtual-sdcp.py'))
+        unit_tests = r.stdout().strip().split('\n')
+
+        if r.returncode() == 0 and unit_tests.length() > 0
+            suite += 'virtual-sdcp'
+        else
+            unit_tests = ['virtual-sdcp']
+        endif
+
+        foreach ut: unit_tests
+            ut_suite = suite
+            ut_args = base_args
+            if unit_tests.length() > 1
+                ut_args += ut
+                ut_suite += ut.split('.')[0]
+            endif
+            test(ut,
+                python3,
+                args: ut_args,
+                suite: ut_suite,
+                depends: libfprint_typelib,
+                env: envs,
+            )
+        endforeach
+    else
+        test('virtual-sdcp',
+            find_program('sh'),
+            args: ['-c', 'exit 77']
+        )
+    endif
 
     foreach driver_test: drivers_tests
         driver_name = driver_test.split('-')[0]
