@@ -17,6 +17,7 @@ envs.set('FP_DRIVERS_WHITELIST', 'virtual_image')
 envs.set('NO_AT_BRIDGE', '1')
 
 drivers_tests = [
+    'aes3500',
     'elan',
     'synaptics',
     'vfs0050',
