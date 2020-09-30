@@ -354,6 +354,24 @@ transfer_finish_cb (GObject *source_object, GAsyncResult *res, gpointer user_dat
   fpi_usb_transfer_unref (transfer);
 }
 
+static gboolean
+transfer_cancel_cb (FpiUsbTransfer *transfer)
+{
+  GError *error;
+  FpiUsbTransferCallback callback;
+
+  error = g_error_new_literal (G_IO_ERROR,
+                               G_IO_ERROR_CANCELLED,
+                               "Transfer was cancelled before being started");
+  callback = transfer->callback;
+  transfer->callback = NULL;
+  transfer->actual_length = -1;
+  callback (transfer, transfer->device, transfer->user_data, error);
+
+  fpi_usb_transfer_unref (transfer);
+
+  return G_SOURCE_REMOVE;
+}
 
 /**
  * fpi_usb_transfer_submit:
@@ -386,6 +404,18 @@ fpi_usb_transfer_submit (FpiUsbTransfer        *transfer,
   transfer->user_data = user_data;
 
   log_transfer (transfer, TRUE, NULL);
+
+  /* Work around libgusb cancellation issue, see
+   *   https://github.com/hughsie/libgusb/pull/42
+   * should be fixed with libgusb 0.3.7.
+   * Note that this is not race free, we rely on libfprint and API users
+   * not cancelling from a different thread here.
+   */
+  if (cancellable && g_cancellable_is_cancelled (cancellable))
+    {
+      g_idle_add ((GSourceFunc) transfer_cancel_cb, transfer);
+      return;
+    }
 
   switch (transfer->type)
     {
