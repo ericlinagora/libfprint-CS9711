@@ -309,6 +309,15 @@ dev_deinit (FpImageDevice *dev)
 }
 
 static void
+dev_deactivate (FpImageDevice *dev)
+{
+  G_DEBUG_HERE ();
+
+  /* Delay result to open up the possibility of testing race conditions. */
+  fpi_device_add_timeout (FP_DEVICE (dev), 100, (FpTimeoutFunc) fpi_image_device_deactivate_complete, NULL, NULL);
+}
+
+static void
 fpi_device_virtual_image_init (FpDeviceVirtualImage *self)
 {
 }
@@ -331,4 +340,6 @@ fpi_device_virtual_image_class_init (FpDeviceVirtualImageClass *klass)
 
   img_class->img_open = dev_init;
   img_class->img_close = dev_deinit;
+
+  img_class->deactivate = dev_deactivate;
 }
