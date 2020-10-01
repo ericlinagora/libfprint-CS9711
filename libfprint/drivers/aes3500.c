@@ -106,7 +106,9 @@ static struct aes_regwrite init_reqs[] = {
   { 0x9e, 0x53 },       /* clear challenge word bits */
   { 0x9f, 0x6b },       /* set some challenge word bits */
   { 0, 0 },
+};
 
+static struct aes_regwrite capture_reqs[] = {
   { 0x80, 0x00 },
   { 0x81, 0x00 },
   { 0, 0 },
@@ -155,4 +157,6 @@ fpi_device_aes3500_class_init (FpiDeviceAes3500Class *klass)
   aes_class->enlarge_factor = ENLARGE_FACTOR;
   aes_class->init_reqs = init_reqs;
   aes_class->init_reqs_len = G_N_ELEMENTS (init_reqs);
+  aes_class->capture_reqs = capture_reqs;
+  aes_class->capture_reqs_len = G_N_ELEMENTS (capture_reqs);
 }

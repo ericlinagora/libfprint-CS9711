@@ -42,7 +42,10 @@
 
 typedef struct
 {
-  GCancellable *img_trf_cancel;
+  /* This is used both as a flag that we are in a capture operation
+   * and for cancellation.
+   */
+  GCancellable *img_capture_cancel;
 } FpiDeviceAes3kPrivate;
 
 #define CTRL_TIMEOUT 1000
@@ -83,6 +86,9 @@ img_cb (FpiUsbTransfer *transfer, FpDevice *device,
   FpImage *img;
   int i;
 
+  /* Image capture operation is finished (error/completed) */
+  g_clear_object (&priv->img_capture_cancel);
+
   if (error)
     {
       if (g_error_matches (error,
@@ -91,13 +97,11 @@ img_cb (FpiUsbTransfer *transfer, FpDevice *device,
         {
           /* Cancellation implies we are deactivating. */
           g_error_free (error);
-          g_clear_object (&priv->img_trf_cancel);
           fpi_image_device_deactivate_complete (dev, NULL);
           return;
         }
 
       fpi_image_device_session_error (dev, error);
-      g_clear_object (&priv->img_trf_cancel);
       return;
     }
 
@@ -122,11 +126,10 @@ img_cb (FpiUsbTransfer *transfer, FpDevice *device,
   fpi_image_device_image_captured (dev, img);
 
   /* FIXME: rather than assuming finger has gone, we should poll regs until
-   * it really has, then restart the capture */
+   * it really has. */
   fpi_image_device_report_finger_status (dev, FALSE);
 
-  /* Note: We always restart the transfer, it may already be cancelled though. */
-  do_capture (dev);
+  /* Note: The transfer is re-started when we switch to the AWAIT_FINGER_ON state. */
 }
 
 static void
@@ -141,31 +144,51 @@ do_capture (FpImageDevice *dev)
   fpi_usb_transfer_fill_bulk (img_trf, EP_IN, cls->data_buflen);
   img_trf->short_is_error = TRUE;
   fpi_usb_transfer_submit (g_steal_pointer (&img_trf), 0,
-                           priv->img_trf_cancel,
+                           priv->img_capture_cancel,
                            img_cb, NULL);
+}
+
+static void
+capture_reqs_cb (FpImageDevice *dev, GError *result, void *user_data)
+{
+  FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
+  FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
+
+  if (result)
+    {
+      g_clear_object (&priv->img_capture_cancel);
+      fpi_image_device_session_error (dev, result);
+      return;
+    }
+
+  /* FIXME: we never cancel a pending capture. So we are likely leaving the
+   * hardware in a bad state should we abort the capture operation and the
+   * user does not touch the device.
+   * But, we don't know how we might cancel, so just leave it as is. */
+  do_capture (dev);
+}
+
+static void
+do_capture_start (FpImageDevice *dev)
+{
+  FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
+  FpiDeviceAes3kClass *cls = FPI_DEVICE_AES3K_GET_CLASS (self);
+
+  aes_write_regv (dev, cls->capture_reqs, cls->capture_reqs_len, capture_reqs_cb, NULL);
 }
 
 static void
 init_reqs_cb (FpImageDevice *dev, GError *result, void *user_data)
 {
-  FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (FPI_DEVICE_AES3K (dev));
-
   fpi_image_device_activate_complete (dev, result);
-  if (!result)
-    {
-      priv->img_trf_cancel = g_cancellable_new ();
-      do_capture (dev);
-    }
 }
 
 static void
 aes3k_dev_activate (FpImageDevice *dev)
 {
   FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
-  FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
   FpiDeviceAes3kClass *cls = FPI_DEVICE_AES3K_GET_CLASS (self);
 
-  g_assert (!priv->img_trf_cancel);
   aes_write_regv (dev, cls->init_reqs, cls->init_reqs_len, init_reqs_cb, NULL);
 }
 
@@ -175,11 +198,26 @@ aes3k_dev_deactivate (FpImageDevice *dev)
   FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
   FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
 
-  /* Deactivation finishes from the cancellation handler */
-  if (priv->img_trf_cancel)
-    g_cancellable_cancel (priv->img_trf_cancel);
+  /* If a capture is running, then deactivation finishes from the cancellation handler */
+  if (priv->img_capture_cancel)
+    g_cancellable_cancel (priv->img_capture_cancel);
   else
     fpi_image_device_deactivate_complete (dev, NULL);
+}
+
+static void
+aes3k_dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
+{
+  FpiDeviceAes3k *self = FPI_DEVICE_AES3K (dev);
+  FpiDeviceAes3kPrivate *priv = fpi_device_aes3k_get_instance_private (self);
+
+  if (state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
+    {
+      g_assert (!priv->img_capture_cancel);
+      priv->img_capture_cancel = g_cancellable_new ();
+
+      do_capture_start (dev);
+    }
 }
 
 static void
@@ -224,6 +262,7 @@ fpi_device_aes3k_class_init (FpiDeviceAes3kClass *klass)
   img_class->img_open = aes3k_dev_init;
   img_class->img_close = aes3k_dev_deinit;
   img_class->activate = aes3k_dev_activate;
+  img_class->change_state = aes3k_dev_change_state;
   img_class->deactivate = aes3k_dev_deactivate;
 
   /* Extremely low due to low image quality. */

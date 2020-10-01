@@ -57,4 +57,6 @@ struct _FpiDeviceAes3kClass
   gsize                data_buflen;    /* buffer length of usb bulk transfer */
   struct aes_regwrite *init_reqs;       /* initial values sent to device */
   gsize                init_reqs_len;
+  struct aes_regwrite *capture_reqs;       /* capture values sent to device */
+  gsize                capture_reqs_len;
 };
