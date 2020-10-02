@@ -42,6 +42,7 @@ struct _FpDeviceVirtualImage
 
   GSocketListener   *listener;
   GSocketConnection *connection;
+  GCancellable      *listen_cancellable;
   GCancellable      *cancellable;
 
   gint               socket_fd;
@@ -185,15 +186,25 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 }
 
 static void
-recv_image (FpDeviceVirtualImage *dev, GInputStream *stream)
+recv_image (FpDeviceVirtualImage *self, GInputStream *stream)
 {
-  g_input_stream_read_all_async (stream,
-                                 dev->recv_img_hdr,
-                                 sizeof (dev->recv_img_hdr),
-                                 G_PRIORITY_DEFAULT,
-                                 dev->cancellable,
-                                 recv_image_hdr_recv_cb,
-                                 dev);
+  FpiImageDeviceState state;
+
+  g_object_get (self, "fpi-image-device-state", &state, NULL);
+
+  g_debug ("Starting image receive (if active), state is: %i", state);
+
+  /* Only register if the state is active. */
+  if (state != FPI_IMAGE_DEVICE_STATE_INACTIVE)
+    {
+      g_input_stream_read_all_async (stream,
+                                     self->recv_img_hdr,
+                                     sizeof (self->recv_img_hdr),
+                                     G_PRIORITY_DEFAULT,
+                                     self->cancellable,
+                                     recv_image_hdr_recv_cb,
+                                     self);
+    }
 }
 
 static void
@@ -217,11 +228,23 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
       start_listen (dev);
     }
 
-  /* Always further connections (but we disconnect them immediately
+  /* Always accept further connections (but we disconnect them immediately
    * if we already have a connection). */
   start_listen (dev);
+
   if (dev->connection)
     {
+      /* We may not have noticed that the stream was closed,
+       * if the device is deactivated. Double check here. */
+      g_input_stream_is_closed (g_io_stream_get_input_stream (G_IO_STREAM (dev->connection)));
+
+      g_io_stream_close (G_IO_STREAM (dev->connection), NULL, NULL);
+      g_clear_object (&dev->connection);
+    }
+
+  if (dev->connection)
+    {
+      g_warning ("Rejecting new connection");
       g_io_stream_close (G_IO_STREAM (connection), NULL, NULL);
       g_object_unref (connection);
       return;
@@ -231,16 +254,15 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
   dev->automatic_finger = TRUE;
   stream = g_io_stream_get_input_stream (G_IO_STREAM (connection));
 
-  recv_image (dev, stream);
-
   fp_dbg ("Got a new connection!");
+  recv_image (dev, stream);
 }
 
 static void
 start_listen (FpDeviceVirtualImage *dev)
 {
   g_socket_listener_accept_async (dev->listener,
-                                  dev->cancellable,
+                                  dev->listen_cancellable,
                                   new_connection_cb,
                                   dev);
 }
@@ -285,6 +307,7 @@ dev_init (FpImageDevice *dev)
 
   self->listener = g_steal_pointer (&listener);
   self->cancellable = g_cancellable_new ();
+  self->listen_cancellable = g_cancellable_new ();
 
   start_listen (self);
 
@@ -300,12 +323,38 @@ dev_deinit (FpImageDevice *dev)
   G_DEBUG_HERE ();
 
   g_cancellable_cancel (self->cancellable);
+  g_cancellable_cancel (self->listen_cancellable);
   g_clear_object (&self->cancellable);
+  g_clear_object (&self->listen_cancellable);
   g_clear_object (&self->listener);
   g_clear_object (&self->connection);
 
   /* Delay result to open up the possibility of testing race conditions. */
   fpi_device_add_timeout (FP_DEVICE (dev), 100, (FpTimeoutFunc) fpi_image_device_close_complete, NULL, NULL);
+}
+
+static void
+dev_activate (FpImageDevice *dev)
+{
+  FpDeviceVirtualImage *self = FPI_DEVICE_VIRTUAL_IMAGE (dev);
+
+  if (self->connection)
+    recv_image (self, g_io_stream_get_input_stream (G_IO_STREAM (self->connection)));
+
+  fpi_image_device_activate_complete (dev, NULL);
+}
+
+static void
+dev_deactivate (FpImageDevice *dev)
+{
+  FpDeviceVirtualImage *self = FPI_DEVICE_VIRTUAL_IMAGE (dev);
+
+  g_cancellable_cancel (self->cancellable);
+  g_clear_object (&self->cancellable);
+  self->cancellable = g_cancellable_new ();
+
+  /* XXX: Need to wait for the operation to be cancelled. */
+  fpi_device_add_timeout (FP_DEVICE (dev), 10, (FpTimeoutFunc) fpi_image_device_deactivate_complete, NULL, NULL);
 }
 
 static void
@@ -331,4 +380,7 @@ fpi_device_virtual_image_class_init (FpDeviceVirtualImageClass *klass)
 
   img_class->img_open = dev_init;
   img_class->img_close = dev_deinit;
+
+  img_class->activate = dev_activate;
+  img_class->deactivate = dev_deactivate;
 }
