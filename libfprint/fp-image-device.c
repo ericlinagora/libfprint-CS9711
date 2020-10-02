@@ -56,44 +56,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
  * - sanitize_image seems a bit odd, in particular the sizing stuff.
  **/
 
-/* Static helper functions */
-
-static gboolean
-pending_activation_timeout (gpointer user_data)
-{
-  FpImageDevice *self = FP_IMAGE_DEVICE (user_data);
-  FpDevice *device = FP_DEVICE (self);
-  FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
-  FpiDeviceAction action = fpi_device_get_current_action (device);
-  GError *error;
-
-  priv->pending_activation_timeout_id = 0;
-
-  if (priv->pending_activation_timeout_waiting_finger_off)
-    error = fpi_device_retry_new_msg (FP_DEVICE_RETRY_REMOVE_FINGER,
-                                      "Remove finger before requesting another scan operation");
-  else
-    error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
-
-  if (action == FPI_DEVICE_ACTION_VERIFY)
-    {
-      fpi_device_verify_report (device, FPI_MATCH_ERROR, NULL, error);
-      fpi_device_verify_complete (device, NULL);
-    }
-  else if (action == FPI_DEVICE_ACTION_IDENTIFY)
-    {
-      fpi_device_identify_report (device, NULL, NULL, error);
-      fpi_device_identify_complete (device, NULL);
-    }
-  else
-    {
-      /* Can this happen for enroll? */
-      fpi_device_action_error (device, error);
-    }
-
-  return G_SOURCE_REMOVE;
-}
-
 /* Callbacks/vfuncs */
 static void
 fp_image_device_open (FpDevice *device)
@@ -112,19 +74,8 @@ fp_image_device_close (FpDevice *device)
   FpImageDeviceClass *cls = FP_IMAGE_DEVICE_GET_CLASS (self);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
 
-  /* In the close case we may need to wait/force deactivation first.
-   * Three possible cases:
-   *  1. We are inactive
-   *     -> immediately close
-   *  2. We are waiting for finger off
-   *     -> immediately deactivate
-   *  3. We are deactivating
-   *     -> handled by deactivate_complete */
-
-  if (!priv->active)
-    cls->img_close (self);
-  else if (priv->state != FPI_IMAGE_DEVICE_STATE_INACTIVE)
-    fpi_image_device_deactivate (self);
+  g_assert (priv->active == FALSE);
+  cls->img_close (self);
 }
 
 static void
@@ -146,12 +97,6 @@ fp_image_device_cancel_action (FpDevice *device)
       priv->cancelling = TRUE;
       fpi_image_device_deactivate (self);
       priv->cancelling = FALSE;
-
-      /* XXX: Some nicer way of doing this would be good. */
-      fpi_device_action_error (FP_DEVICE (self),
-                               g_error_new (G_IO_ERROR,
-                                            G_IO_ERROR_CANCELLED,
-                                            "Device operation was cancelled"));
     }
 }
 
@@ -188,27 +133,9 @@ fp_image_device_start_capture_action (FpDevice *device)
     }
 
   priv->enroll_stage = 0;
-  priv->enroll_await_on_pending = FALSE;
-
-  /* The device might still be deactivating from a previous call.
-   * In that situation, try to wait for a bit before reporting back an
-   * error (which will usually say that the user should remove the
-   * finger).
-   */
-  if (priv->state != FPI_IMAGE_DEVICE_STATE_INACTIVE || priv->active)
-    {
-      g_debug ("Got a new request while the device was still active");
-      g_assert (priv->pending_activation_timeout_id == 0);
-      priv->pending_activation_timeout_id =
-        g_timeout_add (100, pending_activation_timeout, device);
-
-      if (priv->state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF)
-        priv->pending_activation_timeout_waiting_finger_off = TRUE;
-      else
-        priv->pending_activation_timeout_waiting_finger_off = FALSE;
-
-      return;
-    }
+  /* The internal state machine guarantees both of these. */
+  g_assert (!priv->finger_present);
+  g_assert (!priv->minutiae_scan_active);
 
   /* And activate the device; we rely on fpi_image_device_activate_complete()
    * to be called when done (or immediately). */
@@ -225,7 +152,6 @@ fp_image_device_finalize (GObject *object)
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
 
   g_assert (priv->active == FALSE);
-  g_clear_handle_id (&priv->pending_activation_timeout_id, g_source_remove);
 
   G_OBJECT_CLASS (fp_image_device_parent_class)->finalize (object);
 }
