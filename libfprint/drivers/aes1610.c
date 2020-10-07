@@ -135,10 +135,8 @@ generic_read_ignore_data (FpiSsm *ssm, FpDevice *dev,
                           size_t bytes)
 {
   FpiUsbTransfer *transfer = fpi_usb_transfer_new (dev);
-  unsigned char *data;
 
-  data = g_malloc (bytes);
-  fpi_usb_transfer_fill_bulk_full (transfer, EP_IN, data, bytes, g_free);
+  fpi_usb_transfer_fill_bulk (transfer, EP_IN, bytes);
   transfer->ssm = ssm;
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
