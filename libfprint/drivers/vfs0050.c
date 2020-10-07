@@ -42,6 +42,7 @@ async_write_callback (FpiUsbTransfer *transfer, FpDevice *device,
 }
 
 /* Send data to EP1, the only out endpoint */
+FP_GNUC_ACCESS (read_only, 3, 4)
 static void
 async_write (FpiSsm   *ssm,
              FpDevice *dev,

@@ -78,6 +78,7 @@ upektc_img_cmd_update_crc (unsigned char *cmd_buf, size_t size)
   cmd_buf[size - 1] = (crc & 0xff00) >> 8;
 }
 
+FP_GNUC_ACCESS (read_only, 3, 4)
 static void
 upektc_img_submit_req (FpiSsm                *ssm,
                        FpImageDevice         *dev,

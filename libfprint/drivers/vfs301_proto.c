@@ -93,6 +93,7 @@ usb_recv (FpDeviceVfs301 *dev, guint8 endpoint, int max_bytes, FpiUsbTransfer **
     *out = g_steal_pointer (&transfer);
 }
 
+FP_GNUC_ACCESS (read_only, 2, 3)
 static void
 usb_send (FpDeviceVfs301 *dev, const guint8 *data, gssize length, GError **error)
 {

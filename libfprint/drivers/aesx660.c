@@ -54,6 +54,7 @@ static void complete_deactivation (FpImageDevice *dev);
 #define CALIBRATE_DATA_LEN 4
 #define FINGER_DET_DATA_LEN 4
 
+FP_GNUC_ACCESS (read_only, 3, 4)
 static void
 aesX660_send_cmd_timeout (FpiSsm                *ssm,
                           FpDevice              *_dev,
@@ -70,6 +71,7 @@ aesX660_send_cmd_timeout (FpiSsm                *ssm,
   fpi_usb_transfer_submit (transfer, timeout, NULL, callback, NULL);
 }
 
+FP_GNUC_ACCESS (read_only, 3, 4)
 static void
 aesX660_send_cmd (FpiSsm                *ssm,
                   FpDevice              *dev,
