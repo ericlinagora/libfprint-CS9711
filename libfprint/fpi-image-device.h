@@ -25,6 +25,9 @@
 /**
  * FpiImageDeviceState:
  * @FPI_IMAGE_DEVICE_STATE_INACTIVE: inactive
+ * @FPI_IMAGE_DEVICE_STATE_ACTIVATING: State during activate callback
+ * @FPI_IMAGE_DEVICE_STATE_IDLE: Activated but idle
+ * @FPI_IMAGE_DEVICE_STATE_DEACTIVATING: State during deactivate callback
  * @FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON: waiting for the finger to be pressed or swiped
  * @FPI_IMAGE_DEVICE_STATE_CAPTURE: capturing an image
  * @FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF: waiting for the finger to be removed
@@ -35,9 +38,33 @@
  * The driver needs to call fpi_image_device_report_finger_status() to move
  * between the different states. Note that the capture state might be entered
  * unconditionally if the device supports raw capturing.
+ *
+ * A usual run would look like:
+ *  - inactive -> activating: activate vfunc is called
+ *  - activating -> idle: fpi_image_device_activate_complete()
+ *  - idle -> await-finger-on
+ *  - await-finger-on -> capture: fpi_image_device_report_finger_status()
+ *  - capture -> await-finger-off: fpi_image_device_image_captured()
+ *  - await-finger-off -> idle: fpi_image_device_report_finger_status()
+ *  - idle -> deactivating: deactivate vfunc is called
+ *  - deactivating -> inactive: fpi_image_device_deactivate_complete()
+ *
+ * Raw mode is currently not supported (not waiting for finger), but in that
+ * case the following transitions are valid:
+ *  - idle -> capture
+ *  - capture -> idle
+ *
+ * Also valid are these transitions in case of errors or cancellations:
+ *  - activating -> inactive: fpi_image_device_activate_complete()
+ *  - await-finger-on -> deactivating: deactivate vfunc is called
+ *  - capture -> deactivating: deactivate vfunc is called
+ *  - await-finger-off -> deactivating: deactivate vfunc is called
  */
 typedef enum {
   FPI_IMAGE_DEVICE_STATE_INACTIVE,
+  FPI_IMAGE_DEVICE_STATE_ACTIVATING,
+  FPI_IMAGE_DEVICE_STATE_DEACTIVATING,
+  FPI_IMAGE_DEVICE_STATE_IDLE,
   FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON,
   FPI_IMAGE_DEVICE_STATE_CAPTURE,
   FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF,
@@ -57,11 +84,6 @@ typedef enum {
  * @change_state: Notification about the current device state (i.e. waiting for
  *   finger or image capture). Implementing this is optional, it can e.g. be
  *   used to flash an LED when waiting for a finger.
- *
- * These are the main entry points for image based drivers. For all but the
- * change_state vfunc, implementations *must* eventually call the corresponding
- * function to finish the operation. It is also acceptable to call the generic
- *
  *
  * These are the main entry points for drivers to implement. Drivers may not
  * implement all of these entry points if they do not support the operation

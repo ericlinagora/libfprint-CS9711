@@ -41,6 +41,9 @@ fp_image_device_get_instance_private (FpImageDevice *self)
                             g_type_class_get_instance_private_offset (img_class));
 }
 
+static void fp_image_device_change_state (FpImageDevice      *self,
+                                          FpiImageDeviceState state);
+
 /* Private shared functions */
 
 void
@@ -52,6 +55,7 @@ fpi_image_device_activate (FpImageDevice *self)
   g_assert (!priv->active);
 
   fp_dbg ("Activating image device");
+  fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_ACTIVATING);
   cls->activate (self);
 }
 
@@ -62,39 +66,76 @@ fpi_image_device_deactivate (FpImageDevice *self, gboolean cancelling)
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpImageDeviceClass *cls = FP_IMAGE_DEVICE_GET_CLASS (device);
 
-  if (!priv->active || priv->state == FPI_IMAGE_DEVICE_STATE_INACTIVE)
+  if (!priv->active || priv->state == FPI_IMAGE_DEVICE_STATE_DEACTIVATING)
     {
       /* XXX: We currently deactivate both from minutiae scan result
        *      and finger off report. */
       fp_dbg ("Already deactivated, ignoring request.");
       return;
     }
-  if (!cancelling && priv->state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
-    g_warning ("Deactivating image device while waiting for finger, this should not happen.");
-
-  priv->state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
-  g_object_notify (G_OBJECT (self), "fpi-image-device-state");
+  if (!cancelling && priv->state != FPI_IMAGE_DEVICE_STATE_IDLE)
+    g_warning ("Deactivating image device while it is not idle, this should not happen.");
 
   fp_dbg ("Deactivating image device");
+  fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_DEACTIVATING);
   cls->deactivate (self);
 }
 
 /* Static helper functions */
 
+/* This should not be called directly to activate/deactivate the device! */
 static void
 fp_image_device_change_state (FpImageDevice *self, FpiImageDeviceState state)
 {
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   g_autofree char *prev_state_str = NULL;
   g_autofree char *state_str = NULL;
+  gboolean transition_is_valid = FALSE;
+  gint i;
 
-  /* Cannot change to inactive using this function. */
-  g_assert (state != FPI_IMAGE_DEVICE_STATE_INACTIVE);
+  struct
+  {
+    FpiImageDeviceState from;
+    FpiImageDeviceState to;
+  } valid_transitions[] = {
+    { FPI_IMAGE_DEVICE_STATE_INACTIVE, FPI_IMAGE_DEVICE_STATE_ACTIVATING },
+
+    { FPI_IMAGE_DEVICE_STATE_ACTIVATING, FPI_IMAGE_DEVICE_STATE_IDLE },
+    { FPI_IMAGE_DEVICE_STATE_ACTIVATING, FPI_IMAGE_DEVICE_STATE_INACTIVE },
+
+    { FPI_IMAGE_DEVICE_STATE_IDLE, FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON },
+    { FPI_IMAGE_DEVICE_STATE_IDLE, FPI_IMAGE_DEVICE_STATE_CAPTURE }, /* raw mode -- currently not supported */
+    { FPI_IMAGE_DEVICE_STATE_IDLE, FPI_IMAGE_DEVICE_STATE_DEACTIVATING },
+
+    { FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON, FPI_IMAGE_DEVICE_STATE_CAPTURE },
+    { FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON, FPI_IMAGE_DEVICE_STATE_DEACTIVATING }, /* cancellation */
+
+    { FPI_IMAGE_DEVICE_STATE_CAPTURE, FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF },
+    { FPI_IMAGE_DEVICE_STATE_CAPTURE, FPI_IMAGE_DEVICE_STATE_IDLE }, /* raw mode -- currently not supported */
+    { FPI_IMAGE_DEVICE_STATE_CAPTURE, FPI_IMAGE_DEVICE_STATE_DEACTIVATING }, /* cancellation */
+
+    { FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF, FPI_IMAGE_DEVICE_STATE_IDLE },
+    { FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF, FPI_IMAGE_DEVICE_STATE_DEACTIVATING }, /* cancellation */
+
+    { FPI_IMAGE_DEVICE_STATE_DEACTIVATING, FPI_IMAGE_DEVICE_STATE_INACTIVE },
+  };
 
   prev_state_str = g_enum_to_string (FPI_TYPE_IMAGE_DEVICE_STATE, priv->state);
   state_str = g_enum_to_string (FPI_TYPE_IMAGE_DEVICE_STATE, state);
   fp_dbg ("Image device internal state change from %s to %s",
           prev_state_str, state_str);
+
+  for (i = 0; i < G_N_ELEMENTS (valid_transitions); i++)
+    {
+      if (valid_transitions[i].from == priv->state && valid_transitions[i].to == state)
+        {
+          transition_is_valid = TRUE;
+          break;
+        }
+    }
+  if (!transition_is_valid)
+    g_warning ("Internal state machine issue: transition from %s to %s should not happen!",
+               prev_state_str, state_str);
 
   priv->state = state;
   g_object_notify (G_OBJECT (self), "fpi-image-device-state");
@@ -199,7 +240,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
       if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         {
           fp_image_device_maybe_complete_action (self, g_steal_pointer (&error));
-          fpi_image_device_deactivate (self, FALSE);
+          fpi_image_device_deactivate (self, TRUE);
           return;
         }
 
@@ -231,7 +272,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
             {
               fp_image_device_maybe_complete_action (self, g_steal_pointer (&error));
               /* We might not yet be deactivating, if we are enrolling. */
-              fpi_image_device_deactivate (self, FALSE);
+              fpi_image_device_deactivate (self, TRUE);
               return;
             }
         }
@@ -385,6 +426,8 @@ fpi_image_device_report_finger_status (FpImageDevice *self,
        * In the enroll case, the decision can only be made after minutiae
        * detection has finished.
        */
+      fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_IDLE);
+
       if (action != FPI_DEVICE_ACTION_ENROLL)
         fpi_image_device_deactivate (self, FALSE);
       else
@@ -432,6 +475,7 @@ fpi_image_device_image_captured (FpImageDevice *self, FpImage *image)
                             fpi_image_device_minutiae_detected,
                             self);
 
+  /* XXX: This is wrong if we add support for raw capture mode. */
   fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF);
 }
 
@@ -567,6 +611,7 @@ fpi_image_device_activate_complete (FpImageDevice *self, GError *error)
   action = fpi_device_get_current_action (FP_DEVICE (self));
 
   g_return_if_fail (priv->active == FALSE);
+  g_return_if_fail (priv->state == FPI_IMAGE_DEVICE_STATE_ACTIVATING);
   g_return_if_fail (action == FPI_DEVICE_ACTION_ENROLL ||
                     action == FPI_DEVICE_ACTION_VERIFY ||
                     action == FPI_DEVICE_ACTION_IDENTIFY ||
@@ -585,6 +630,7 @@ fpi_image_device_activate_complete (FpImageDevice *self, GError *error)
 
   /* We always want to capture at this point, move to AWAIT_FINGER
    * state. */
+  fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_IDLE);
   fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON);
 }
 
@@ -601,7 +647,7 @@ fpi_image_device_deactivate_complete (FpImageDevice *self, GError *error)
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
 
   g_return_if_fail (priv->active == TRUE);
-  g_return_if_fail (priv->state == FPI_IMAGE_DEVICE_STATE_INACTIVE);
+  g_return_if_fail (priv->state == FPI_IMAGE_DEVICE_STATE_DEACTIVATING);
 
   g_debug ("Image device deactivation completed");
 
@@ -609,6 +655,8 @@ fpi_image_device_deactivate_complete (FpImageDevice *self, GError *error)
 
   /* Assume finger was removed. */
   priv->finger_present = FALSE;
+
+  fp_image_device_change_state (self, FPI_IMAGE_DEVICE_STATE_INACTIVE);
 
   fp_image_device_maybe_complete_action (self, error);
 }

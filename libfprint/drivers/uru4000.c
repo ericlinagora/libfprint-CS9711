@@ -412,18 +412,6 @@ dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
 {
   FpiDeviceUru4000 *self = FPI_DEVICE_URU4000 (dev);
 
-  switch (state)
-    {
-    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
-    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
-    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF:
-    case FPI_IMAGE_DEVICE_STATE_CAPTURE:
-      break;
-
-    default:
-      g_assert_not_reached ();
-    }
-
   self->activate_state = state;
   if (self->img_transfer != NULL)
     return;
@@ -1185,7 +1173,10 @@ deactivate_write_reg_cb (FpiUsbTransfer *transfer, FpDevice *dev,
 static void
 dev_deactivate (FpImageDevice *dev)
 {
-  dev_change_state (dev, FPI_IMAGE_DEVICE_STATE_INACTIVE);
+  /* This is started/handled by execute_state_change in order to delay the
+   * action until after the image transfer has completed.
+   * We just need to override the function so that the complete handler is
+   * not called automatically. */
 }
 
 static void
@@ -1196,7 +1187,7 @@ execute_state_change (FpImageDevice *dev)
 
   switch (self->activate_state)
     {
-    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
+    case FPI_IMAGE_DEVICE_STATE_DEACTIVATING:
       fp_dbg ("deactivating");
       self->irq_cb = NULL;
       self->irq_cb_data = NULL;
@@ -1250,6 +1241,12 @@ execute_state_change (FpImageDevice *dev)
       self->irq_cb = finger_presence_irq_cb;
       write_reg (dev, REG_MODE, MODE_AWAIT_FINGER_OFF,
                  change_state_write_reg_cb, NULL);
+      break;
+
+    /* Ignored states */
+    case FPI_IMAGE_DEVICE_STATE_IDLE:
+    case FPI_IMAGE_DEVICE_STATE_ACTIVATING:
+    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
       break;
     }
 }

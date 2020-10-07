@@ -983,11 +983,14 @@ elan_change_state (FpImageDevice *idev)
       elan_calibrate (dev);
       break;
 
+    case FPI_IMAGE_DEVICE_STATE_IDLE:
+    case FPI_IMAGE_DEVICE_STATE_ACTIVATING:
+    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
     case FPI_IMAGE_DEVICE_STATE_CAPTURE:
       /* not used */
       break;
 
-    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
+    case FPI_IMAGE_DEVICE_STATE_DEACTIVATING:
     case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF:
       elan_stop_capture (dev);
       break;
@@ -1012,6 +1015,11 @@ dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
 
   /* Inactive and await finger off are equivalent for the elan driver. */
   if (state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF)
+    state = FPI_IMAGE_DEVICE_STATE_DEACTIVATING;
+
+  /* The internal state may already be inactive, ignore deactivation then. */
+  if (self->dev_state_next == FPI_IMAGE_DEVICE_STATE_INACTIVE &&
+      state == FPI_IMAGE_DEVICE_STATE_DEACTIVATING)
     state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
 
   if (self->dev_state_next == state)
@@ -1022,7 +1030,7 @@ dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
 
   switch (state)
     {
-    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
+    case FPI_IMAGE_DEVICE_STATE_DEACTIVATING:
     case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
     case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF: {
         char *name;
@@ -1041,14 +1049,14 @@ dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
         break;
       }
 
+    case FPI_IMAGE_DEVICE_STATE_IDLE:
+    case FPI_IMAGE_DEVICE_STATE_ACTIVATING:
+    case FPI_IMAGE_DEVICE_STATE_INACTIVE:
     case FPI_IMAGE_DEVICE_STATE_CAPTURE:
       /* TODO MAYBE: split capture ssm into smaller ssms and use this state */
       self->dev_state = state;
       self->dev_state_next = state;
       break;
-
-    default:
-      g_assert_not_reached ();
     }
 }
 
@@ -1070,7 +1078,7 @@ dev_deactivate (FpImageDevice *dev)
        * need to signal back deactivation) and then ensure we will change
        * to the inactive state eventually. */
       self->deactivating = TRUE;
-      dev_change_state (dev, FPI_IMAGE_DEVICE_STATE_INACTIVE);
+      dev_change_state (dev, FPI_IMAGE_DEVICE_STATE_DEACTIVATING);
     }
 }
 

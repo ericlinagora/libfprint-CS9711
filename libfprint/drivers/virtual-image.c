@@ -195,7 +195,7 @@ recv_image (FpDeviceVirtualImage *self, GInputStream *stream)
   g_debug ("Starting image receive (if active), state is: %i", state);
 
   /* Only register if the state is active. */
-  if (state != FPI_IMAGE_DEVICE_STATE_INACTIVE)
+  if (state >= FPI_IMAGE_DEVICE_STATE_IDLE)
     {
       g_input_stream_read_all_async (stream,
                                      self->recv_img_hdr,
@@ -338,10 +338,10 @@ dev_activate (FpImageDevice *dev)
 {
   FpDeviceVirtualImage *self = FPI_DEVICE_VIRTUAL_IMAGE (dev);
 
+  fpi_image_device_activate_complete (dev, NULL);
+
   if (self->connection)
     recv_image (self, g_io_stream_get_input_stream (G_IO_STREAM (self->connection)));
-
-  fpi_image_device_activate_complete (dev, NULL);
 }
 
 static void
