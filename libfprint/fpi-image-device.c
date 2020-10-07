@@ -51,17 +51,12 @@ fpi_image_device_activate (FpImageDevice *self)
 
   g_assert (!priv->active);
 
-  /* We don't have a neutral ACTIVE state, but we always will
-   * go into WAIT_FINGER_ON afterwards. */
-  priv->state = FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON;
-  g_object_notify (G_OBJECT (self), "fpi-image-device-state");
-
   fp_dbg ("Activating image device");
   cls->activate (self);
 }
 
 void
-fpi_image_device_deactivate (FpImageDevice *self)
+fpi_image_device_deactivate (FpImageDevice *self, gboolean cancelling)
 {
   FpDevice *device = FP_DEVICE (self);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
@@ -74,7 +69,7 @@ fpi_image_device_deactivate (FpImageDevice *self)
       fp_dbg ("Already deactivated, ignoring request.");
       return;
     }
-  if (!priv->cancelling && priv->state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
+  if (!cancelling && priv->state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
     g_warning ("Deactivating image device while waiting for finger, this should not happen.");
 
   priv->state = FPI_IMAGE_DEVICE_STATE_INACTIVE;
@@ -204,7 +199,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
       if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         {
           fp_image_device_maybe_complete_action (self, g_steal_pointer (&error));
-          fpi_image_device_deactivate (self);
+          fpi_image_device_deactivate (self, FALSE);
           return;
         }
 
@@ -236,7 +231,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
             {
               fp_image_device_maybe_complete_action (self, g_steal_pointer (&error));
               /* We might not yet be deactivating, if we are enrolling. */
-              fpi_image_device_deactivate (self);
+              fpi_image_device_deactivate (self, FALSE);
               return;
             }
         }
@@ -260,7 +255,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
       if (priv->enroll_stage == IMG_ENROLL_STAGES)
         {
           fp_image_device_maybe_complete_action (self, g_steal_pointer (&error));
-          fpi_image_device_deactivate (self);
+          fpi_image_device_deactivate (self, FALSE);
         }
       else
         {
@@ -391,7 +386,7 @@ fpi_image_device_report_finger_status (FpImageDevice *self,
        * detection has finished.
        */
       if (action != FPI_DEVICE_ACTION_ENROLL)
-        fpi_image_device_deactivate (self);
+        fpi_image_device_deactivate (self, FALSE);
       else
         fp_image_device_enroll_maybe_await_finger_on (self);
     }
@@ -479,27 +474,21 @@ fpi_image_device_retry_scan (FpImageDevice *self, FpDeviceRetry retry)
     {
       fpi_device_verify_report (FP_DEVICE (self), FPI_MATCH_ERROR, NULL, error);
       fp_image_device_maybe_complete_action (self, NULL);
-      priv->cancelling = TRUE;
-      fpi_image_device_deactivate (self);
-      priv->cancelling = FALSE;
+      fpi_image_device_deactivate (self, TRUE);
 
     }
   else if (action == FPI_DEVICE_ACTION_IDENTIFY)
     {
       fpi_device_identify_report (FP_DEVICE (self), NULL, NULL, error);
       fp_image_device_maybe_complete_action (self, NULL);
-      priv->cancelling = TRUE;
-      fpi_image_device_deactivate (self);
-      priv->cancelling = FALSE;
+      fpi_image_device_deactivate (self, TRUE);
     }
   else
     {
       /* The capture case where there is no early reporting. */
       g_debug ("Abort current operation due to retry (no early-reporting)");
       fp_image_device_maybe_complete_action (self, error);
-      priv->cancelling = TRUE;
-      fpi_image_device_deactivate (self);
-      priv->cancelling = FALSE;
+      fpi_image_device_deactivate (self, TRUE);
     }
 }
 
@@ -558,10 +547,8 @@ fpi_image_device_session_error (FpImageDevice *self, GError *error)
   if (error->domain == FP_DEVICE_RETRY)
     g_warning ("Driver should report retries using fpi_image_device_retry_scan!");
 
-  priv->cancelling = TRUE;
   fp_image_device_maybe_complete_action (self, error);
-  fpi_image_device_deactivate (self);
-  priv->cancelling = FALSE;
+  fpi_image_device_deactivate (self, TRUE);
 }
 
 /**

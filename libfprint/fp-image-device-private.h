@@ -27,7 +27,6 @@ typedef struct
 {
   FpiImageDeviceState state;
   gboolean            active;
-  gboolean            cancelling;
 
   gboolean            finger_present;
 
@@ -42,4 +41,5 @@ typedef struct
 
 
 void fpi_image_device_activate (FpImageDevice *image_device);
-void fpi_image_device_deactivate (FpImageDevice *image_device);
+void fpi_image_device_deactivate (FpImageDevice *image_device,
+                                  gboolean       cancelling);

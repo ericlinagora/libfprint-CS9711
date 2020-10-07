@@ -82,7 +82,6 @@ static void
 fp_image_device_cancel_action (FpDevice *device)
 {
   FpImageDevice *self = FP_IMAGE_DEVICE (device);
-  FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpiDeviceAction action;
 
   action = fpi_device_get_current_action (device);
@@ -93,11 +92,7 @@ fp_image_device_cancel_action (FpDevice *device)
       action == FPI_DEVICE_ACTION_VERIFY ||
       action == FPI_DEVICE_ACTION_IDENTIFY ||
       action == FPI_DEVICE_ACTION_CAPTURE)
-    {
-      priv->cancelling = TRUE;
-      fpi_image_device_deactivate (self);
-      priv->cancelling = FALSE;
-    }
+    fpi_image_device_deactivate (self, TRUE);
 }
 
 static void
