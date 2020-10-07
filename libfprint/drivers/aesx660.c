@@ -91,13 +91,12 @@ aesX660_read_response (FpiSsm                *ssm,
                        FpiUsbTransferCallback callback)
 {
   FpiUsbTransfer *transfer = fpi_usb_transfer_new (_dev);
-  unsigned char *data;
   GCancellable *cancel = NULL;
 
   if (cancellable)
     cancel = fpi_device_get_cancellable (_dev);
-  data = g_malloc (buf_len);
-  fpi_usb_transfer_fill_bulk_full (transfer, EP_IN, data, buf_len, NULL);
+
+  fpi_usb_transfer_fill_bulk (transfer, EP_IN, buf_len);
   transfer->ssm = ssm;
   transfer->short_is_error = short_is_error;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, cancel, callback, NULL);
