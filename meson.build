@@ -97,6 +97,7 @@ virtual_drivers = [
 default_drivers = [
     'upektc_img',
     'vfs5011',
+    'vfs7552',
     'aes3500',
     'aes4000',
     'aes1610',
