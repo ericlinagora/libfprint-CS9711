@@ -70,6 +70,9 @@
 #define ELAN_CMD_TIMEOUT 10000
 #define ELAN_FINGER_TIMEOUT 200
 
+G_DECLARE_FINAL_TYPE (FpiDeviceElan, fpi_device_elan, FPI, DEVICE_ELAN,
+                      FpImageDevice);
+
 struct elan_cmd
 {
   unsigned char  cmd[ELAN_CMD_LEN];
@@ -218,8 +221,8 @@ static void elan_cmd_done (FpiSsm *ssm);
 static void elan_cmd_read (FpiSsm   *ssm,
                            FpDevice *dev);
 
-static void elan_calibrate (FpDevice *dev);
-static void elan_capture (FpDevice *dev);
+static void elan_calibrate (FpiDeviceElan *self);
+static void elan_capture (FpiDeviceElan *self);
 
 static void dev_change_state (FpImageDevice      *dev,
                               FpiImageDeviceState state);
