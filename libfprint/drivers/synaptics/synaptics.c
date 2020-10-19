@@ -199,9 +199,17 @@ cmd_interrupt_cb (FpiUsbTransfer *transfer,
     }
 
   if (transfer->buffer[0] & USB_ASYNC_MESSAGE_PENDING)
-    fpi_ssm_next_state (transfer->ssm);
+    {
+      fpi_ssm_next_state (transfer->ssm);
+    }
   else
-    fpi_usb_transfer_submit (transfer, 1000, NULL, cmd_interrupt_cb, NULL);
+    {
+      fpi_usb_transfer_submit (fpi_usb_transfer_ref (transfer),
+                               1000,
+                               NULL,
+                               cmd_interrupt_cb,
+                               NULL);
+    }
 }
 
 static void
