@@ -663,7 +663,11 @@ imaging_run_state (FpiSsm *ssm, FpDevice *_dev)
     case IMAGING_CAPTURE:
       self->img_lines_done = 0;
       self->img_block = 0;
-      fpi_usb_transfer_submit (self->img_transfer, 0, NULL, image_transfer_cb, NULL);
+      fpi_usb_transfer_submit (fpi_usb_transfer_ref (self->img_transfer),
+                               0,
+                               NULL,
+                               image_transfer_cb,
+                               NULL);
 
       break;
 
@@ -799,8 +803,7 @@ imaging_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
   if (error)
     fpi_image_device_session_error (FP_IMAGE_DEVICE (dev), error);
 
-  /* Freed by callback or cancellation */
-  self->img_transfer = NULL;
+  g_clear_pointer (&self->img_transfer, fpi_usb_transfer_unref);
 
   g_free (self->img_data);
   self->img_data = NULL;
