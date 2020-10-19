@@ -197,9 +197,8 @@ cmd_interrupt_cb (FpiUsbTransfer *transfer,
       fpi_ssm_mark_failed (transfer->ssm, error);
       return;
     }
-  g_clear_pointer (&error, g_error_free);
 
-  if (transfer->buffer[0] & USB_ASYNC_MESSAGE_PENDING || error)
+  if (transfer->buffer[0] & USB_ASYNC_MESSAGE_PENDING)
     fpi_ssm_next_state (transfer->ssm);
   else
     fpi_usb_transfer_submit (transfer, 1000, NULL, cmd_interrupt_cb, NULL);
