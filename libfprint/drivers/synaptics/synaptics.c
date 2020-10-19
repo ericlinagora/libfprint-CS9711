@@ -205,7 +205,7 @@ cmd_interrupt_cb (FpiUsbTransfer *transfer,
   else
     {
       fpi_usb_transfer_submit (fpi_usb_transfer_ref (transfer),
-                               1000,
+                               0,
                                NULL,
                                cmd_interrupt_cb,
                                NULL);
