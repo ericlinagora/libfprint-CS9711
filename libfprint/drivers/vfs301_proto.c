@@ -509,30 +509,30 @@ vfs301_proto_process_event_cb (FpiUsbTransfer *transfer,
                                FpDevice *device,
                                gpointer user_data, GError *error)
 {
-  FpDeviceVfs301 *dev = user_data;
+  FpDeviceVfs301 *self = FPI_DEVICE_VFS301 (device);
 
   if (error)
     {
       g_warning ("Error receiving data: %s", error->message);
       g_error_free (error);
-      dev->recv_progress = VFS301_FAILURE;
+      self->recv_progress = VFS301_FAILURE;
       return;
     }
   else if (transfer->actual_length < transfer->length)
     {
       /* TODO: process the data anyway? */
-      dev->recv_progress = VFS301_ENDED;
+      self->recv_progress = VFS301_ENDED;
       return;
     }
   else
     {
       FpiUsbTransfer *new;
-      if (!vfs301_proto_process_data (dev,
+      if (!vfs301_proto_process_data (self,
                                       transfer->length == VFS301_FP_RECV_LEN_1,
                                       transfer->buffer,
                                       transfer->actual_length))
         {
-          dev->recv_progress = VFS301_ENDED;
+          self->recv_progress = VFS301_ENDED;
           return;
         }
 
