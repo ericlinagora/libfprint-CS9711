@@ -78,117 +78,134 @@ nbis_sources = [
     'nbis/mindtct/xytreps.c',
 ]
 
-aeslib = false
-aesx660 = false
-aes3k = false
-drivers_sources = []
-drivers_cflags = []
-foreach driver: drivers
-    if driver == 'upekts'
-        drivers_sources += [ 'drivers/upekts.c', 'drivers/upek_proto.c' ]
-    endif
-    if driver == 'upektc'
-        drivers_sources += [ 'drivers/upektc.c' ]
-    endif
-    if driver == 'upeksonly'
-        drivers_sources += [ 'drivers/upeksonly.c' ]
-    endif
-    if driver == 'uru4000'
-        drivers_sources += [ 'drivers/uru4000.c' ]
-    endif
-    if driver == 'aes1610'
-        drivers_sources += [ 'drivers/aes1610.c' ]
-        aeslib = true
-    endif
-    if driver == 'aes1660'
-        drivers_sources += [ 'drivers/aes1660.c' ]
-        aeslib = true
-        aesx660 = true
-    endif
-    if driver == 'aes2501'
-        drivers_sources += [ 'drivers/aes2501.c' ]
-        aeslib = true
-    endif
-    if driver == 'aes2550'
-        drivers_sources += [ 'drivers/aes2550.c' ]
-        aeslib = true
-    endif
-    if driver == 'aes2660'
-        drivers_sources += [ 'drivers/aes2660.c' ]
-        aeslib = true
-        aesx660 = true
-    endif
-    if driver == 'aes3500'
-        drivers_sources += [ 'drivers/aes3500.c' ]
-        aeslib = true
-        aes3k = true
-    endif
-    if driver == 'aes4000'
-        drivers_sources += [ 'drivers/aes4000.c' ]
-        aeslib = true
-        aes3k = true
-    endif
-    if driver == 'vcom5s'
-        drivers_sources += [ 'drivers/vcom5s.c' ]
-    endif
-    if driver == 'vfs101'
-        drivers_sources += [ 'drivers/vfs101.c' ]
-    endif
-    if driver == 'vfs301'
-        drivers_sources += [ 'drivers/vfs301.c', 'drivers/vfs301_proto.c' ]
-    endif
-    if driver == 'vfs5011'
-        drivers_sources += [ 'drivers/vfs5011.c' ]
-    endif
-    if driver == 'upektc_img'
-        drivers_sources += [ 'drivers/upektc_img.c',  'drivers/upek_proto.c' ]
-    endif
-    if driver == 'etes603'
-        drivers_sources += [ 'drivers/etes603.c' ]
-    endif
-    if driver == 'vfs0050'
-        drivers_sources += [ 'drivers/vfs0050.c' ]
-    endif
-    if driver == 'elan'
-        drivers_sources += [ 'drivers/elan.c' ]
-    endif
-    if driver == 'virtual_image'
-        drivers_sources += [ 'drivers/virtual-image.c' ]
-    endif
-    if driver == 'virtual_device'
-        drivers_sources += [ 'drivers/virtual-device.c' ]
-    endif
-    if driver == 'virtual_device_storage'
-        drivers_sources += [ 'drivers/virtual-device-storage.c' ]
-    endif
-    if driver.startswith('virtual_')
-        drivers_sources += [ 'drivers/virtual-device-listener.c' ]
-    endif
-    if driver == 'synaptics'
-    drivers_sources += [
-        'drivers/synaptics/synaptics.c',
-        'drivers/synaptics/bmkt_message.c',
-    ]
-    endif
-    if driver == 'goodixmoc'
-    drivers_sources += [
-        'drivers/goodixmoc/goodix.c',
-        'drivers/goodixmoc/goodix_proto.c',
-    ]
+driver_sources = {
+    'upekts' :
+        [ 'drivers/upekts.c', 'drivers/upek_proto.c' ],
+    'upektc' :
+        [ 'drivers/upektc.c' ],
+    'upeksonly' :
+        [ 'drivers/upeksonly.c' ],
+    'uru4000' :
+        [ 'drivers/uru4000.c' ],
+    'aes1610' :
+        [ 'drivers/aes1610.c' ],
+    'aes1660' :
+        [ 'drivers/aes1660.c' ],
+    'aes2501' :
+        [ 'drivers/aes2501.c' ],
+    'aes2550' :
+        [ 'drivers/aes2550.c' ],
+    'aes2660' :
+        [ 'drivers/aes2660.c' ],
+    'aes3500' :
+        [ 'drivers/aes3500.c' ],
+    'aes4000' :
+        [ 'drivers/aes4000.c' ],
+    'vcom5s' :
+        [ 'drivers/vcom5s.c' ],
+    'vfs101' :
+        [ 'drivers/vfs101.c' ],
+    'vfs301' :
+        [ 'drivers/vfs301.c', 'drivers/vfs301_proto.c' ],
+    'vfs5011' :
+        [ 'drivers/vfs5011.c' ],
+    'upektc_img' :
+        [ 'drivers/upektc_img.c',  'drivers/upek_proto.c' ],
+    'etes603' :
+        [ 'drivers/etes603.c' ],
+    'vfs0050' :
+        [ 'drivers/vfs0050.c' ],
+    'elan' :
+        [ 'drivers/elan.c' ],
+    'virtual_image' :
+        [ 'drivers/virtual-image.c' ],
+    'virtual_device' :
+        [ 'drivers/virtual-device.c' ],
+    'virtual_device_storage' :
+        [ 'drivers/virtual-device-storage.c' ],
+    'synaptics' :
+        [ 'drivers/synaptics/synaptics.c', 'drivers/synaptics/bmkt_message.c' ],
+    'goodixmoc' :
+        [ 'drivers/goodixmoc/goodix.c', 'drivers/goodixmoc/goodix_proto.c' ],
+}
+
+helper_sources = {
+    'aeslib' :
+        [ 'drivers/aeslib.c' ],
+    'aesx660' :
+        [ 'drivers/aesx660.c' ],
+    'aes3k' :
+        [ 'drivers/aes3k.c' ],
+    'virtual' :
+        [ 'drivers/virtual-device-listener.c' ],
+}
+
+driver_helpers = {
+    'aes1610' : [ 'aeslib' ],
+    'aes1660' : [ 'aeslib', 'aesx660' ],
+    'aes2501' : [ 'aeslib' ],
+    'aes2550' : [ 'aeslib' ],
+    'aes2660' : [ 'aeslib', 'aesx660' ],
+    'aes3500' : [ 'aeslib', 'aes3k' ],
+    'aes4000' : [ 'aeslib', 'aes3k' ],
+    'virtual_image'          : [ 'virtual' ],
+    'virtual_device'         : [ 'virtual' ],
+    'virtual_device_storage' : [ 'virtual' ],
+}
+
+helpers = []
+foreach driver : drivers
+    if driver in driver_helpers
+        foreach helper : driver_helpers[driver]
+            if helper not in helpers
+                helpers += helper
+            endif
+        endforeach
     endif
 endforeach
 
-if aeslib
-    drivers_sources += [ 'drivers/aeslib.c' ]
-endif
-if aesx660
-    drivers_sources += ['drivers/aesx660.c' ]
-endif
-if aes3k
-    drivers_sources += ['drivers/aes3k.c' ]
-endif
+drivers_sources = []
+drivers_cflags = []
+foreach driver: drivers
+    drivers_sources += driver_sources[driver]
+endforeach
+foreach helper : helpers
+    drivers_sources += helper_sources[helper]
+endforeach
 
-other_sources = []
+optional_deps = []
+
+# Resolve extra dependencies
+foreach i : helpers + drivers
+    driver = i
+    foreach d, helper : driver_helpers
+        if i in helpers
+            driver = d
+            break
+        endif
+    endforeach
+
+    if i == 'aes3k'
+        imaging_dep = dependency('pixman-1', required: false)
+        if not imaging_dep.found()
+            error('pixman is required for @0@ and possibly others'.format(driver))
+        endif
+
+        libfprint_conf.set10('HAVE_PIXMAN', true)
+        optional_deps += imaging_dep
+    elif i == 'uru4000'
+        nss_dep = dependency('nss', required: false)
+        if not nss_dep.found()
+            error('nss is required for uru4000')
+        endif
+
+        optional_deps += nss_dep
+    else
+       deps = []
+       continue
+    endif
+
+endforeach
 
 fp_enums = gnome.mkenums_simple('fp-enums',
     sources: libfprint_public_headers,
@@ -243,10 +260,8 @@ deps = [
     glib_dep,
     gobject_dep,
     gusb_dep,
-    imaging_dep,
     mathlib_dep,
-    nss_dep,
-]
+] + optional_deps
 
 # These are empty and only exist so that the include directories are created
 # in the build tree. This silences a build time warning.
@@ -293,7 +308,6 @@ libfprint = shared_library(versioned_libname.split('lib')[1],
     sources: [
         fp_enums,
         libfprint_sources,
-        other_sources,
     ],
     soversion: soversion,
     version: libversion,

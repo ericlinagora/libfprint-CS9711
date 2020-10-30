@@ -151,29 +151,6 @@ else
     endforeach
 endif
 
-nss_dep = dependency('', required: false)
-imaging_dep = dependency('', required: false)
-libfprint_conf.set10('HAVE_PIXMAN', false)
-foreach driver: drivers
-    if driver == 'uru4000'
-        nss_dep = dependency('nss', required: false)
-        if not nss_dep.found()
-            error('NSS is required for the URU4000/URU4500 driver')
-        endif
-    endif
-    if driver == 'aes3500' or driver == 'aes4000'
-        imaging_dep = dependency('pixman-1', required: false)
-        if not imaging_dep.found()
-            error('pixman is required for imaging support')
-        endif
-
-        libfprint_conf.set10('HAVE_PIXMAN', true)
-    endif
-    if not all_drivers.contains(driver)
-        error('Invalid driver \'' + driver + '\'')
-    endif
-endforeach
-
 supported_drivers = []
 foreach driver: drivers
     if build_machine.endian() == 'little' or driver in endian_independent_drivers
@@ -210,9 +187,11 @@ if get_option('gtk-examples')
     endif
 endif
 
+# Some dependency resolving happens inside here
+subdir('libfprint')
+
 configure_file(output: 'config.h', configuration: libfprint_conf)
 
-subdir('libfprint')
 subdir('examples')
 if get_option('doc')
     gnome = import('gnome')
