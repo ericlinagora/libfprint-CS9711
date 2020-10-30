@@ -144,10 +144,32 @@ if drivers == [ 'default' ]
     drivers = default_drivers
 endif
 
-# For detection whether udev is needed
-udev_drivers = [
-    'elanspi'
-]
+driver_helper_mapping = {
+    'aes1610' : [ 'aeslib' ],
+    'aes1660' : [ 'aeslib', 'aesx660' ],
+    'aes2501' : [ 'aeslib' ],
+    'aes2550' : [ 'aeslib' ],
+    'aes2660' : [ 'aeslib', 'aesx660' ],
+    'aes3500' : [ 'aeslib', 'aes3k' ],
+    'aes4000' : [ 'aeslib', 'aes3k' ],
+    'uru4000' : [ 'nss' ],
+    'elanspi' : [ 'udev' ],
+    'virtual_image'          : [ 'virtual' ],
+    'virtual_device'         : [ 'virtual' ],
+    'virtual_device_storage' : [ 'virtual' ],
+}
+
+driver_helpers = []
+foreach driver : drivers
+    if driver in driver_helper_mapping
+        foreach helper : driver_helper_mapping[driver]
+            if helper not in driver_helpers
+                driver_helpers += helper
+            endif
+        endforeach
+    endif
+endforeach
+
 
 if drivers.length() == 0 or drivers[0] == ''
     error('Cannot build libfprint without drivers, please specify a valid value for the drivers option')
@@ -165,41 +187,46 @@ else
     endforeach
 endif
 
-nss_dep = dependency('', required: false)
-imaging_dep = dependency('', required: false)
-gudev_dep = dependency('', required: false)
-libfprint_conf.set10('HAVE_PIXMAN', false)
-
 udev_rules = get_option('udev_rules')
 install_udev_rules = udev_rules.enabled()
 
-foreach driver: drivers
-    if driver == 'uru4000'
-        nss_dep = dependency('nss', required: false)
-        if not nss_dep.found()
-            error('NSS is required for the URU4000/URU4500 driver')
+optional_deps = []
+
+# Resolve extra dependencies
+foreach i : driver_helpers
+    foreach d, helpers : driver_helper_mapping
+        if i in helpers
+            driver = d
+            break
         endif
-    endif
-    if driver == 'aes3500' or driver == 'aes4000' or driver == 'elanspi'
+    endforeach
+
+    if i == 'aes3k'
         imaging_dep = dependency('pixman-1', required: false)
         if not imaging_dep.found()
-            error('pixman is required for imaging support')
+            error('pixman is required for @0@ and possibly others'.format(driver))
         endif
 
         libfprint_conf.set10('HAVE_PIXMAN', true)
-    endif
-        if udev_drivers.contains(driver)
-            install_udev_rules = true
-
-            gudev_dep = dependency('gudev-1.0', required: false)
-            if not gudev_dep.found()
-                error('udev is required for SPI support')
-            endif
-
-            libfprint_conf.set10('HAVE_UDEV', true)
+        optional_deps += imaging_dep
+    elif i == 'nss'
+        nss_dep = dependency('nss', required: false)
+        if not nss_dep.found()
+            error('nss is required for @0@ and possibly others'.format(driver))
         endif
-    if not all_drivers.contains(driver)
-        error('Invalid driver \'' + driver + '\'')
+
+        optional_deps += nss_dep
+    elif i == 'udev'
+        install_udev_rules = true
+
+        gudev_dep = dependency('gudev-1.0', required: false)
+        if not gudev_dep.found()
+            error('udev is required for SPI support')
+        endif
+
+        libfprint_conf.set10('HAVE_UDEV', true)
+
+        optional_deps += gudev_dep
     endif
 endforeach
 
@@ -263,9 +290,11 @@ if get_option('gtk-examples')
     endif
 endif
 
+# Some dependency resolving happens inside here
+subdir('libfprint')
+
 configure_file(output: 'config.h', configuration: libfprint_conf)
 
-subdir('libfprint')
 subdir('examples')
 if get_option('doc')
     gnome = import('gnome')
