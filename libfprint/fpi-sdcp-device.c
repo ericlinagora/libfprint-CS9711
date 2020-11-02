@@ -38,6 +38,19 @@
 
 G_DEFINE_BOXED_TYPE (FpiSdcpClaim, fpi_sdcp_claim, fpi_sdcp_claim_copy, fpi_sdcp_claim_free)
 
+/*
+ * Static, but could be created at runtime using:
+ *   oid_data = SECOID_FindOIDByTag (SEC_OID_SECG_EC_SECP256R1);
+ *   ec_parameters_der.len = oid_data->oid.len + 2;
+ *   ec_parameters_der.data = ec_params_data = g_malloc0 (oid_data->oid.len + 2);
+ *   ec_parameters_der.data[0] = SEC_ASN1_OBJECT_ID;
+ *   ec_parameters_der.data[1] = oid_data->oid.len;
+ */
+const SECItem SDCPECParamsDER = {
+  .len = 10,
+  .data = (guint8[]){ 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07 }
+};
+
 /**
  * fpi_sdcp_claim_new:
  *
