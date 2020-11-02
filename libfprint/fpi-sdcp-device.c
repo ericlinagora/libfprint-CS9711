@@ -628,12 +628,11 @@ fpi_sdcp_validate_cert (FpSdcpDevice *self,
           res->pkcs11Slot = 0;
           res->pkcs11ID = CK_INVALID_HANDLE;
 
-          res->keyType = priv->host_key_public->keyType;
-          res->u.ec.DEREncodedParams = priv->host_key_public->u.ec.DEREncodedParams;
-          res->u.ec.size = priv->host_key_public->u.ec.size;
+          res->keyType = ecKey;
+          res->u.ec.DEREncodedParams = SDCPECParamsDER;
           res->u.ec.publicValue.len = 65;
-          res->u.ec.publicValue.type = priv->host_key_public->u.ec.publicValue.type;
-          res->u.ec.publicValue.data = (guint8 *) cert_m_data;
+          res->u.ec.publicValue.data = (guint8 *) PORT_ArenaAlloc (res->arena, 65);
+          memcpy (res->u.ec.publicValue.data, cert_m_data, 65);
 
           goto out;
         }
@@ -951,11 +950,9 @@ fpi_sdcp_device_connect_complete (FpSdcpDevice *self,
       goto out;
     }
 
-  device_key_public.keyType = priv->host_key_public->keyType;
-  device_key_public.u.ec.DEREncodedParams = priv->host_key_public->u.ec.DEREncodedParams;
-  device_key_public.u.ec.size = priv->host_key_public->u.ec.size;
-  device_key_public.u.ec.publicValue.len = 65;
-  device_key_public.u.ec.publicValue.type = priv->host_key_public->u.ec.publicValue.type;
+  device_key_public.keyType = ecKey;
+  device_key_public.u.ec.DEREncodedParams = SDCPECParamsDER;
+  device_key_public.u.ec.publicValue.len = g_bytes_get_size (claim->pk_d);
   device_key_public.u.ec.publicValue.data = (guint8 *) g_bytes_get_data (claim->pk_d, NULL);
 
   /* Verify(pk_d, H(C001||h_f||pk_f), s_d) */
