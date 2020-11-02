@@ -225,7 +225,13 @@ foreach i : driver_helpers
             error('nss >=3.55 is required for SDCP support (@0@ and possibly others)'.format(driver))
         endif
 
+        freebl_dep = cc.find_library('freebl', required: false)
+        if not freebl_dep.found()
+            error('The static freebl library from nss is required for SDCP support (@0@ and possibly others)'.format(driver))
+        endif
+
         optional_deps += nss_dep
+        optional_deps += freebl_dep
     elif i == 'udev'
         install_udev_rules = true
 
