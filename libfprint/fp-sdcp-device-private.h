@@ -22,11 +22,6 @@
 #include "fpi-sdcp-device.h"
 
 #include <nss.h>
-#pragma GCC diagnostic push
-/* blapi.h is missing a void in a function declaration with no arguments */
-#pragma GCC diagnostic ignored "-Wstrict-prototypes"
-#include <blapi.h>
-#pragma GCC diagnostic pop
 #include <keyhi.h>
 #include <keythi.h>
 #include <pk11pub.h>
@@ -41,11 +36,12 @@ typedef struct
   GPtrArray *intermediate_cas;
 
   /* Host random for the connection */
-  guint8          host_random[32];
+  guint8            host_random[32];
 
-  NSSInitContext *nss_init_context;
-  PK11SlotInfo   *slot;
-  ECPrivateKey   *host_key_private;
+  NSSInitContext   *nss_init_context;
+  PK11SlotInfo     *slot;
+  SECKEYPrivateKey *host_key_private;
+  SECKEYPublicKey  *host_key_public;
 
   /* Master secret is required for reconnects.
    * TODO: We probably want to serialize this to disk so it can survive

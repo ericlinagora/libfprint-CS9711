@@ -72,6 +72,7 @@ if get_option('introspection')
                     suite: ut_suite,
                     depends: libfprint_typelib,
                     env: envs,
+                    workdir: meson.current_source_dir(),
                 )
             endforeach
         else
@@ -112,6 +113,7 @@ if get_option('introspection')
                 suite: ut_suite,
                 depends: libfprint_typelib,
                 env: sdcp_envs,
+                workdir: meson.current_source_dir(),
             )
         endforeach
     else
@@ -131,6 +133,7 @@ if get_option('introspection')
                 find_program('umockdev-test.py'),
                 args: join_paths(meson.current_source_dir(), driver_test),
                 env: driver_envs,
+                workdir: meson.current_source_dir(),
                 suite: ['drivers'],
                 timeout: 10,
                 depends: libfprint_typelib,
