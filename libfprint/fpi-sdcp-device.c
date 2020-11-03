@@ -23,6 +23,7 @@
 #include <sechash.h>
 #include <cert.h>
 
+#include "fpi-compat.h"
 #include "fp-sdcp-device-private.h"
 #include "fpi-sdcp-device.h"
 #include "fpi-print.h"
@@ -157,6 +158,47 @@ fp_sdcp_device_get_instance_private (FpSdcpDevice *self)
 }
 
 /**
+ * fpi_sdcp_generate_random:
+ * @buffer: Buffer to place random bytes into
+ * @len: Number of bytes to generate
+ * @error: Error out
+ *
+ * Returns: #TRUE on success
+ **/
+FP_GNUC_ACCESS (write_only, 1, 2)
+static gboolean
+fpi_sdcp_generate_random (guint8 *buffer, gsize len, GError **error)
+{
+  /* Just use a counter in emulation mode. Not random, but all
+   * we need is something predictable and not repeating immediately.
+   */
+  if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+    {
+      static guint8 emulation_rand = 0;
+      gsize i;
+
+      for (i = 0; i < len; i++)
+        {
+          buffer[i] = emulation_rand;
+          emulation_rand += 1;
+        }
+
+      return TRUE;
+    }
+
+  /* Generating random numbers is basic enough to assume it works */
+  if (PK11_GenerateRandom (buffer, len) != SECSuccess)
+    {
+      g_propagate_error (error,
+                         fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                                   "Error generating random numbers using NSS!"));
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
+/**
  * fpi_sdcp_kdf:
  * @self: The #FpSdcpDevice
  * @baseKey: The key to base it on
@@ -236,7 +278,6 @@ fpi_sdcp_kdf (FpSdcpDevice *self,
   data_param[kdf_params.ulNumberOfDataParams].ulValueLen = sizeof (length_format);
   kdf_params.ulNumberOfDataParams += 1;
 
-  /* TODO: support a second key out (may be discarded) */
   kdf_params.ulAdditionalDerivedKeys = 0;
   kdf_params.pAdditionalDerivedKeys = NULL;
   if (out_key_2)
@@ -362,6 +403,7 @@ fpi_sdcp_device_connect (FpSdcpDevice *self)
   FpSdcpDevicePrivate *priv = fp_sdcp_device_get_instance_private (self);
   PLArenaPool *arena = NULL;
   ECParams ec_parameters = { NULL };
+  GError *error = NULL;
 
   SECStatus r = SECSuccess;
 
@@ -397,7 +439,30 @@ fpi_sdcp_device_connect (FpSdcpDevice *self)
 
   arena = PORT_NewArena (NSS_FREEBL_DEFAULT_CHUNKSIZE);
   EC_FillParams (arena, &SDCPECParamsDER, &ec_parameters);
-  r = EC_NewKey (&ec_parameters, &priv->host_key_private);
+
+  /* Just use a counter in emulation mode. Not random, but all
+   * we need is something predictable and not repeating immediately.
+   */
+  if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+    {
+      /* ECDSA Known Seed info for curves nistp256 and nistk283  */
+      static const PRUint8 ecdsa_known_seed[] = {
+        0x6a, 0x9b, 0xf6, 0xf7, 0xce, 0xed, 0x79, 0x11,
+        0xf0, 0xc7, 0xc8, 0x9a, 0xa5, 0xd1, 0x57, 0xb1,
+        0x7b, 0x5a, 0x3b, 0x76, 0x4e, 0x7b, 0x7c, 0xbc,
+        0xf2, 0x76, 0x1c, 0x1c, 0x7f, 0xc5, 0x53, 0x2f
+      };
+
+      r = EC_NewKeyFromSeed (&ec_parameters,
+                             &priv->host_key_private,
+                             ecdsa_known_seed,
+                             sizeof (ecdsa_known_seed));
+    }
+  else
+    {
+      r = EC_NewKey (&ec_parameters, &priv->host_key_private);
+    }
+
   PORT_FreeArena (arena, FALSE);
   arena = NULL;
 
@@ -405,9 +470,13 @@ fpi_sdcp_device_connect (FpSdcpDevice *self)
     goto nss_error;
 
   /* SDCP Connect: 3.ii. Generate  host random */
-  r = PK11_GenerateRandom (priv->host_random, sizeof (priv->host_random));
-  if (r != SECSuccess)
-    goto nss_error;
+  if (!fpi_sdcp_generate_random (priv->host_random, sizeof (priv->host_random), &error))
+    {
+      fpi_sdcp_device_connect_complete (self,
+                                        NULL, NULL, NULL,
+                                        error);
+      return;
+    }
 
   /* SDCP Connect: 3.iii. Send the Connect message */
   cls->connect (self);
@@ -428,16 +497,13 @@ fpi_sdcp_device_reconnect (FpSdcpDevice *self)
 {
   FpSdcpDeviceClass *cls = FP_SDCP_DEVICE_GET_CLASS (self);
   FpSdcpDevicePrivate *priv = fp_sdcp_device_get_instance_private (self);
-  SECStatus r;
+  GError *error = NULL;
 
   /* SDCP Reconnect: 2.i. Generate host random */
-  r = PK11_GenerateRandom (priv->host_random, sizeof (priv->host_random));
-  if (r != SECSuccess)
+  if (!fpi_sdcp_generate_random (priv->host_random, sizeof (priv->host_random), &error))
     {
-      fpi_sdcp_device_reconnect_complete (self,
-                                          NULL,
-                                          fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                                                    "Error calling NSS crypto routine: %d", r));
+      fpi_sdcp_device_reconnect_complete (self, NULL, error);
+      return;
     }
 
   /* SDCP Reconnect: 2.ii. Send the Reconnect message */
@@ -473,7 +539,7 @@ fpi_sdcp_device_identify (FpSdcpDevice *self)
   FpSdcpDevicePrivate *priv = fp_sdcp_device_get_instance_private (self);
   FpSdcpDeviceClass *cls = FP_SDCP_DEVICE_GET_CLASS (self);
   FpiDeviceAction action;
-  SECStatus r;
+  GError *error = NULL;
 
   g_return_if_fail (FP_IS_SDCP_DEVICE (self));
   action = fpi_device_get_current_action (FP_DEVICE (self));
@@ -481,12 +547,9 @@ fpi_sdcp_device_identify (FpSdcpDevice *self)
   g_return_if_fail (action == FPI_DEVICE_ACTION_IDENTIFY || action == FPI_DEVICE_ACTION_VERIFY);
 
   /* Generate a new nonce. */
-  r = PK11_GenerateRandom (priv->host_random, sizeof (priv->host_random));
-  if (r != SECSuccess)
+  if (!fpi_sdcp_generate_random (priv->host_random, sizeof (priv->host_random), &error))
     {
-      fpi_device_action_error (FP_DEVICE (self),
-                               fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                                         "Error calling NSS crypto routine: %d", r));
+      fpi_device_action_error (FP_DEVICE (self), error);
       return;
     }
 
