@@ -84,12 +84,11 @@ fp_sdcp_device_finalize (GObject *object)
 
   g_clear_pointer (&priv->intermediate_cas, g_ptr_array_unref);
   g_clear_pointer (&priv->slot, PK11_FreeSlot);
+  g_clear_pointer (&priv->host_key_private, SECKEY_DestroyPrivateKey);
+  g_clear_pointer (&priv->host_key_public, SECKEY_DestroyPublicKey);
   g_clear_pointer (&priv->master_secret, PK11_FreeSymKey);
   g_clear_pointer (&priv->mac_secret, PK11_FreeSymKey);
   g_clear_pointer (&priv->nss_init_context, NSS_ShutdownContext);
-  if (priv->host_key_private)
-    PORT_FreeArena (priv->host_key_private->ecParams.arena, TRUE);
-  priv->host_key_private = NULL;
 
   G_OBJECT_CLASS (fp_sdcp_device_parent_class)->finalize (object);
 }

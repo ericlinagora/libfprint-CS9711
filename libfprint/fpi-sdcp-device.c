@@ -401,8 +401,6 @@ fpi_sdcp_device_connect (FpSdcpDevice *self)
   G_GNUC_UNUSED g_autofree void * ec_params_data = NULL;
   FpSdcpDeviceClass *cls = FP_SDCP_DEVICE_GET_CLASS (self);
   FpSdcpDevicePrivate *priv = fp_sdcp_device_get_instance_private (self);
-  PLArenaPool *arena = NULL;
-  ECParams ec_parameters = { NULL };
   GError *error = NULL;
 
   SECStatus r = SECSuccess;
@@ -425,46 +423,85 @@ fpi_sdcp_device_connect (FpSdcpDevice *self)
     goto nss_error;
 
   g_clear_pointer (&priv->slot, PK11_FreeSlot);
-  if (priv->host_key_private)
-    PORT_FreeArena (priv->host_key_private->ecParams.arena, TRUE);
+  g_clear_pointer (&priv->host_key_private, SECKEY_DestroyPrivateKey);
+  g_clear_pointer (&priv->host_key_public, SECKEY_DestroyPublicKey);
   priv->host_key_private = NULL;
-
-  /* Create a slot for PK11 operation */
-  priv->slot = PK11_GetBestSlot (CKM_EC_KEY_PAIR_GEN, NULL);
-  if (priv->slot == NULL)
-    goto nss_error;
 
   /* SDCP Connect: 3.i. Generate an ephemeral ECDH key pair */
   /* Look up the OID data for our curve. */
-
-  arena = PORT_NewArena (NSS_FREEBL_DEFAULT_CHUNKSIZE);
-  EC_FillParams (arena, &SDCPECParamsDER, &ec_parameters);
 
   /* Just use a counter in emulation mode. Not random, but all
    * we need is something predictable and not repeating immediately.
    */
   if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
     {
-      /* ECDSA Known Seed info for curves nistp256 and nistk283  */
-      static const PRUint8 ecdsa_known_seed[] = {
-        0x6a, 0x9b, 0xf6, 0xf7, 0xce, 0xed, 0x79, 0x11,
-        0xf0, 0xc7, 0xc8, 0x9a, 0xa5, 0xd1, 0x57, 0xb1,
-        0x7b, 0x5a, 0x3b, 0x76, 0x4e, 0x7b, 0x7c, 0xbc,
-        0xf2, 0x76, 0x1c, 0x1c, 0x7f, 0xc5, 0x53, 0x2f
-      };
+      /* To generate, use the #if 0 code below and remove the readOnly flag */
+      priv->slot = SECMOD_OpenUserDB ("configdir='sdcp-key-db' tokenDescription='libfprint CI testing' flags=readOnly");
+      if (!priv->slot)
+        {
+          g_message ("Could not open key DB for testing");
+          exit (77);
+        }
 
-      r = EC_NewKeyFromSeed (&ec_parameters,
-                             &priv->host_key_private,
-                             ecdsa_known_seed,
-                             sizeof (ecdsa_known_seed));
+#if 0
+      if (PK11_NeedUserInit (priv->slot))
+        if (PK11_InitPin (priv->slot, "", "") != SECSuccess)
+          goto nss_error;
+
+      if (priv->slot == NULL)
+        goto nss_error;
+      g_debug ("logged in: %i, need: %i", PK11_IsLoggedIn (priv->slot, NULL), PK11_NeedLogin (priv->slot));
+      g_debug ("read only: %i", PK11_IsReadOnly (priv->slot));
+      g_debug ("need user init: %i", PK11_NeedUserInit (priv->slot));
+      //PK11_SetPasswordFunc (pwfunc);
+
+      /* SDCP Connect: 3.i. Generate an ephemeral ECDH key pair */
+      /* Look up the OID data for our curve. */
+      oid_data = SECOID_FindOIDByTag (SEC_OID_SECG_EC_SECP256R1);
+      if (!oid_data)
+        goto nss_error;
+
+      priv->host_key_private = PK11_GenerateKeyPair (priv->slot, CKM_EC_KEY_PAIR_GEN,
+                                                     (SECItem *) &SDCPECParamsDER,
+                                                     &priv->host_key_public,
+                                                     TRUE, FALSE,
+                                                     NULL);
+
+      PK11_SetPrivateKeyNickname (priv->host_key_private, "CI testing");
+      PK11_SetPublicKeyNickname (priv->host_key_public, "CI testing");
+#else
+
+      g_assert (!PK11_NeedUserInit (priv->slot));
+      g_assert (PK11_IsReadOnly (priv->slot));
+
+      SECKEYPrivateKeyList *priv_key_list = NULL;
+      SECKEYPublicKeyList *pub_key_list = NULL;
+
+      priv_key_list = PK11_ListPrivKeysInSlot (priv->slot, (char *) "CI testing", NULL);
+      pub_key_list = PK11_ListPublicKeysInSlot (priv->slot, (char *) "CI testing");
+      g_assert (priv_key_list != NULL && pub_key_list != NULL);
+      g_assert (!PR_CLIST_IS_EMPTY (&priv_key_list->list) && !PR_CLIST_IS_EMPTY (&pub_key_list->list));
+
+      priv->host_key_private = SECKEY_CopyPrivateKey (((SECKEYPrivateKeyListNode *) PR_LIST_HEAD (&priv_key_list->list))->key);
+      priv->host_key_public = SECKEY_CopyPublicKey (((SECKEYPublicKeyListNode *) PR_LIST_HEAD (&pub_key_list->list))->key);
+
+      SECKEY_DestroyPrivateKeyList (priv_key_list);
+      SECKEY_DestroyPublicKeyList (pub_key_list);
+#endif
     }
   else
     {
-      r = EC_NewKey (&ec_parameters, &priv->host_key_private);
-    }
+      /* Create a slot for PK11 operation */
+      priv->slot = PK11_GetBestSlot (CKM_EC_KEY_PAIR_GEN, NULL);
+      if (priv->slot == NULL)
+        goto nss_error;
 
-  PORT_FreeArena (arena, FALSE);
-  arena = NULL;
+      priv->host_key_private = PK11_GenerateKeyPair (priv->slot, CKM_EC_KEY_PAIR_GEN,
+                                                     (SECItem *) &SDCPECParamsDER,
+                                                     &priv->host_key_public,
+                                                     FALSE, TRUE,
+                                                     NULL);
+    }
 
   if (r != SECSuccess)
     goto nss_error;
@@ -602,8 +639,8 @@ fpi_sdcp_device_get_connect_data (FpSdcpDevice *self,
 
   *r_h = g_bytes_new (priv->host_random, sizeof (priv->host_random));
 
-  g_assert (priv->host_key_private->publicValue.len == 65);
-  *pk_h = g_bytes_new (priv->host_key_private->publicValue.data, priv->host_key_private->publicValue.len);
+  g_assert (priv->host_key_public->u.ec.publicValue.len == 65);
+  *pk_h = g_bytes_new (priv->host_key_public->u.ec.publicValue.data, priv->host_key_public->u.ec.publicValue.len);
 }
 
 /**
@@ -831,14 +868,13 @@ fpi_sdcp_device_connect_complete (FpSdcpDevice *self,
   g_autoptr(GBytes) claim_hash_bytes = NULL;
   g_autoptr(GBytes) claim_mac = NULL;
   FpSdcpDevicePrivate *priv = fp_sdcp_device_get_instance_private (self);
-  SECItem pk_f;
+  SECKEYPublicKey firmware_key_public = { 0, };
   SECKEYPublicKey device_key_public = { 0, };
   SECKEYPublicKey *model_key_public = NULL;
   HASHContext *hash_ctx;
   guint8 hash_out[SHA256_LENGTH];
   guint hash_len = 0;
   FpiDeviceAction action;
-  SECItem a_raw = { 0 };
   PK11SymKey *a = NULL;
   PK11SymKey *enc_secret = NULL;
   gsize length;
@@ -879,30 +915,24 @@ fpi_sdcp_device_connect_complete (FpSdcpDevice *self,
 
   /* Device key is of same type as host key */
   g_assert (g_bytes_get_size (claim->pk_f) == 65);
-  pk_f.len = 65;
-  pk_f.data = (guint8 *) g_bytes_get_data (claim->pk_f, NULL);
+  firmware_key_public.keyType = ecKey;
+  firmware_key_public.u.ec.DEREncodedParams = SDCPECParamsDER;
+  firmware_key_public.u.ec.publicValue.len = 65;
+  firmware_key_public.u.ec.publicValue.data = (guint8 *) g_bytes_get_data (claim->pk_f, NULL);
 
   /* SDCP Connect: 5.i. Perform key agreement */
-  r = ECDH_Derive (&pk_f,
-                   &priv->host_key_private->ecParams,
-                   &priv->host_key_private->privateValue,
-                   FALSE,
-                   &a_raw);
-  if (r != SECSuccess)
-    {
-      error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                        "Key agreement failed");
-      goto out;
-    }
-
-  a = PK11_ImportSymKey (priv->slot,
-                         CKM_SP800_108_COUNTER_KDF,
-                         PK11_OriginDerive,
-                         CKA_DERIVE,
-                         &a_raw,
-                         NULL);
-  g_clear_pointer (&a_raw.data, PORT_Free);
-  a_raw.len = 0;
+  a = PK11_PubDeriveWithKDF (priv->host_key_private,
+                             &firmware_key_public,
+                             TRUE,
+                             NULL,
+                             NULL,
+                             CKM_ECDH1_DERIVE,
+                             CKM_SP800_108_COUNTER_KDF,
+                             CKA_DERIVE,
+                             32, /* 256 bit (HMAC) secret */
+                             CKD_NULL,
+                             NULL,
+                             NULL);
 
   if (!a)
     {
