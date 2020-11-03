@@ -116,6 +116,8 @@ if get_option('introspection')
             unit_tests = ['virtual-sdcp']
         endif
 
+        sdcp_envs = envs
+        sdcp_envs.set('FP_DEVICE_EMULATION', '0')
         foreach ut: unit_tests
             ut_suite = suite
             ut_args = base_args
@@ -128,7 +130,7 @@ if get_option('introspection')
                 args: ut_args,
                 suite: ut_suite,
                 depends: libfprint_typelib,
-                env: envs,
+                env: sdcp_envs,
             )
         endforeach
     else
