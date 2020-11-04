@@ -147,18 +147,6 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
     }
 }
 
-/* Complete loop sequential state machine */
-static void
-m_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
-{
-  if (error)
-    {
-      g_warning ("State machine completed with an error: %s", error->message);
-      g_error_free (error);
-    }
-  /* Free sequential state machine */
-}
-
 /* Exec init sequential state machine */
 static void
 m_init_state (FpiSsm *ssm, FpDevice *_dev)
@@ -176,19 +164,7 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev)
 static void
 m_init_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
-  FpiSsm *ssm_loop;
-
   fpi_image_device_activate_complete (FP_IMAGE_DEVICE (dev), error);
-  if (!error)
-    {
-      /* Notify activate complete */
-
-      /* Start loop ssm */
-      ssm_loop = fpi_ssm_new (dev, m_loop_state, M_LOOP_NUM_STATES);
-      fpi_ssm_start (ssm_loop, m_loop_complete);
-    }
-
-  /* Free sequential state machine */
 }
 
 /* Activate device */
@@ -211,6 +187,19 @@ dev_deactivate (FpImageDevice *dev)
   self = FPI_DEVICE_VFS301 (dev);
   vfs301_proto_deinit (self);
   fpi_image_device_deactivate_complete (dev, NULL);
+}
+
+static void
+dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
+{
+  FpiSsm *ssm_loop;
+
+  if (state != FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
+    return;
+
+  /* Start a capture operation. */
+  ssm_loop = fpi_ssm_new (FP_DEVICE (dev), m_loop_state, M_LOOP_NUM_STATES);
+  fpi_ssm_start (ssm_loop, NULL);
 }
 
 static void
@@ -273,6 +262,7 @@ fpi_device_vfs301_class_init (FpDeviceVfs301Class *klass)
   img_class->img_close = dev_close;
   img_class->activate = dev_activate;
   img_class->deactivate = dev_deactivate;
+  img_class->change_state = dev_change_state;
 
   img_class->bz3_threshold = 24;
 
