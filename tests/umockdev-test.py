@@ -87,6 +87,11 @@ try:
     if os.path.exists(os.path.join(ddir, "custom.ioctl")):
         custom()
 
+except:
+    # Store created output files for inspection (in the build directory)
+    outdir = os.path.join('errors', os.path.basename(ddir))
+    shutil.copytree(tmpdir, outdir)
+
 finally:
     shutil.rmtree(tmpdir)
 
