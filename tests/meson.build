@@ -21,6 +21,7 @@ drivers_tests = [
     'elan',
     'synaptics',
     'vfs0050',
+    'vfs301',
     'vfs5011',
     'goodixmoc',
 ]
