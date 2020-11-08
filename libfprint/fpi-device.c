@@ -928,6 +928,7 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
       if (FP_IS_PRINT (print))
         {
           FpiPrintType print_type;
+          g_autofree char *finger_str = NULL;
 
           g_object_get (print, "fpi-type", &print_type, NULL);
           if (print_type == FPI_PRINT_UNDEFINED)
@@ -940,6 +941,9 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
               fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
               return;
             }
+
+          finger_str = g_enum_to_string (FP_TYPE_FINGER, fp_print_get_finger (print));
+          g_debug ("Print for finger %s enrolled", finger_str);
 
           fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_OBJECT, print);
         }
