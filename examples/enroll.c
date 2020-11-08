@@ -76,15 +76,19 @@ on_enroll_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
     {
       enroll_data->ret_value = EXIT_SUCCESS;
 
-      if (!fp_device_has_storage (dev))
+      if (fp_device_has_storage (dev))
+        g_debug ("Device has storage, saving a print reference locally");
+      else
+        g_debug ("Device has not storage, saving print only locally");
+
+      /* Even if the device has storage, it may not be able to save all the
+       * metadata that the print contains, so we can always save a local copy
+       * containing the handle to the device print */
+      int r = print_data_save (print, enroll_data->finger);
+      if (r < 0)
         {
-          g_debug ("Device has not storage, saving locally");
-          int r = print_data_save (print, enroll_data->finger);
-          if (r < 0)
-            {
-              g_warning ("Data save failed, code %d", r);
-              enroll_data->ret_value = EXIT_FAILURE;
-            }
+          g_warning ("Data save failed, code %d", r);
+          enroll_data->ret_value = EXIT_FAILURE;
         }
     }
   else
