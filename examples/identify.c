@@ -109,6 +109,20 @@ on_identify_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
   identify_quit (dev, identify_data);
 }
 
+static FpPrint *
+get_stored_print (FpDevice *dev, FpPrint *print)
+{
+  g_autoptr(GPtrArray) gallery = gallery_data_load (dev);
+  guint index;
+
+  if (g_ptr_array_find_with_equal_func (gallery, print,
+                                        (GEqualFunc) fp_print_equal,
+                                        &index))
+    return g_object_ref (g_ptr_array_index (gallery, index));
+
+  return NULL;
+}
+
 static void
 on_identify_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
                 gpointer user_data, GError *error)
@@ -128,22 +142,31 @@ on_identify_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
 
   if (match)
     {
+      g_autoptr(FpPrint) matched_print = g_object_ref (match);
       char date_str[128] = {};
 
       identify_data->ret_value = EXIT_SUCCESS;
 
-      if (fp_print_get_enroll_date (match))
+      if (fp_print_get_device_stored (match))
+        {
+          FpPrint *stored_print = get_stored_print (dev, match);
+
+          if (stored_print)
+            matched_print = g_steal_pointer (&stored_print);
+        }
+
+      if (fp_print_get_enroll_date (matched_print))
         g_date_strftime (date_str, G_N_ELEMENTS (date_str), "%Y-%m-%d\0",
-                         fp_print_get_enroll_date (match));
+                         fp_print_get_enroll_date (matched_print));
       else
         strcpy (date_str, "<unknown>");
 
       g_debug ("Identify report: device %s matched finger %s successfully "
                "with print '%s', enrolled on date %s by user %s",
                fp_device_get_name (dev),
-               finger_to_string (fp_print_get_finger (match)),
-               fp_print_get_description (match), date_str,
-               fp_print_get_username (match));
+               finger_to_string (fp_print_get_finger (matched_print)),
+               fp_print_get_description (matched_print), date_str,
+               fp_print_get_username (matched_print));
 
       g_print ("IDENTIFIED!\n");
     }
