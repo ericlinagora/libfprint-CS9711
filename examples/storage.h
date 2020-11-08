@@ -24,6 +24,7 @@ int print_data_save (FpPrint *print,
                      FpFinger finger);
 FpPrint * print_data_load (FpDevice *dev,
                            FpFinger  finger);
+GPtrArray * gallery_data_load (FpDevice *dev);
 FpPrint * print_create_template (FpDevice *dev,
                                  FpFinger  finger);
 gboolean print_image_save (FpPrint    *print,

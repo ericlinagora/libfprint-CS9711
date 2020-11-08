@@ -2,7 +2,7 @@
  * Trivial storage driver for example programs
  *
  * Copyright (C) 2019 Benjamin Berg <bberg@redhat.com>
- * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
+ * Copyright (C) 2019-2020 Marco Trevisan <marco.trevisan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -158,6 +158,52 @@ print_data_load (FpDevice *dev, FpFinger finger)
     }
 
   return NULL;
+}
+
+GPtrArray *
+gallery_data_load (FpDevice *dev)
+{
+  g_autoptr(GVariantDict) dict = NULL;
+  g_autoptr(GVariant) dict_variant = NULL;
+  g_autofree char *dev_prefix = NULL;
+  GPtrArray *gallery;
+  const char *driver;
+  const char *dev_id;
+  GVariantIter iter;
+  GVariant *value;
+  gchar *key;
+
+  gallery = g_ptr_array_new_with_free_func (g_object_unref);
+  dict = load_data ();
+  dict_variant = g_variant_dict_end (dict);
+  driver = fp_device_get_driver (dev);
+  dev_id = fp_device_get_device_id (dev);
+  dev_prefix = g_strdup_printf ("%s/%s/", driver, dev_id);
+
+  g_variant_iter_init (&iter, dict_variant);
+  while (g_variant_iter_loop (&iter, "{sv}", &key, &value))
+    {
+      FpPrint *print;
+      const guchar *stored_data;
+      g_autoptr(GError) error = NULL;
+      gsize stored_len;
+
+      if (!g_str_has_prefix (key, dev_prefix))
+        continue;
+
+      stored_data = (const guchar *) g_variant_get_fixed_array (value, &stored_len, 1);
+      print = fp_print_deserialize (stored_data, stored_len, &error);
+
+      if (error)
+        {
+          g_warning ("Error deserializing data: %s", error->message);
+          continue;
+        }
+
+      g_ptr_array_add (gallery, print);
+    }
+
+  return gallery;
 }
 
 FpPrint *
