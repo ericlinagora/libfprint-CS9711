@@ -73,23 +73,27 @@ recv_image_img_recv_cb (GObject      *source_object,
 
   success = g_input_stream_read_all_finish (G_INPUT_STREAM (source_object), res, &bytes, &error);
 
-  if (!success || bytes == 0)
+  /* Can't use self if the operation was cancelled. */
+  if (!success && g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    return;
+
+  self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
+  device = FP_IMAGE_DEVICE (self);
+
+  /* Consider success if we received the right amount of data, otherwise
+   * an error must have happened. */
+  if (bytes < self->recv_img->width * self->recv_img->height)
     {
       if (!success)
-        {
-          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-            return;
-          g_warning ("Error receiving header for image data: %s", error->message);
-        }
+        g_warning ("Error receiving image data: %s", error->message);
+      else
+        g_warning ("Error receiving image data: end of stream before all data was read");
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
       g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
       g_clear_object (&self->connection);
       return;
     }
-
-  self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
-  device = FP_IMAGE_DEVICE (self);
 
   if (self->automatic_finger)
     fpi_image_device_report_finger_status (device, TRUE);
@@ -113,7 +117,7 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 
   success = g_input_stream_read_all_finish (G_INPUT_STREAM (source_object), res, &bytes, &error);
 
-  if (!success || bytes == 0)
+  if (!success || bytes != sizeof (self->recv_img_hdr))
     {
       if (!success)
         {
@@ -121,6 +125,10 @@ recv_image_hdr_recv_cb (GObject      *source_object,
               g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CLOSED))
             return;
           g_warning ("Error receiving header for image data: %s", error->message);
+        }
+      else if (bytes != 0)
+        {
+          g_warning ("Received incomplete header before end of stream.");
         }
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
@@ -235,10 +243,12 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
   if (dev->connection)
     {
       /* We may not have noticed that the stream was closed,
-       * if the device is deactivated. Double check here. */
-      g_input_stream_is_closed (g_io_stream_get_input_stream (G_IO_STREAM (dev->connection)));
+       * if the device is deactivated.
+       * Cancel any ongoing operation on the old connection. */
+      g_cancellable_cancel (dev->cancellable);
+      g_clear_object (&dev->cancellable);
+      dev->cancellable = g_cancellable_new ();
 
-      g_io_stream_close (G_IO_STREAM (dev->connection), NULL, NULL);
       g_clear_object (&dev->connection);
     }
 
