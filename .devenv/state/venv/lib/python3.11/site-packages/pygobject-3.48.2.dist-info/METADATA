@@ -1,0 +1,28 @@
+Metadata-Version: 2.1
+Name: PyGObject
+Version: 3.48.2
+Summary: Python bindings for GObject Introspection
+Author-Email: James Henstridge <james@daa.com.au>
+Maintainer: Christoph Reiter
+Maintainer-Email: Simon Feltman <sfeltman@src.gnome.org>
+License: GNU Lesser General Public License v2.1 (LGPLv2.1)
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Programming Language :: C
+Classifier: Programming Language :: Python
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Project-URL: Homepage, https://gnome.pages.gitlab.gnome.org/pygobject
+Project-URL: Repository, https://gitlab.gnome.org/GNOME/pygobject.git
+Project-URL: Changelog, https://gitlab.gnome.org/GNOME/pygobject/-/blob/master/NEWS
+Requires-Python: <4,>=3.8
+Requires-Dist: pycairo>=1.16
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: sphinx<5.0,>=4.0; extra == "docs"
+Requires-Dist: sphinx-rtd-theme<2.0,>=0.5; extra == "docs"
+Provides-Extra: dev
+Provides-Extra: docs

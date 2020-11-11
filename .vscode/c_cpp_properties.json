@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/nix/store/3f5gwdq7jr4wazv53zara25g7lgixbaf-libusb-1.0.27-dev/include"
+            ],
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "mesonbuild.mesonbuild"
+        }
+    ],
+    "version": 4
+}

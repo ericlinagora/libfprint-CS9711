@@ -1,0 +1,145 @@
+<html>
+<body>
+  <style>
+    canvas {
+      border: 1px solid black;
+      margin: 2em;
+      transform: scale(2, 0.5);
+      transform-origin: top left;
+      image-rendering: pixelated;
+    }
+  </style>
+  <button id="start">start</button>
+  <input id="w" type="number" value="34" />
+  <br />
+  <canvas id="canvas"></canvas>
+  <script type="text/javascript" src="./testusb-data.js"></script>
+  <script>
+    const renderOptions = { w: 100 }
+    let lastRenderData = null;
+    const inputW = document.getElementById("w");
+    inputW.onchange = (x) => {
+      // console.log(inputW.value);
+      renderOptions.w = inputW.value;
+      renderData(lastRenderData);
+    }
+    renderOptions.w = inputW.value;
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    function renderData(data) {
+      const w = renderOptions.w;;
+      const h = Math.ceil(data.length / w);
+      console.log(`${data.length} is ${w} x ${h} (with ${(w * h) - data.length} missing)`);
+      canvas.setAttribute("width", w)// + "px");
+      canvas.setAttribute("height", h)// + "px");
+      const pixels = ctx.getImageData(0, 0, w, h);
+      data.forEach((value, index) => {
+        pixels.data[index * 4 + 0] = value; // r
+        pixels.data[index * 4 + 1] = value; // g
+        pixels.data[index * 4 + 2] = value; // b
+        pixels.data[index * 4 + 3] = 0xff; // alpha
+      });
+      ctx.putImageData(pixels, 0, 0);
+      lastRenderData = data;
+    }
+
+    renderData([0, 255, 255, 0]);
+
+    const filter = {
+      vendorId: 0x2541, productId: 0x0236,
+    };
+    const usb2u8 = (resp) => new Uint8Array(resp.data.buffer);
+    const uint8concat = (...arrs) => {
+      let offset = 0;
+      const result = new Uint8Array(arrs.reduce((acc, {length}) => acc + length, 0));
+      arrs.forEach(arr => {
+        result.set(arr, offset);
+        offset += arr.length;
+      });
+      return result;
+    }
+    const arr2hex = (array) => array.map(x => x.toString(16).padStart(2, '0')).join('-');
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    document.getElementById("start").onclick = async () => {
+      const dev = await navigator.usb.requestDevice({ filters: [filter]});
+      // console.log("found", dev);
+      await dev.open();
+      // console.log("connected", dev);
+      await dev.selectConfiguration(1);
+      // console.log("selected", dev);
+      await dev.claimInterface(0);
+      // console.log("claimed", dev);
+      const endpointIn = 0x81;
+      const endpointOut = 0x01;
+
+      const send = async (p, data) => {
+        console.log("w" + data.length, p);
+        await dev.transferOut(1, new Uint8Array(data));
+        // console.log("W" + data.length, p);
+      }
+      const readImmediate = async (p, len) => {
+        console.log("r" + len, p);
+        const data = await dev.transferIn(1, len);
+        console.log("R" + len, p, data.data.buffer.byteLength, data.data.buffer.byteLength < 200 ? arr2hex(usb2u8(data)) : "(skip)");
+        return data;
+      }
+      const readImmediateCheck = async (p, len, expected) => {
+        const data = await readImmediate(p, len);
+        const actual = arr2hex(usb2u8(data));
+        if (expected != actual)
+          console.log("Error", p, {expected, actual});
+        return data;
+      }
+
+      const initBytes = [0xea,0x01,0x00,0x00,0x00,0x00,0x01,0xea];
+      const initBytesStateAfter = "ea0162a00000c3ea";
+      // const initBytesStateAfter = "ea010000000001ea";
+      const initScan = [0xea,0x04,0x00,0x00,0x00,0x00,0x04,0xea];
+      const postScan = [0xea,0x02,0x00,0x00,0x00,0x00,0x02,0xea];
+
+      await send("i1", initBytes);
+      await readImmediateCheck("q1", 8, initBytesStateAfter);
+
+      await sleep(250);
+
+      while (1) {
+        const longImage = readImmediate("s", 8000);
+        await send("i2", initScan);
+        const imageStart = await longImage;
+        // console.log(JSON.stringify(arr2hex(usb2u8(imageStart))));
+        const imageTail = await readImmediate("st", 24); // expect 24
+        const arrayImage = uint8concat(usb2u8(imageStart), usb2u8(imageTail));
+        renderData(arrayImage);
+        // await sleep(250);
+
+        // await readImmediateCheck("b1", 8000, "");
+        // const emptyReadAfter = readImmediateCheck("b1", 8000, "");
+        await send("i3", postScan);
+        await sleep(250);
+
+        // const emptyReadAfter = readImmediateCheck("b1", 8000, "");
+        // await emptyReadAfter;
+        // const longRead = readImmediateCheck("b2", 8000, "");
+        // await send("i4", initScan);
+        // await send("i5", postScan);
+        // await longRead;
+        // await readImmediateCheck("b3", 8000, "");
+        //ask 8000
+        //  send initScan
+        //  send postScan
+        //should finish with empty
+        //ask 8000
+        //should finish with empty
+        // readImmediate("first post", 64);
+
+      }
+    };
+
+
+    // const testDataHex = EXAMPLES[0];
+    // const testData = new Uint8Array(testDataHex.length / 2);
+    // for (let i = 0; i < testDataHex.length / 2; i++) testData[i] = parseInt(testDataHex.substr(i * 2, 2), 16);
+    // renderData(testData);
+  </script>
+</body>
+</html>
