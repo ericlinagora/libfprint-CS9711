@@ -44,6 +44,7 @@ enum {
   PROP_DEVICE_ID,
   PROP_NAME,
   PROP_OPEN,
+  PROP_REMOVED,
   PROP_NR_ENROLL_STAGES,
   PROP_SCAN_TYPE,
   PROP_FINGER_STATUS,
@@ -54,6 +55,13 @@ enum {
 };
 
 static GParamSpec *properties[N_PROPS];
+
+enum {
+  REMOVED_SIGNAL,
+  N_SIGNALS
+};
+
+static guint signals[N_SIGNALS] = { 0, };
 
 /**
  * fp_device_retry_quark:
@@ -204,6 +212,10 @@ fp_device_get_property (GObject    *object,
       g_value_set_boolean (value, priv->is_open);
       break;
 
+    case PROP_REMOVED:
+      g_value_set_boolean (value, priv->is_removed);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -350,6 +362,41 @@ fp_device_class_init (FpDeviceClass *klass)
                           "Opened",
                           "Whether the device is open or not", FALSE,
                           G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
+
+  properties[PROP_REMOVED] =
+    g_param_spec_boolean ("removed",
+                          "Removed",
+                          "Whether the device has been removed from the system", FALSE,
+                          G_PARAM_STATIC_STRINGS | G_PARAM_READABLE);
+
+  /**
+   * FpDevice::removed:
+   * @device: the #FpDevice instance that emitted the signal
+   *
+   * This signal is emitted after the device has been removed and no operation
+   * is pending anymore.
+   *
+   * The API user is still required to close a removed device. The above
+   * guarantee means that the call to close the device can be made immediately
+   * from the signal handler.
+   *
+   * The close operation will return FP_DEVICE_ERROR_REMOVED, but the device
+   * will still be considered closed afterwards.
+   *
+   * The device will only be removed from the #FpContext after it has been
+   * closed by the API user.
+   **/
+  signals[REMOVED_SIGNAL] = g_signal_new ("removed",
+                                          G_TYPE_FROM_CLASS (klass),
+                                          G_SIGNAL_RUN_LAST,
+                                          0,
+                                          NULL,
+                                          NULL,
+                                          g_cclosure_marshal_VOID__VOID,
+                                          G_TYPE_NONE,
+                                          0);
+
+  /* Private properties */
 
   /**
    * FpDevice::fpi-environ: (skip)

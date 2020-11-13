@@ -139,6 +139,10 @@ fpi_device_error_new (FpDeviceError error)
       msg = "This finger has already enrolled, please try a different finger";
       break;
 
+    case FP_DEVICE_ERROR_REMOVED:
+      msg = "This device has been removed from the system.";
+      break;
+
     default:
       g_warning ("Unsupported error, returning general error instead!");
       error = FP_DEVICE_ERROR_GENERAL;
@@ -576,6 +580,49 @@ fpi_device_get_cancellable (FpDevice *device)
   return g_task_get_cancellable (priv->current_task);
 }
 
+static void
+emit_removed_on_task_completed (FpDevice *device)
+{
+  g_signal_emit_by_name (device, "removed");
+}
+
+/**
+ * fpi_device_remove:
+ * @device: The #FpDevice
+ *
+ * Called to signal to the #FpDevice that it has been unplugged (physically
+ * removed from the system).
+ *
+ * For USB devices, this API is called automatically by #FpContext.
+ */
+void
+fpi_device_remove (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_return_if_fail (FP_IS_DEVICE (device));
+  g_return_if_fail (!priv->is_removed);
+
+  priv->is_removed = TRUE;
+
+  g_object_notify (G_OBJECT (device), "removed");
+
+  /* If there is a pending action, we wait for it to fail, otherwise we
+   * immediately emit the "removed" signal. */
+  if (priv->current_task)
+    {
+      g_signal_connect_object (priv->current_task,
+                               "notify::completed",
+                               (GCallback) emit_removed_on_task_completed,
+                               device,
+                               G_CONNECT_SWAPPED);
+    }
+  else
+    {
+      g_signal_emit_by_name (device, "removed");
+    }
+}
+
 /**
  * fpi_device_action_error:
  * @device: The #FpDevice
@@ -691,6 +738,7 @@ fp_device_task_return_in_idle_cb (gpointer user_data)
   FpDeviceTaskReturnData *data = user_data;
   FpDevicePrivate *priv = fp_device_get_instance_private (data->device);
   g_autofree char *action_str = NULL;
+  FpiDeviceAction action;
 
   g_autoptr(GTask) task = NULL;
 
@@ -699,8 +747,23 @@ fp_device_task_return_in_idle_cb (gpointer user_data)
   g_debug ("Completing action %s in idle!", action_str);
 
   task = g_steal_pointer (&priv->current_task);
+  action = priv->current_action;
   priv->current_action = FPI_DEVICE_ACTION_NONE;
   priv->current_task_idle_return_source = NULL;
+
+  /* Return FP_DEVICE_ERROR_REMOVED if the device is removed,
+   * with the exception of a successful open, which is an odd corner case. */
+  if (priv->is_removed &&
+      ((action != FPI_DEVICE_ACTION_OPEN) ||
+       (action == FPI_DEVICE_ACTION_OPEN && data->type == FP_DEVICE_TASK_RETURN_ERROR)))
+    {
+      g_task_return_error (task, fpi_device_error_new (FP_DEVICE_ERROR_REMOVED));
+
+      /* NOTE: The removed signal will be emitted from the GTask
+       *       notify::completed if that is neccessary. */
+
+      return G_SOURCE_REMOVE;
+    }
 
   switch (data->type)
     {
@@ -713,16 +776,17 @@ fp_device_task_return_in_idle_cb (gpointer user_data)
       break;
 
     case FP_DEVICE_TASK_RETURN_OBJECT:
-      g_task_return_pointer (task, data->result, g_object_unref);
+      g_task_return_pointer (task, g_steal_pointer (&data->result),
+                             g_object_unref);
       break;
 
     case FP_DEVICE_TASK_RETURN_PTR_ARRAY:
-      g_task_return_pointer (task, data->result,
+      g_task_return_pointer (task, g_steal_pointer (&data->result),
                              (GDestroyNotify) g_ptr_array_unref);
       break;
 
     case FP_DEVICE_TASK_RETURN_ERROR:
-      g_task_return_error (task, data->result);
+      g_task_return_error (task, g_steal_pointer (&data->result));
       break;
 
     default:
@@ -735,6 +799,30 @@ fp_device_task_return_in_idle_cb (gpointer user_data)
 static void
 fpi_device_task_return_data_free (FpDeviceTaskReturnData *data)
 {
+  if (data->result)
+    {
+      switch (data->type)
+        {
+        case FP_DEVICE_TASK_RETURN_INT:
+        case FP_DEVICE_TASK_RETURN_BOOL:
+          break;
+
+        case FP_DEVICE_TASK_RETURN_OBJECT:
+          g_clear_object ((GObject **) &data->result);
+          break;
+
+        case FP_DEVICE_TASK_RETURN_PTR_ARRAY:
+          g_clear_pointer ((GPtrArray **) &data->result, g_ptr_array_unref);
+          break;
+
+        case FP_DEVICE_TASK_RETURN_ERROR:
+          g_clear_error ((GError **) &data->result);
+          break;
+
+        default:
+          g_assert_not_reached ();
+        }
+    }
   g_object_unref (data->device);
   g_free (data);
 }

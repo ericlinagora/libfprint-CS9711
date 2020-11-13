@@ -29,6 +29,7 @@ typedef struct
   GUsbDevice  *usb_device;
   const gchar *virtual_env;
 
+  gboolean     is_removed;
   gboolean     is_open;
 
   gchar       *device_id;

@@ -202,6 +202,7 @@ void fpi_device_get_delete_data (FpDevice *device,
                                  FpPrint **print);
 GCancellable *fpi_device_get_cancellable (FpDevice *device);
 
+void fpi_device_remove (FpDevice *device);
 
 GSource * fpi_device_add_timeout (FpDevice      *device,
                                   gint           interval,
