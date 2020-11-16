@@ -368,8 +368,35 @@ dev_deactivate (FpImageDevice *dev)
 }
 
 static void
+dev_notify_removed_cb (FpDevice *dev)
+{
+  FpiImageDeviceState state;
+  gboolean removed;
+
+  g_object_get (dev,
+                "fpi-image-device-state", &state,
+                "removed", &removed,
+                NULL);
+
+  if (!removed || state == FPI_IMAGE_DEVICE_STATE_INACTIVE)
+    return;
+
+  /* This error will be converted to an FP_DEVICE_ERROR_REMOVED by the
+   * surrounding layers. */
+  fpi_image_device_session_error (FP_IMAGE_DEVICE (dev),
+                                  fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
+}
+
+static void
 fpi_device_virtual_image_init (FpDeviceVirtualImage *self)
 {
+  /* NOTE: This is not nice, but we can generally rely on the underlying
+   *       system to throw errors on the transport layer.
+   */
+  g_signal_connect (self,
+                    "notify::removed",
+                    G_CALLBACK (dev_notify_removed_cb),
+                    NULL);
 }
 
 static const FpIdEntry driver_ids[] = {
