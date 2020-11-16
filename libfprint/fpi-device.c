@@ -976,17 +976,17 @@ fpi_device_close_complete (FpDevice *device, GError *error)
       return;
     }
 
+  /* Always consider the device closed. Drivers should try hard to close the
+   * device. Generally, e.g. cancellations should be ignored.
+   */
+  priv->is_open = FALSE;
+  g_object_notify (G_OBJECT (device), "open");
+
   if (!error)
-    {
-      priv->is_open = FALSE;
-      g_object_notify (G_OBJECT (device), "open");
-      fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
-                                      GUINT_TO_POINTER (TRUE));
-    }
+    fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                    GUINT_TO_POINTER (TRUE));
   else
-    {
-      fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
-    }
+    fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
 }
 
 /**
