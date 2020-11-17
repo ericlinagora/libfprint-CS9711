@@ -171,6 +171,11 @@ recv_image_hdr_recv_cb (GObject      *source_object,
                                                  !!self->recv_img_hdr[1]);
           break;
 
+        case -5:
+          /* -5 causes the device to disappear (no further data) */
+          fpi_device_remove (FP_DEVICE (self));
+          break;
+
         default:
           /* disconnect client, it didn't play fair */
           g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
