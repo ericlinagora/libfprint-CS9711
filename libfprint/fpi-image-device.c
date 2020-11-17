@@ -181,7 +181,7 @@ fp_image_device_maybe_complete_action (FpImageDevice *self, GError *error)
       if (priv->action_error && !(priv->action_error->domain == FP_DEVICE_RETRY))
         {
           g_warning ("Will complete with first error, new error was: %s", error->message);
-          g_free (error);
+          g_clear_error (&error);
         }
       else
         {
