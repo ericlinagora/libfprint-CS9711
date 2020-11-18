@@ -607,6 +607,10 @@ capture_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
       fpi_image_device_session_error (dev, error);
     }
 
+  /* Note: We always stop capturing even if that may not be needed always.
+   * Doing this between captures appears to make it at least less likely for
+   * devices to end up in a bad state.
+   */
   elan_stop_capture (self);
 }
 
@@ -955,6 +959,10 @@ dev_change_state (FpImageDevice *dev, FpiImageDeviceState state)
 
   G_DEBUG_HERE ();
 
+  /* Note: We always calibrate even if that may not be needed always.
+   * Doing this for each capture appears to make it at least less likely for
+   * devices to end up in a bad state.
+   */
   if (state == FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON)
     elan_calibrate (self);
 }
