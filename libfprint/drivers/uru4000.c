@@ -397,7 +397,7 @@ finger_presence_irq_cb (FpImageDevice *dev,
     fpi_image_device_report_finger_status (dev, TRUE);
   else if (type == IRQDATA_FINGER_OFF)
     fpi_image_device_report_finger_status (dev, FALSE);
-  else
+  else if (type != IRQDATA_SCANPWR_ON)
     fp_warn ("ignoring unexpected interrupt %04x", type);
 }
 
