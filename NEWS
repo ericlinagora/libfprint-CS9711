@@ -1,6 +1,27 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2020-06-08: v1.90.4 release
+
+This release contains a number of important bugfixes. On the feature side,
+the USB hotplug support was improved. A lot of drivers received fixes and
+improvements.
+
+Highlights:
+ * Work around GUsb cancellation issue
+ * Redefine internal image device state machine for more robustness
+ * Add public finger-status reporting to FpDevice
+ * Rework device removal API to be convenient (#330)
+ * Enable powersave for unsupported USB devices
+ * Improvements to examples
+ * synaptics: Support identify operation
+ * synaptics: Fix possible crash when the interrupt transfer is resubmitted
+ * synaptics: Add support for PIDs 0x00f9, 0x00fc and 0x00c2
+ * elan: Add PID 0x0c4d to supported device list
+ * aes3k: Fix driver and add CI test (#306)
+ * uru4000: Fix reference counting of image transfer
+ * vfs301: Fix driver and add CI test (#320)
+
 2020-06-08: v1.90.3 release
 
 This release mostly contains support for a number of new match-on-chip
