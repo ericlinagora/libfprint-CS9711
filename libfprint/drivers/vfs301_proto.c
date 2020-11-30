@@ -213,11 +213,9 @@ vfs301_proto_generate (int type, int subtype, gssize *len)
         *len = 1;
         return data;
       }
-      break;
 
     case 0x0B:
       return vfs301_proto_generate_0B (subtype, len);
-      break;
 
     case 0x02D0:
       {
@@ -233,22 +231,18 @@ vfs301_proto_generate (int type, int subtype, gssize *len)
         g_assert ((int) subtype <= G_N_ELEMENTS (dataLs));
         return translate_str (dataLs[subtype - 1], len);
       }
-      break;
 
     case 0x0220:
       switch (subtype)
         {
         case 1:
           return translate_str (vfs301_0220_01, len);
-          break;
 
         case 2:
           return translate_str (vfs301_0220_02, len);
-          break;
 
         case 3:
           return translate_str (vfs301_0220_03, len);
-          break;
 
         case 0xFA00:
         case 0x2C01:
@@ -271,7 +265,6 @@ vfs301_proto_generate (int type, int subtype, gssize *len)
             field[3] = field[1];
 
             return data;
-            break;
           }
 
         default:
