@@ -527,15 +527,6 @@ initsm_read_msg_response_cb (FpiSsm            *ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
                                                      "Unexpected response subcommand"));
     }
-  else if (seq != upekdev->seq)
-    {
-      fp_err ("expected response to cmd seq=%02x, got response to %02x "
-              "in state %d", upekdev->seq, seq,
-              fpi_ssm_get_cur_state (ssm));
-      fpi_ssm_mark_failed (ssm,
-                           fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Unexpected sequence number in response"));
-    }
   else
     {
       fpi_ssm_next_state (ssm);
