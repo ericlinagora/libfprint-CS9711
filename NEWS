@@ -1,6 +1,16 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2020-12-01: v1.90.5 release
+
+The 1.90.4 release caused a major regression, as it included a USB hub in
+UDEV the autosupend rule list.
+
+Highlights:
+ * Remove USB hub from udev autosupend rules
+ * synaptics: Add PID 0x00c9 which is used in some HP laptops
+
+
 2020-11-27: v1.90.4 release
 
 This release contains a number of important bugfixes. On the feature side,
