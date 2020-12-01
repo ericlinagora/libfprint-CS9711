@@ -1,7 +1,7 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
-2020-06-08: v1.90.4 release
+2020-11-27: v1.90.4 release
 
 This release contains a number of important bugfixes. On the feature side,
 the USB hotplug support was improved. A lot of drivers received fixes and
