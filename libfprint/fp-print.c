@@ -667,36 +667,25 @@ fp_print_serialize (FpPrint *print,
       for (i = 0; i < print->prints->len; i++)
         {
           struct xyt_struct *xyt = g_ptr_array_index (print->prints, i);
-          gint j;
-          gint32 *col = g_new (gint32, xyt->nrows);
 
           g_variant_builder_open (&nested, G_VARIANT_TYPE ("(aiaiai)"));
 
-          for (j = 0; j < xyt->nrows; j++)
-            col[j] = GINT32_TO_LE (xyt->xcol[j]);
           g_variant_builder_add_value (&nested,
                                        g_variant_new_fixed_array (G_VARIANT_TYPE_INT32,
-                                                                  col,
+                                                                  xyt->xcol,
                                                                   xyt->nrows,
-                                                                  sizeof (col[0])));
-
-          for (j = 0; j < xyt->nrows; j++)
-            col[j] = GINT32_TO_LE (xyt->ycol[j]);
+                                                                  sizeof (xyt->xcol[0])));
           g_variant_builder_add_value (&nested,
                                        g_variant_new_fixed_array (G_VARIANT_TYPE_INT32,
-                                                                  col,
+                                                                  xyt->ycol,
                                                                   xyt->nrows,
-                                                                  sizeof (col[0])));
-
-          for (j = 0; j < xyt->nrows; j++)
-            col[j] = GINT32_TO_LE (xyt->thetacol[j]);
+                                                                  sizeof (xyt->ycol[0])));
           g_variant_builder_add_value (&nested,
                                        g_variant_new_fixed_array (G_VARIANT_TYPE_INT32,
-                                                                  col,
+                                                                  xyt->thetacol,
                                                                   xyt->nrows,
-                                                                  sizeof (col[0])));
+                                                                  sizeof (xyt->thetacol[0])));
           g_variant_builder_close (&nested);
-          g_free (col);
         }
 
       g_variant_builder_close (&nested);
