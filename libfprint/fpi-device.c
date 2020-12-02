@@ -1157,7 +1157,7 @@ fpi_device_identify_complete (FpDevice *device,
         }
       else
         {
-          fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_INT, GINT_TO_POINTER (TRUE));
+          fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL, GUINT_TO_POINTER (TRUE));
         }
     }
   else
