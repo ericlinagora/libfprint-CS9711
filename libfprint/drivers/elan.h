@@ -32,6 +32,9 @@
 #define ELAN_0C03 (1 << 1)
 #define ELAN_0C42 (1 << 2)
 
+/* general quirks */
+#define ELAN_SMALL_SENSOR (1 << 8)
+
 /* devices which don't require frame rotation before assembling */
 #define ELAN_NOT_ROTATED ELAN_0C03
 
