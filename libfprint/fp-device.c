@@ -545,7 +545,7 @@ fp_device_get_finger_status (FpDevice *device)
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
-  g_return_val_if_fail (FP_IS_DEVICE (device), FP_SCAN_TYPE_SWIPE);
+  g_return_val_if_fail (FP_IS_DEVICE (device), FP_FINGER_STATUS_NONE);
 
   return priv->finger_status;
 }
