@@ -205,11 +205,16 @@ test_driver_finger_status_inactive (void)
 {
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+  FpFingerStatusFlags finger_status;
 
   g_signal_connect (device, "notify::finger-status", G_CALLBACK (on_device_notify), NULL);
 
   g_assert_false (fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE));
   g_assert_cmpuint (fp_device_get_finger_status (device), ==, FP_FINGER_STATUS_NONE);
+
+  g_object_get (fake_dev, "finger-status", &finger_status, NULL);
+  g_assert_cmpuint (finger_status, ==, FP_FINGER_STATUS_NONE);
+
   g_assert (fake_dev->last_called_function != on_device_notify);
   g_assert_null (g_steal_pointer (&fake_dev->user_data));
 }
@@ -220,11 +225,15 @@ test_driver_finger_status_needed (void)
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   g_autoptr(GParamSpec) pspec = NULL;
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+  FpFingerStatusFlags finger_status;
 
   g_signal_connect (device, "notify::finger-status", G_CALLBACK (on_device_notify), NULL);
 
   g_assert_true (fpi_device_report_finger_status (device, FP_FINGER_STATUS_NEEDED));
   g_assert_cmpuint (fp_device_get_finger_status (device), ==, FP_FINGER_STATUS_NEEDED);
+
+  g_object_get (fake_dev, "finger-status", &finger_status, NULL);
+  g_assert_cmpuint (finger_status, ==, FP_FINGER_STATUS_NEEDED);
 
   g_assert (fake_dev->last_called_function == on_device_notify);
   pspec = g_steal_pointer (&fake_dev->user_data);
@@ -242,11 +251,15 @@ test_driver_finger_status_present (void)
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   g_autoptr(GParamSpec) pspec = NULL;
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+  FpFingerStatusFlags finger_status;
 
   g_signal_connect (device, "notify::finger-status", G_CALLBACK (on_device_notify), NULL);
 
   g_assert_true (fpi_device_report_finger_status (device, FP_FINGER_STATUS_PRESENT));
   g_assert_cmpuint (fp_device_get_finger_status (device), ==, FP_FINGER_STATUS_PRESENT);
+
+  g_object_get (fake_dev, "finger-status", &finger_status, NULL);
+  g_assert_cmpuint (finger_status, ==, FP_FINGER_STATUS_PRESENT);
 
   g_assert (fake_dev->last_called_function == on_device_notify);
   pspec = g_steal_pointer (&fake_dev->user_data);

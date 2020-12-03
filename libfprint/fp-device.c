@@ -193,7 +193,7 @@ fp_device_get_property (GObject    *object,
       break;
 
     case PROP_FINGER_STATUS:
-      g_value_set_enum (value, priv->finger_status);
+      g_value_set_flags (value, priv->finger_status);
       break;
 
     case PROP_DRIVER:
