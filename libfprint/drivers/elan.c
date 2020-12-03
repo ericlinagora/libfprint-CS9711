@@ -324,9 +324,7 @@ elan_submit_image (FpImageDevice *dev)
   img = fpi_assemble_frames (&assembling_ctx, frames);
   img->flags |= FPI_IMAGE_PARTIAL;
   if (self->dev_type & ELAN_SMALL_SENSOR)
-  {
-	img->flags |= FPI_IMAGE_REMOVE_LESS_MINUTIAE;
-  }
+    img->flags |= FPI_IMAGE_REMOVE_LESS_MINUTIAE;
 
   g_slist_free_full (frames, g_free);
 
