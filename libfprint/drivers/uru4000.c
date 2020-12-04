@@ -131,6 +131,7 @@ struct _FpiDeviceUru4000
   void                           *img_data;
   int                             img_data_actual_length;
   uint16_t                        img_lines_done, img_block;
+  GRand                          *rand;
   uint32_t                        img_enc_seed;
 
   irq_cb_fn                       irq_cb;
@@ -722,7 +723,8 @@ imaging_run_state (FpiSsm *ssm, FpDevice *_dev)
               fp_dbg ("changing encryption keys.");
               img->block_info[self->img_block].flags &= ~BLOCKF_CHANGE_KEY;
               img->key_number++;
-              self->img_enc_seed = rand ();
+              self->img_enc_seed = g_rand_int_range (self->rand, 0, RAND_MAX);
+              fp_dbg ("New image encryption seed: %d", self->img_enc_seed);
               fpi_ssm_jump_to_state (ssm, IMAGING_SEND_INDEX);
               return;
             }
@@ -1219,7 +1221,8 @@ execute_state_change (FpImageDevice *dev)
 
       ssm = fpi_ssm_new (FP_DEVICE (dev), imaging_run_state,
                          IMAGING_NUM_STATES);
-      self->img_enc_seed = rand ();
+      self->img_enc_seed = g_rand_int_range (self->rand, 0, RAND_MAX);
+      fp_dbg ("Image encryption seed: %d", self->img_enc_seed);
       self->img_transfer = fpi_usb_transfer_new (FP_DEVICE (dev));
       self->img_transfer->ssm = ssm;
       self->img_transfer->short_is_error = FALSE;
@@ -1355,6 +1358,11 @@ dev_init (FpImageDevice *dev)
 
   self = FPI_DEVICE_URU4000 (dev);
 
+  g_clear_pointer (&self->rand, g_rand_free);
+  self->rand = g_rand_new ();
+  if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+    g_rand_set_seed (self->rand, 0xFACADE);
+
   driver_data = fpi_device_get_driver_data (FP_DEVICE (dev));
   self->profile = &uru4k_dev_info[driver_data];
   self->interface = g_usb_interface_get_number (iface);
@@ -1407,6 +1415,7 @@ dev_deinit (FpImageDevice *dev)
     PK11_FreeSlot (self->slot);
   g_usb_device_release_interface (fpi_device_get_usb_device (FP_DEVICE (dev)),
                                   self->interface, 0, &error);
+  g_clear_pointer (&self->rand, g_rand_free);
   fpi_image_device_close_complete (dev, error);
 }
 
