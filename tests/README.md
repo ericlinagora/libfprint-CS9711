@@ -27,7 +27,7 @@ A new 'capture' test is created by means of `capture.py` script:
    - `export LD_PRELOAD=<meson-build-dir>/libfprint/libfprint-2.so`
    - `export GI_TYPELIB_PATH=<meson-build-dir>/libfprint`
 
-   Also, sometimes the driver must be adopted to the emulated environment
+   Also, sometimes the driver must be adapted to the emulated environment
    (mainly if it uses random numbers, see `synaptics.c` for an example).
    Set the following environment variable to enable this adaptation:
    - `export FP_DEVICE_EMULATION=1`
