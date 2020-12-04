@@ -41,6 +41,11 @@ A new 'capture' test is created by means of `capture.py` script:
    The following USB device is used in the example above:
    `/dev/bus/usb/001/005`.
 
+   For the following commands, it is assumed that the user that's
+   running the commands has full access to the device node, whether
+   by running the commands as `root`, or changing the permissions for
+   that device node.
+
 4. Record information about this device:
 
    `umockdev-record /dev/bus/usb/001/005 > DRIVER/device`
