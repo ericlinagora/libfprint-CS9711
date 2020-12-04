@@ -20,6 +20,10 @@ A new 'capture' test is created by means of `capture.py` script:
 
    `mkdir DRIVER`
 
+   Note that the name must be the exact name of the libfprint driver,
+   or the exact name of the driver followed by a `-` and a unique identifier
+   of your choosing.
+
 2. Prepare your execution environment.
 
    In the next step a working and up to date libfprint is needed. This can be
