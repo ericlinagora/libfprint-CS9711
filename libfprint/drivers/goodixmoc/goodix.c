@@ -350,9 +350,9 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
               gxfp_cmd_response_t *resp,
               GError              *error)
 {
+  g_autoptr(GPtrArray) templates = NULL;
   FpDevice *device = FP_DEVICE (self);
   FpPrint *print = NULL;
-  GPtrArray *templates = NULL;
   gint cnt = 0;
   gboolean find = false;
 
@@ -365,15 +365,14 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
     {
       if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
         {
-
-          templates = g_ptr_array_new_with_free_func (g_object_unref);
+          templates = g_ptr_array_sized_new (1);
           fpi_device_get_verify_data (device, &print);
-          g_ptr_array_add (templates, g_object_ref_sink (print));
-
+          g_ptr_array_add (templates, print);
         }
       else
         {
           fpi_device_get_identify_data (device, &templates);
+          g_ptr_array_ref (templates);
         }
       for (cnt = 0; cnt < templates->len; cnt++)
         {
