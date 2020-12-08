@@ -281,7 +281,7 @@ fp_image_detect_minutiae_thread_func (GTask        *task,
   gint map_w, map_h;
   gint bw, bh, bd;
   gint r;
-  g_autofree LFSPARMS *lfsparms;
+  g_autofree LFSPARMS *lfsparms = NULL;
 
   /* Normalize the image first */
   if (data->flags & FPI_IMAGE_H_FLIPPED)
