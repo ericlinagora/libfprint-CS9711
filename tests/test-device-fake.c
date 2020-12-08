@@ -279,4 +279,6 @@ fpi_device_fake_class_init (FpiDeviceFakeClass *klass)
   dev_class->list = fpi_device_fake_list;
   dev_class->delete = fpi_device_fake_delete;
   dev_class->cancel = fpi_device_fake_cancel;
+
+  fpi_device_class_auto_initialize_features (dev_class);
 }

@@ -131,6 +131,7 @@ fpi_get_driver_types
 FpDeviceClass
 FpTimeoutFunc
 FpiDeviceAction
+FpiDeviceFeature
 FpIdEntry
 FpiDeviceUdevSubtypeFlags
 fpi_device_get_usb_device
@@ -168,6 +169,7 @@ fpi_device_enroll_progress
 fpi_device_verify_report
 fpi_device_identify_report
 fpi_device_list_complete
+fpi_device_class_auto_initialize_features
 </SECTION>
 
 <SECTION>

@@ -776,4 +776,6 @@ fpi_device_virtual_device_class_init (FpDeviceVirtualDeviceClass *klass)
   dev_class->verify = dev_verify;
   dev_class->enroll = dev_enroll;
   dev_class->cancel = dev_cancel;
+
+  fpi_device_class_auto_initialize_features (dev_class);
 }

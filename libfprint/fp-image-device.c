@@ -220,6 +220,8 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
 
   fp_device_class->cancel = fp_image_device_cancel_action;
 
+  fpi_device_class_auto_initialize_features (fp_device_class);
+
   /* Default implementations */
   klass->activate = fp_image_device_default_activate;
   klass->deactivate = fp_image_device_default_deactivate;

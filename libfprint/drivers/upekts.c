@@ -1555,4 +1555,6 @@ fpi_device_upekts_class_init (FpiDeviceUpektsClass *klass)
   dev_class->verify = verify;
   dev_class->enroll = enroll;
   /* dev_class->cancel = cancel; */
+
+  fpi_device_class_auto_initialize_features (dev_class);
 }

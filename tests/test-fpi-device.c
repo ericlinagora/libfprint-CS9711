@@ -507,6 +507,175 @@ test_driver_get_driver_data (void)
 }
 
 static void
+test_driver_initial_features (void)
+{
+  g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
+
+  g_assert_cmpuint (dev_class->features, !=, FPI_DEVICE_FEATURE_NONE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_none (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->list = NULL;
+  dev_class->capture = NULL;
+  dev_class->verify = NULL;
+  dev_class->identify = NULL;
+  dev_class->delete = NULL;
+  dev_class->features = FPI_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, ==, FPI_DEVICE_FEATURE_NONE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_no_capture (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->capture = NULL;
+  dev_class->features = FPI_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, !=, FPI_DEVICE_FEATURE_NONE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_no_verify (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->verify = NULL;
+  dev_class->features = FPI_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, !=, FPI_DEVICE_FEATURE_NONE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_no_identify (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->identify = NULL;
+  dev_class->features = FPI_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, !=, FPI_DEVICE_FEATURE_NONE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_no_storage (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->list = NULL;
+  dev_class->delete = NULL;
+  dev_class->features = FPI_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, !=, FPI_DEVICE_FEATURE_NONE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_no_list (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->list = NULL;
+  dev_class->features = FPI_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, !=, FPI_DEVICE_FEATURE_NONE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_no_delete (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->list = NULL;
+  dev_class->features = FPI_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, !=, FPI_DEVICE_FEATURE_NONE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_CAPTURE);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_false (dev_class->features & FPI_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
 on_driver_probe_async (GObject *initable, GAsyncResult *res, gpointer user_data)
 {
   g_autoptr(GError) error = NULL;
@@ -1311,7 +1480,7 @@ test_driver_do_not_support_identify (void)
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
   g_autoptr(FpDevice) device = NULL;
 
-  dev_class->identify = NULL;
+  dev_class->features &= ~FPI_DEVICE_FEATURE_IDENTIFY;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   g_assert_false (fp_device_supports_identify (device));
@@ -1639,6 +1808,7 @@ test_driver_supports_capture (void)
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
   g_autoptr(FpDevice) device = NULL;
 
+  dev_class->features |= FPI_DEVICE_FEATURE_CAPTURE;
   dev_class->capture = fake_device_stub_capture;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
@@ -1651,6 +1821,7 @@ test_driver_do_not_support_capture (void)
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
   g_autoptr(FpDevice) device = NULL;
 
+  dev_class->features &= ~FPI_DEVICE_FEATURE_CAPTURE;
   dev_class->capture = NULL;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
@@ -1696,17 +1867,12 @@ test_driver_capture_error (void)
 }
 
 static void
-fake_device_stub_list (FpDevice *device)
-{
-}
-
-static void
 test_driver_has_storage (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
   g_autoptr(FpDevice) device = NULL;
 
-  dev_class->list = fake_device_stub_list;
+  dev_class->features |= FPI_DEVICE_FEATURE_STORAGE;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   g_assert_true (fp_device_has_storage (device));
@@ -1718,7 +1884,7 @@ test_driver_has_not_storage (void)
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
   g_autoptr(FpDevice) device = NULL;
 
-  dev_class->list = NULL;
+  dev_class->features &= ~FPI_DEVICE_FEATURE_STORAGE;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   g_assert_false (fp_device_has_storage (device));
@@ -1770,7 +1936,7 @@ test_driver_list_no_storage (void)
   g_autoptr(GPtrArray) prints = NULL;
   g_autoptr(GError) error = NULL;
 
-  dev_class->list = NULL;
+  dev_class->features &= ~FPI_DEVICE_FEATURE_STORAGE;
 
   device = auto_close_fake_device_new ();
   g_assert_false (fp_device_has_storage (device));
@@ -2439,6 +2605,14 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/get_usb_device", test_driver_get_usb_device);
   g_test_add_func ("/driver/get_virtual_env", test_driver_get_virtual_env);
   g_test_add_func ("/driver/get_driver_data", test_driver_get_driver_data);
+  g_test_add_func ("/driver/initial_features", test_driver_initial_features);
+  g_test_add_func ("/driver/initial_features/none", test_driver_initial_features_none);
+  g_test_add_func ("/driver/initial_features/no_capture", test_driver_initial_features_no_capture);
+  g_test_add_func ("/driver/initial_features/no_verify", test_driver_initial_features_no_verify);
+  g_test_add_func ("/driver/initial_features/no_identify", test_driver_initial_features_no_identify);
+  g_test_add_func ("/driver/initial_features/no_storage", test_driver_initial_features_no_storage);
+  g_test_add_func ("/driver/initial_features/no_list", test_driver_initial_features_no_list);
+  g_test_add_func ("/driver/initial_features/no_delete", test_driver_initial_features_no_delete);
 
   g_test_add_func ("/driver/probe", test_driver_probe);
   g_test_add_func ("/driver/probe/error", test_driver_probe_error);

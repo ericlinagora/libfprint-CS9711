@@ -1405,4 +1405,6 @@ fpi_device_synaptics_class_init (FpiDeviceSynapticsClass *klass)
   dev_class->delete = delete_print;
   dev_class->cancel = cancel;
   dev_class->list = list;
+
+  fpi_device_class_auto_initialize_features (dev_class);
 }

@@ -70,12 +70,38 @@ struct _FpIdEntry
 };
 
 /**
+ * FpiDeviceFeature:
+ * @FPI_DEVICE_FEATURE_NONE: Device does not support any feature
+ * @FPI_DEVICE_FEATURE_CAPTURE: Supports image capture
+ * @FPI_DEVICE_FEATURE_IDENTIFY: Supports finger identification
+ * @FPI_DEVICE_FEATURE_VERIFY: Supports finger verification
+ * @FPI_DEVICE_FEATURE_STORAGE: Device has a persistent storage
+ * @FPI_DEVICE_FEATURE_STORAGE_LIST: Supports listing the storage templates
+ * @FPI_DEVICE_FEATURE_STORAGE_DELETE: Supports deleting stored templates
+ * @FPI_DEVICE_FEATURE_STORAGE_CLEAR: Supports clearing the whole storage
+ * @FPI_DEVICE_FEATURE_DUPLICATES_CHECK: Natively supports duplicates detection
+ */
+typedef enum /*< flags >*/ {
+  FPI_DEVICE_FEATURE_NONE = 0,
+  FPI_DEVICE_FEATURE_CAPTURE = 1 << 0,
+  FPI_DEVICE_FEATURE_IDENTIFY = 1 << 1,
+  FPI_DEVICE_FEATURE_VERIFY = 1 << 2,
+  FPI_DEVICE_FEATURE_STORAGE = 1 << 3,
+  FPI_DEVICE_FEATURE_STORAGE_LIST = 1 << 4,
+  FPI_DEVICE_FEATURE_STORAGE_DELETE = 1 << 5,
+  FPI_DEVICE_FEATURE_STORAGE_CLEAR = 1 << 6,
+  FPI_DEVICE_FEATURE_DUPLICATES_CHECK = 1 << 7,
+} FpiDeviceFeature;
+
+/**
  * FpDeviceClass:
  * @id: ID string for the driver. Should be a valid C identifier and should
  *   match the drivers file name.
  * @full_name: Human readable description of the driver
  * @type: The type of driver
  * @id_table: The table of IDs to bind the driver to
+ * @features: The features the device supports, it can be initialized using
+ *   fpi_device_class_auto_initialize_features() on @class_init.
  * @nr_enroll_stages: The number of enroll stages supported devices need; use
  *   fpi_device_set_nr_enroll_stages() from @probe if this is dynamic.
  * @scan_type: The scan type of supported devices; use
@@ -133,6 +159,7 @@ struct _FpDeviceClass
   const gchar     *full_name;
   FpDeviceType     type;
   const FpIdEntry *id_table;
+  FpiDeviceFeature features;
 
   /* Defaults for device properties */
   gint       nr_enroll_stages;
@@ -152,6 +179,8 @@ struct _FpDeviceClass
 
   void (*cancel)   (FpDevice *device);
 };
+
+void fpi_device_class_auto_initialize_features (FpDeviceClass *device_class);
 
 /**
  * FpTimeoutFunc:

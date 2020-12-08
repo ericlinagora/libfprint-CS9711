@@ -140,6 +140,8 @@ fp_device_constructed (GObject *object)
   FpDeviceClass *cls = FP_DEVICE_GET_CLASS (self);
   FpDevicePrivate *priv = fp_device_get_instance_private (self);
 
+  g_assert (cls->features != FPI_DEVICE_FEATURE_NONE);
+
   priv->type = cls->type;
   if (cls->nr_enroll_stages)
     priv->nr_enroll_stages = cls->nr_enroll_stages;
@@ -627,7 +629,7 @@ fp_device_supports_identify (FpDevice *device)
 
   g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
 
-  return cls->identify != NULL;
+  return cls->identify && !!(cls->features & FPI_DEVICE_FEATURE_IDENTIFY);
 }
 
 /**
@@ -645,7 +647,7 @@ fp_device_supports_capture (FpDevice *device)
 
   g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
 
-  return cls->capture != NULL;
+  return cls->capture && !!(cls->features & FPI_DEVICE_FEATURE_CAPTURE);
 }
 
 /**
@@ -664,7 +666,7 @@ fp_device_has_storage (FpDevice *device)
 
   g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
 
-  return cls->list != NULL;
+  return !!(cls->features & FPI_DEVICE_FEATURE_STORAGE);
 }
 
 /**
@@ -1254,6 +1256,7 @@ fp_device_delete_print (FpDevice           *device,
 {
   g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (device);
 
   task = g_task_new (device, cancellable, callback, user_data);
   if (g_task_return_error_if_cancelled (task))
@@ -1274,7 +1277,7 @@ fp_device_delete_print (FpDevice           *device,
     }
 
   /* Succeed immediately if delete is not implemented. */
-  if (!FP_DEVICE_GET_CLASS (device)->delete)
+  if (!cls->delete || !(cls->features & FPI_DEVICE_FEATURE_STORAGE_DELETE))
     {
       g_task_return_boolean (task, TRUE);
       return;
@@ -1288,7 +1291,7 @@ fp_device_delete_print (FpDevice           *device,
                         g_object_ref (enrolled_print),
                         g_object_unref);
 
-  FP_DEVICE_GET_CLASS (device)->delete (device);
+  cls->delete (device);
 }
 
 /**

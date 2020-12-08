@@ -1579,4 +1579,7 @@ fpi_device_goodixmoc_class_init (FpiDeviceGoodixMocClass *klass)
   dev_class->cancel = gx_fp_cancel;
   dev_class->verify   = gx_fp_verify_identify;
   dev_class->identify = gx_fp_verify_identify;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+  dev_class->features |= FPI_DEVICE_FEATURE_DUPLICATES_CHECK;
 }
