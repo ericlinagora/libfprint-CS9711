@@ -23,6 +23,7 @@
 #if !GLIB_CHECK_VERSION (2, 57, 0)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (GTypeClass, g_type_class_unref);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (GFlagsClass, g_type_class_unref);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (GParamSpec, g_param_spec_unref);
 #else
 /* Re-define G_SOURCE_FUNC as we are technically not allowed to use it with
