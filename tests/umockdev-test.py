@@ -90,7 +90,7 @@ try:
 except Exception as e:
     # Store created output files for inspection (in the build directory)
     outdir = os.path.join('errors', os.path.basename(ddir))
-    shutil.copytree(tmpdir, outdir)
+    shutil.copytree(tmpdir, outdir, dirs_exist_ok=True)
     raise e
 
 finally:
