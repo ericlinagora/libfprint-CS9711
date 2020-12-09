@@ -318,19 +318,30 @@ fp_image_detect_minutiae_nbis_thread_func (GTask        *task,
   lfsparms = g_memdup2 (&g_lfsparms_V2, sizeof (LFSPARMS));
   lfsparms->remove_perimeter_pts = minutiae_flags & FPI_IMAGE_PARTIAL ? TRUE : FALSE;
 
-  if (minutiae_flags & FPI_IMAGE_REMOVE_LESS_MINUTIAE)
-  {
-    // Effectively disabling several steps of the remove false minutiae step by making the remove condition unarchivable
+  if ((minutiae_flags & FPI_IMAGE_MINDTCT_DISABLE_REMOVE_ISLANDS_AND_LAKES) &&
+      (minutiae_flags & FPI_IMAGE_MINDTCT_DISABLE_REMOVE_HOLES))
     lfsparms->max_rmtest_dist = 0;
+
+  if (minutiae_flags & FPI_IMAGE_MINDTCT_DISABLE_REMOVE_HOOKS)
     lfsparms->max_hook_len = 0;
+
+  if (minutiae_flags & FPI_IMAGE_MINDTCT_DISABLE_REMOVE_ISLANDS_AND_LAKES)
     lfsparms->max_half_loop = 0;
+
+  if (minutiae_flags & FPI_IMAGE_MINDTCT_DISABLE_REMOVE_HOLES)
     lfsparms->small_loop_len = 0;
-    lfsparms->max_overlap_dist = 0;
-    lfsparms->max_overlap_join_dist = 0;
-    lfsparms->min_malformation_ratio = INT_MAX;
-    lfsparms->max_malformation_dist = INT_MAX;
-    lfsparms->pores_max_ratio = 0;
-  }
+
+  if (minutiae_flags & FPI_IMAGE_MINDTCT_DISABLE_REMOVE_OVERLAPS)
+    {
+      lfsparms->max_overlap_dist = 0;
+      lfsparms->max_overlap_join_dist = 0;
+    }
+
+  if (minutiae_flags & FPI_IMAGE_MINDTCT_DISABLE_REMOVE_MALFORMATIONS)
+    {
+      lfsparms->min_malformation_ratio = INT_MAX;
+      lfsparms->max_malformation_dist = INT_MAX;
+    }
 
   timer = g_timer_new ();
   r = get_minutiae (&ret_data->minutiae, &quality_map, &direction_map,
