@@ -1018,6 +1018,7 @@ fp_device_identify (FpDevice           *device,
   g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
   FpMatchData *data;
+  int i;
 
   task = g_task_new (device, cancellable, callback, user_data);
   if (g_task_return_error_if_cancelled (task))
@@ -1042,7 +1043,13 @@ fp_device_identify (FpDevice           *device,
   maybe_cancel_on_cancelled (device, cancellable);
 
   data = g_new0 (FpMatchData, 1);
-  data->gallery = g_ptr_array_ref (prints);
+  /* We cannot store the gallery directly, because the ptr array may not own
+   * a reference to each print. Also, the caller could in principle modify the
+   * GPtrArray afterwards.
+   */
+  data->gallery = g_ptr_array_new_full (prints->len, g_object_unref);
+  for (i = 0; i < prints->len; i++)
+    g_ptr_array_add (data->gallery, g_object_ref (g_ptr_array_index (prints, i)));
   data->match_cb = match_cb;
   data->match_data = match_data;
   data->match_destroy = match_destroy;
