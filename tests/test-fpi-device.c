@@ -893,10 +893,11 @@ test_driver_enroll_progress (void)
 
 typedef struct
 {
-  gboolean called;
-  FpPrint *match;
-  FpPrint *print;
-  GError  *error;
+  gboolean   called;
+  FpPrint   *match;
+  FpPrint   *print;
+  GPtrArray *gallery;
+  GError    *error;
 } MatchCbData;
 
 static void
@@ -939,6 +940,14 @@ test_driver_match_cb (FpDevice *device,
 
   if (match)
     g_assert_no_error (error);
+
+  /* Compar gallery if this is an identify operation */
+  if (data->gallery)
+    {
+      FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+      g_assert_false (fake_dev->action_data == data->gallery);
+      assert_equal_galleries (fake_dev->action_data, data->gallery);
+    }
 }
 
 static void
@@ -1314,6 +1323,8 @@ test_driver_identify (void)
 
   g_assert_true (fp_device_supports_identify (device));
 
+  match_data->gallery = prints;
+
   fake_dev->ret_print = make_fake_print (device, NULL);
   g_assert_true (fp_device_identify_sync (device, prints, NULL,
                                           test_driver_match_cb, match_data,
@@ -1325,7 +1336,6 @@ test_driver_identify (void)
   g_assert_true (match_data->print == print);
 
   g_assert (fake_dev->last_called_function == dev_class->identify);
-  g_assert (fake_dev->action_data == prints);
   g_assert_no_error (error);
 
   g_assert (print != NULL && print == fake_dev->ret_print);
