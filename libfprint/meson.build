@@ -234,6 +234,8 @@ libnbis = static_library('nbis',
         '-Wno-error=redundant-decls',
         '-Wno-redundant-decls',
         '-Wno-discarded-qualifiers',
+        '-Wno-array-bounds',
+        '-Wno-array-parameter',
     ]),
     install: false)
 
