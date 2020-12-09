@@ -878,5 +878,5 @@ invalid_format:
   *error = g_error_new_literal (G_IO_ERROR,
                                 G_IO_ERROR_INVALID_DATA,
                                 "Data could not be parsed");
-  return FALSE;
+  return NULL;
 }
