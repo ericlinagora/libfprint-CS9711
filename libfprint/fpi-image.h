@@ -33,6 +33,7 @@
  * rely on the image to be normalized by libfprint before further processing.
  */
 typedef enum {
+  FPI_IMAGE_NONE                                      = 0,
   FPI_IMAGE_V_FLIPPED                                 = 1 << 0,
   FPI_IMAGE_H_FLIPPED                                 = 1 << 1,
   FPI_IMAGE_COLORS_INVERTED                           = 1 << 2,
@@ -44,10 +45,10 @@ typedef enum {
   FPI_IMAGE_MINDTCT_DISABLE_REMOVE_MALFORMATIONS      = 1 << 8,
 } FpiImageFlags;
 
-#define FPI_IMAGE_REMOVE_LESS_MINUTIAE (FPI_IMAGE_MINDTCT_DISABLE_REMOVE_ISLANDS_AND_LAKES |\
-                                        FPI_IMAGE_MINDTCT_DISABLE_REMOVE_HOLES |\
-                                        FPI_IMAGE_MINDTCT_DISABLE_REMOVE_HOOKS |\
-                                        FPI_IMAGE_MINDTCT_DISABLE_REMOVE_OVERLAPS |\
+#define FPI_IMAGE_REMOVE_LESS_MINUTIAE (FPI_IMAGE_MINDTCT_DISABLE_REMOVE_ISLANDS_AND_LAKES | \
+                                        FPI_IMAGE_MINDTCT_DISABLE_REMOVE_HOLES | \
+                                        FPI_IMAGE_MINDTCT_DISABLE_REMOVE_HOOKS | \
+                                        FPI_IMAGE_MINDTCT_DISABLE_REMOVE_OVERLAPS | \
                                         FPI_IMAGE_MINDTCT_DISABLE_REMOVE_MALFORMATIONS)
 
 /**
