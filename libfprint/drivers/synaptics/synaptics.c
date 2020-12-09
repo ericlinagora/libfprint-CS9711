@@ -451,6 +451,37 @@ parse_print_data (GVariant      *data,
   return TRUE;
 }
 
+static FpPrint *
+create_print (FpiDeviceSynaptics *self,
+              guint8             *user_id,
+              guint8              finger_id)
+{
+  FpPrint *print;
+  g_autofree gchar *user_id_safe;
+  GVariant *data = NULL;
+  GVariant *uid = NULL;
+
+  user_id_safe = g_strndup ((char *) user_id, BMKT_MAX_USER_ID_LEN);
+
+  print = fp_print_new (FP_DEVICE (self));
+  uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
+                                   user_id_safe,
+                                   strlen (user_id_safe),
+                                   1);
+  data = g_variant_new ("(y@ay)",
+                        finger_id,
+                        uid);
+
+  fpi_print_set_type (print, FPI_PRINT_RAW);
+  fpi_print_set_device_stored (print, TRUE);
+  g_object_set (print, "fpi-data", data, NULL);
+  g_object_set (print, "description", user_id_safe, NULL);
+
+  fpi_print_fill_from_user_id (print, user_id_safe);
+
+  return print;
+}
+
 static void
 list_msg_cb (FpiDeviceSynaptics *self,
              bmkt_response_t    *resp,
@@ -503,10 +534,7 @@ list_msg_cb (FpiDeviceSynaptics *self,
 
       for (int n = 0; n < BMKT_MAX_NUM_TEMPLATES_INTERNAL_FLASH; n++)
         {
-          GVariant *data = NULL;
-          GVariant *uid = NULL;
           FpPrint *print;
-          gchar *userid;
 
           if (get_enroll_templates_resp->templates[n].user_id_len == 0)
             continue;
@@ -519,23 +547,9 @@ list_msg_cb (FpiDeviceSynaptics *self,
                    get_enroll_templates_resp->templates[n].user_id,
                    get_enroll_templates_resp->templates[n].finger_id);
 
-          userid = (gchar *) get_enroll_templates_resp->templates[n].user_id;
-
-          print = fp_print_new (FP_DEVICE (self));
-          uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
-                                           get_enroll_templates_resp->templates[n].user_id,
-                                           get_enroll_templates_resp->templates[n].user_id_len,
-                                           1);
-          data = g_variant_new ("(y@ay)",
-                                get_enroll_templates_resp->templates[n].finger_id,
-                                uid);
-
-          fpi_print_set_type (print, FPI_PRINT_RAW);
-          fpi_print_set_device_stored (print, TRUE);
-          g_object_set (print, "fpi-data", data, NULL);
-          g_object_set (print, "description", get_enroll_templates_resp->templates[n].user_id, NULL);
-
-          fpi_print_fill_from_user_id (print, userid);
+          print = create_print (self,
+                                get_enroll_templates_resp->templates[n].user_id,
+                                get_enroll_templates_resp->templates[n].finger_id);
 
           g_ptr_array_add (self->list_result, g_object_ref_sink (print));
         }
@@ -760,37 +774,28 @@ identify_msg_cb (FpiDeviceSynaptics *self,
         FpPrint *print = NULL;
         GPtrArray *prints = NULL;
         g_autoptr(GVariant) data = NULL;
-        guint8 finger;
-        const guint8 *user_id;
-        gsize user_id_len = 0;
-        gint cnt = 0;
-        gboolean find = FALSE;
+        gboolean found = FALSE;
+        guint index;
+
+        print = create_print (self,
+                              resp->response.id_resp.user_id,
+                              resp->response.id_resp.finger_id);
 
         fpi_device_get_identify_data (device, &prints);
 
-        for (cnt = 0; cnt < prints->len; cnt++)
+        found = g_ptr_array_find_with_equal_func (prints,
+                                                  print,
+                                                  (GEqualFunc) fp_print_equal,
+                                                  &index);
+
+        if (found)
           {
-            print = g_ptr_array_index (prints, cnt);
-            g_object_get (print, "fpi-data", &data, NULL);
-            g_debug ("data is %p", data);
-            parse_print_data (data, &finger, &user_id, &user_id_len);
-            if (user_id)
-              {
-                if (memcmp (resp->response.id_resp.user_id, user_id, user_id_len) == 0)
-                  {
-                    find = TRUE;
-                    break;
-                  }
-              }
-          }
-        if(find)
-          {
-            fpi_device_identify_report (device, print, print, NULL);
+            fpi_device_identify_report (device, g_ptr_array_index (prints, index), print, NULL);
             fpi_device_identify_complete (device, NULL);
           }
         else
           {
-            fpi_device_identify_report (device, NULL, NULL, NULL);
+            fpi_device_identify_report (device, NULL, print, NULL);
             identify_complete_after_finger_removal (self);
           }
       }
