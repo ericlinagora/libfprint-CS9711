@@ -229,7 +229,7 @@ gx_proto_parse_header (
 
   memcpy (pheader, buffer, sizeof (pack_header));
 
-  pheader->len = GUINT16_FROM_LE (*(buffer + 4));
+  pheader->len = GUINT16_FROM_LE ( *(uint16_t *) (buffer + 4));
   pheader->len -= PACKAGE_CRC_SIZE;
 
   return 0;
