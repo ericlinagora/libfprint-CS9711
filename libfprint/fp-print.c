@@ -808,6 +808,7 @@ fp_print_deserialize (const guchar *data,
                              "device-id", device_id,
                              "device-stored", device_stored,
                              NULL);
+      g_object_ref_sink (result);
       fpi_print_set_type (result, FPI_PRINT_NBIS);
       for (i = 0; i < g_variant_n_children (prints); i++)
         {
@@ -857,6 +858,7 @@ fp_print_deserialize (const guchar *data,
                              "device-stored", device_stored,
                              "fpi-data", fp_data,
                              NULL);
+      g_object_ref_sink (result);
     }
   else
     {
