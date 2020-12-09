@@ -80,11 +80,6 @@ typedef enum {
 
 FpPrint *fp_print_new (FpDevice *device);
 
-FpPrint *fp_print_new_from_data (guchar *data,
-                                 gsize   length);
-gboolean fp_print_to_data (guchar **data,
-                           gsize    length);
-
 const gchar *fp_print_get_driver (FpPrint *print);
 const gchar *fp_print_get_device_id (FpPrint *print);
 FpImage     *fp_print_get_image (FpPrint *print);
