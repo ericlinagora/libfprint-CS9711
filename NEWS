@@ -1,6 +1,24 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2020-12-01: v1.90.6 release
+
+This release is primarily a bugfix release for some older issues.
+
+The major change is that fp_print_deserialize will now correctly return a
+sunken reference rather than a floating one. Most API users will have
+assumed this was true, and issues could happen at a later point.
+If any API user worked around this libfprint bug, they will now leak the
+returned print.
+
+Highlights:
+ * Object reference management fixes for FpPrint and identify
+ * Fixed issues that caused problem on non-x86 machines (#236)
+ * Fix building with older GLib versions
+ * synaptics: Support PID 00e7
+ * goodix: Fix issue with long USB packages
+
+
 2020-12-01: v1.90.5 release
 
 The 1.90.4 release caused a major regression, as it included a USB hub in
