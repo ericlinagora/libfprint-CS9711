@@ -25,7 +25,7 @@
 #define PACKAGE_CRC_SIZE (4)
 #define PACKAGE_HEADER_SIZE (8)
 
-#define FP_MAX_FINGERNUM (10)
+#define FP_MAX_FINGERNUM (20)
 
 #define TEMPLATE_ID_SIZE (32)
 
@@ -167,6 +167,11 @@ typedef struct _fp_finger_status
   uint8_t status;
 } fp_finger_status_t, *pfp_finger_status_t;
 
+typedef struct _fp_finger_config
+{
+  uint8_t status;
+  uint8_t max_stored_prints;
+} fp_finger_config_t, *pfp_finger_config_t;
 
 typedef struct _fp_cmd_response
 {
@@ -183,6 +188,7 @@ typedef struct _fp_cmd_response
     gxfp_enum_fingerlist_t finger_list_resp;
     gxfp_version_info_t    version_info;
     fp_finger_status_t     finger_status;
+    fp_finger_config_t     finger_config;
   };
 } gxfp_cmd_response_t, *pgxfp_cmd_response_t;
 

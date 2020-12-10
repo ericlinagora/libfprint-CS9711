@@ -294,6 +294,12 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint32_t buffer_len, pgxfp_c
       break;
 
     case MOC_CMD0_UPDATE_CONFIG:
+      {
+        presp->finger_config.status = buffer[0];
+        presp->finger_config.max_stored_prints = buffer[2];
+      }
+      break;
+
     case MOC_CMD0_COMMITENROLLMENT:
     case MOC_CMD0_DELETETEMPLATE:
       break;
@@ -411,7 +417,7 @@ gx_proto_init_sensor_config (pgxfp_sensor_cfg_t pconfig)
   memset (pconfig, 0, sizeof (*pconfig));
 
   //NOTICE: Do not change any value!
-  memcpy (&pconfig->config, sensor_config, 26);
+  memcpy (&pconfig->config, sensor_config, G_N_ELEMENTS (sensor_config));
   pconfig->reserved[0] = 1;
 
   gx_proto_crc32_calc ((uint8_t *) pconfig, sizeof (*pconfig) - PACKAGE_CRC_SIZE, (uint8_t *) &crc32_calc);

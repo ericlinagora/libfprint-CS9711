@@ -53,6 +53,7 @@ struct _FpiDeviceGoodixMoc
   pgxfp_sensor_cfg_t sensorcfg;
   gint               enroll_stage;
   gint               max_enroll_stage;
+  gint               max_stored_prints;
   GCancellable      *cancellable;
   GPtrArray         *list_result;
   guint8             template_id[TEMPLATE_ID_SIZE];
@@ -560,6 +561,13 @@ fp_enroll_enum_cb (FpiDeviceGoodixMoc  *self,
                                                      resp->result));
       return;
     }
+  if (resp->finger_list_resp.finger_num >= self->max_stored_prints)
+    {
+      fpi_ssm_mark_failed (self->task_ssm,
+                           fpi_device_error_new (FP_DEVICE_ERROR_DATA_FULL));
+      return;
+    }
+
   fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_CAPTURE);
 }
 
@@ -975,7 +983,7 @@ fp_init_config_cb (FpiDeviceGoodixMoc  *self,
       fpi_ssm_mark_failed (self->task_ssm, error);
       return;
     }
-
+  self->max_stored_prints = resp->finger_config.max_stored_prints;
   fpi_ssm_next_state (self->task_ssm);
 }
 
@@ -1258,6 +1266,8 @@ gx_fp_init (FpDevice *device)
   FpiDeviceGoodixMoc *self = FPI_DEVICE_GOODIXMOC (device);
   GError *error = NULL;
   int ret = 0;
+
+  self->max_stored_prints = FP_MAX_FINGERNUM;
 
   self->cancellable = g_cancellable_new ();
 
