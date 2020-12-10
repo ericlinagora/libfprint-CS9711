@@ -89,6 +89,7 @@ cairo_dep = dependency('cairo', required: false)
 # Drivers
 drivers = get_option('drivers').split(',')
 virtual_drivers = [ 'virtual_image' ]
+
 default_drivers = [
     'upektc_img',
     'vfs5011',
@@ -111,6 +112,13 @@ default_drivers = [
     'upeksonly',
     'upekts',
     'goodixmoc',
+]
+
+# FIXME: All the drivers should be fixed by adjusting the byte order.
+# See https://gitlab.freedesktop.org/libfprint/libfprint/-/issues/236
+endian_independent_drivers = virtual_drivers + [
+    'aes3500',
+    'synaptics',
 ]
 
 all_drivers = default_drivers + virtual_drivers
@@ -150,6 +158,16 @@ foreach driver: drivers
     endif
 endforeach
 
+supported_drivers = []
+foreach driver: drivers
+    if build_machine.endian() == 'little' or driver in endian_independent_drivers
+        supported_drivers += driver
+    else
+        warning('Driver @0@ is not supported by big endian cpu @1@. Please, fix it!'.format(
+            driver, build_machine.cpu()))
+    endif
+endforeach
+
 # Export the drivers' types to the core code
 drivers_type_list = []
 drivers_type_func = []
@@ -162,7 +180,7 @@ drivers_type_func += '{'
 drivers_type_func += '  GArray *drivers = g_array_new (TRUE, FALSE, sizeof (GType));'
 drivers_type_func += '  GType t;'
 drivers_type_func += ''
-foreach driver: drivers
+foreach driver: supported_drivers
     drivers_type_list += 'extern GType (fpi_device_' + driver + '_get_type) (void);'
     drivers_type_func += '  t = fpi_device_' + driver + '_get_type ();'
     drivers_type_func += '  g_array_append_val (drivers, t);'

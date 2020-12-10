@@ -70,7 +70,8 @@ if get_option('introspection')
         driver_envs = envs
         driver_envs.set('FP_DRIVERS_WHITELIST', driver_test)
 
-        if driver_test in drivers and gusb_dep.version().version_compare('>= 0.3.0')
+        if (driver_test in supported_drivers and
+            gusb_dep.version().version_compare('>= 0.3.0'))
             test(driver_test,
                 find_program('umockdev-test.py'),
                 args: join_paths(meson.current_source_dir(), driver_test),
