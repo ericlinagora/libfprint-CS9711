@@ -815,8 +815,6 @@ dev_close (FpImageDevice *dev)
   GError *error = NULL;
   FpDeviceVfs5011 *self = FPI_DEVICE_VFS5011 (dev);
 
-  ;
-
   g_usb_device_release_interface (fpi_device_get_usb_device (FP_DEVICE (dev)),
                                   0, 0, &error);
 
