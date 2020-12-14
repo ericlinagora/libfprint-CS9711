@@ -821,7 +821,7 @@ dev_close (FpImageDevice *dev)
                                   0, 0, &error);
 
   g_free (self->capture_buffer);
-  g_slist_free_full (self->rows, g_free);
+  g_slist_free_full (g_steal_pointer (&self->rows), g_free);
 
   fpi_image_device_close_complete (dev, error);
 }
