@@ -342,6 +342,7 @@ fp_verify_capture_cb (FpiDeviceGoodixMoc  *self,
     {
       fpi_ssm_mark_failed (self->task_ssm,
                            fpi_device_retry_new (FP_DEVICE_RETRY_CENTER_FINGER));
+      return;
     }
   fpi_ssm_next_state (self->task_ssm);
 }
