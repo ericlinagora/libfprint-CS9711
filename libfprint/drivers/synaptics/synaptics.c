@@ -663,7 +663,7 @@ verify_msg_cb (FpiDeviceSynaptics *self,
       fp_info ("Verify was successful! for user: %s finger: %d score: %f",
                verify_resp->user_id, verify_resp->finger_id, verify_resp->match_result);
       fpi_device_verify_report (device, FPI_MATCH_SUCCESS, NULL, NULL);
-      fpi_device_verify_complete (device, NULL);
+      verify_complete_after_finger_removal (self);
       break;
     }
 }
@@ -789,15 +789,11 @@ identify_msg_cb (FpiDeviceSynaptics *self,
                                                   &index);
 
         if (found)
-          {
-            fpi_device_identify_report (device, g_ptr_array_index (prints, index), print, NULL);
-            fpi_device_identify_complete (device, NULL);
-          }
+          fpi_device_identify_report (device, g_ptr_array_index (prints, index), print, NULL);
         else
-          {
-            fpi_device_identify_report (device, NULL, print, NULL);
-            identify_complete_after_finger_removal (self);
-          }
+          fpi_device_identify_report (device, NULL, print, NULL);
+
+        identify_complete_after_finger_removal (self);
       }
     }
 }
