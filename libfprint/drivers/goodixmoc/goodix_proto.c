@@ -141,8 +141,11 @@ crc32_update (gf_crc32_context *ctx, const uint8_t *message, uint32_t n_bytes)
 static void
 crc32_final (gf_crc32_context *ctx, uint8_t *md)
 {
+  uint32_t crc = 0;
+
   ctx->crc = (REFLECT_REMAINDER (ctx->crc) ^ FINAL_XOR_VALUE);
-  memcpy (md, &ctx->crc, 4);
+  crc = GUINT32_TO_LE (ctx->crc);
+  memcpy (md, &crc, 4);
 }
 
 uint8_t
@@ -184,7 +187,7 @@ init_pack_header (
   pheader->cmd1 = LOBYTE (cmd);
   pheader->packagenum = packagenum;
   pheader->reserved = dump_seq++;
-  pheader->len = len + PACKAGE_CRC_SIZE;
+  pheader->len = GUINT16_TO_LE (len + PACKAGE_CRC_SIZE);
   pheader->crc8 = gx_proto_crc8_calc ((uint8_t *) pheader, 6);
   pheader->rev_crc8 = ~pheader->crc8;
 }
@@ -224,14 +227,14 @@ gx_proto_parse_header (
 {
   if (!buffer || !pheader)
     return -1;
-  if (buffer_len < PACKAGE_HEADER_SIZE)
+  if (buffer_len < PACKAGE_HEADER_SIZE + PACKAGE_CRC_SIZE)
     return -1;
 
   memcpy (pheader, buffer, sizeof (pack_header));
-
-  pheader->len = GUINT16_FROM_LE ( *(uint16_t *) (buffer + 4));
+  pheader->len = GUINT16_FROM_LE (pheader->len);
+  if (buffer_len < pheader->len + PACKAGE_HEADER_SIZE)
+    return -1;
   pheader->len -= PACKAGE_CRC_SIZE;
-
   return 0;
 }
 
@@ -248,7 +251,7 @@ gx_proto_parse_fingerid (
   if (!template || !fid_buffer)
     return -1;
 
-  if (fid_buffer_size < 70)
+  if (fid_buffer_size < G_STRUCT_OFFSET (template_format_t, payload) + sizeof (uint32_t))
     return -1;
 
   buffer = fid_buffer;
@@ -256,28 +259,30 @@ gx_proto_parse_fingerid (
 
   if (buffer[Offset++] != 67)
     return -1;
+  fid_buffer_size--;
 
   template->type = buffer[Offset++];
+  fid_buffer_size--;
   template->finger_index = buffer[Offset++];
+  fid_buffer_size--;
   Offset++;
-
-  memcpy (template->accountid, &buffer[Offset], 32);
-  Offset += 32;
-
-  memcpy (template->tid, &buffer[Offset], 32);
-  Offset += 32;   // Offset == 68
-
+  memcpy (template->accountid, &buffer[Offset], sizeof (template->accountid));
+  Offset += sizeof (template->accountid);
+  memcpy (template->tid, &buffer[Offset], sizeof (template->tid));
+  Offset += sizeof (template->tid);   // Offset == 68
   template->payload.size = buffer[Offset++];
-  memset (template->payload.data, 0, 56);
+  if (template->payload.size > sizeof (template->payload.data))
+    return -1;
+  memset (template->payload.data, 0, template->payload.size);
   memcpy (template->payload.data, &buffer[Offset], template->payload.size);
 
   return 0;
 }
 
 int
-gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint32_t buffer_len, pgxfp_cmd_response_t presp)
+gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint16_t buffer_len, pgxfp_cmd_response_t presp)
 {
-  uint32_t offset = 0;
+  uint16_t offset = 0;
   uint8_t *fingerlist = NULL;
 
   if (!buffer || !presp)
@@ -289,6 +294,8 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint32_t buffer_len, pgxfp_c
     {
     case RESPONSE_PACKAGE_CMD:
       {
+        if (buffer_len < sizeof (gxfp_parse_msg_t) + 1)
+          return -1;
         presp->parse_msg.ack_cmd = buffer[1];
       }
       break;
@@ -296,32 +303,46 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint32_t buffer_len, pgxfp_c
     case MOC_CMD0_UPDATE_CONFIG:
       {
         presp->finger_config.status = buffer[0];
-        presp->finger_config.max_stored_prints = buffer[2];
+        if (buffer_len >= 3)
+          presp->finger_config.max_stored_prints = buffer[2];
+        else
+          /* to compatiable old version firmware */
+          presp->finger_config.max_stored_prints = FP_MAX_FINGERNUM;
+
       }
       break;
 
     case MOC_CMD0_COMMITENROLLMENT:
     case MOC_CMD0_DELETETEMPLATE:
+      /* just check result */
       break;
 
     case MOC_CMD0_GET_VERSION:
+      if (buffer_len < sizeof (gxfp_version_info_t) + 1)
+        return -1;
       memcpy (&presp->version_info, buffer + 1, sizeof (gxfp_version_info_t));
       break;
 
     case MOC_CMD0_CAPTURE_DATA:
       if (LOBYTE (cmd) == MOC_CMD1_DEFAULT)
         {
+          if (buffer_len < sizeof (gxfp_capturedata_t) + 1)
+            return -1;
           presp->capture_data_resp.img_quality  = buffer[1];
           presp->capture_data_resp.img_coverage = buffer[2];
         }
       break;
 
     case MOC_CMD0_ENROLL_INIT:
+      if (buffer_len < sizeof (gxfp_enroll_init_t) + 1)
+        return -1;
       if (presp->result == GX_SUCCESS)
         memcpy (&presp->enroll_init.tid, &buffer[1], TEMPLATE_ID_SIZE);
       break;
 
     case MOC_CMD0_ENROLL:
+      if (buffer_len < sizeof (gxfp_enroll_update_t))
+        return -1;
       presp->enroll_update.rollback = (buffer[0] < 0x80) ? false : true;
       presp->enroll_update.img_overlay    = buffer[1];
       presp->enroll_update.img_preoverlay = buffer[2];
@@ -331,7 +352,11 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint32_t buffer_len, pgxfp_c
       presp->check_duplicate_resp.duplicate = (presp->result == 0) ? false : true;
       if (presp->check_duplicate_resp.duplicate)
         {
-          uint16_t tid_size = GUINT16_FROM_LE (*(buffer + 1));
+          if (buffer_len < 3)
+            return -1;
+          uint16_t tid_size = GUINT16_FROM_LE (*(uint16_t *) (buffer + 1));
+          if ((buffer_len < tid_size + 3) || (buffer_len > sizeof (template_format_t)) + 3)
+            return -1;
           memcpy (&presp->check_duplicate_resp.template, buffer + 3, tid_size);
         }
       break;
@@ -339,18 +364,16 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint32_t buffer_len, pgxfp_c
     case MOC_CMD0_GETFINGERLIST:
       if (presp->result != GX_SUCCESS)
         break;
+      if (buffer_len < 2)
+        return -1;
       presp->finger_list_resp.finger_num = buffer[1];
-      if (presp->finger_list_resp.finger_num > FP_MAX_FINGERNUM)
-        {
-          presp->finger_list_resp.finger_num = 0;
-          presp->result = GX_ERROR_NO_AVAILABLE_SPACE;
-          break;
-        }
       fingerlist = buffer + 2;
       for(uint8_t num = 0; num < presp->finger_list_resp.finger_num; num++)
         {
-          uint16_t fingerid_length = GUINT16_FROM_LE (*(fingerlist + offset));
+          uint16_t fingerid_length = GUINT16_FROM_LE (*(uint16_t *) (fingerlist + offset));
           offset += 2;
+          if (buffer_len < fingerid_length + offset + 2)
+            return -1;
           if (gx_proto_parse_fingerid (fingerlist + offset,
                                        fingerid_length,
                                        &presp->finger_list_resp.finger_list[num]) != 0)
@@ -372,14 +395,16 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint32_t buffer_len, pgxfp_c
         presp->verify.match = (buffer[0] == 0) ? true : false;
         if (presp->verify.match)
           {
+            if (buffer_len < sizeof (template_format_t) + 10)
+              return -1;
             offset += 1;
-            presp->verify.rejectdetail = GUINT16_FROM_LE (*(buffer + offset));
+            presp->verify.rejectdetail = GUINT16_FROM_LE (*(uint16_t *) (buffer + offset));
             offset += 2;
-            score = GUINT32_FROM_LE (*(buffer + offset));
+            score = GUINT32_FROM_LE (*(uint32_t *) (buffer + offset));
             offset += 4;
-            study = GUINT16_FROM_LE (*(buffer + offset));
+            study = buffer[offset];
             offset += 1;
-            fingerid_size = GUINT16_FROM_LE (*(buffer + offset));
+            fingerid_size = GUINT16_FROM_LE (*(uint16_t *) (buffer + offset));
             offset += 2;
             if (gx_proto_parse_fingerid (buffer + offset, fingerid_size, &presp->verify.template) != 0)
               {

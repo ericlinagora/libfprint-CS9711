@@ -127,7 +127,7 @@ fp_cmd_receive_cb (FpiUsbTransfer *transfer,
     }
 
   gx_proto_crc32_calc (transfer->buffer, PACKAGE_HEADER_SIZE + header.len, (uint8_t *) &crc32_calc);
-  if(crc32_calc != *(uint32_t *) (transfer->buffer + PACKAGE_HEADER_SIZE + header.len))
+  if(crc32_calc != GUINT32_FROM_LE (*(uint32_t *) (transfer->buffer + PACKAGE_HEADER_SIZE + header.len)))
     {
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,

@@ -89,7 +89,7 @@ typedef struct _gxfp_version_info
   uint8_t interface[GX_VERSION_LEN];
   uint8_t protocol[GX_VERSION_LEN];
   uint8_t flashVersion[GX_VERSION_LEN];
-  uint8_t reserved[62];
+  uint8_t reserved[38];
 } gxfp_version_info_t, *pgxfp_version_info_t;
 
 
@@ -225,7 +225,7 @@ int gx_proto_parse_header (uint8_t     *buffer,
 
 int gx_proto_parse_body (uint16_t             cmd,
                          uint8_t             *buffer,
-                         uint32_t             buffer_len,
+                         uint16_t             buffer_len,
                          pgxfp_cmd_response_t presponse);
 
 int gx_proto_init_sensor_config (pgxfp_sensor_cfg_t pconfig);
