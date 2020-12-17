@@ -287,7 +287,7 @@ test_context_remove_device_opening (void)
   g_assert_true (removed);
   g_assert_null (tctx->user_data);
 
-  /* Running the mainloop now will cause the open to *succeed* dispite removal! */
+  /* Running the mainloop now will cause the open to *succeed* despite removal! */
   while (!open_done)
     g_main_context_iteration (NULL, TRUE);
 
