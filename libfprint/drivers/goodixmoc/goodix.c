@@ -331,7 +331,9 @@ fp_verify_capture_cb (FpiDeviceGoodixMoc  *self,
                            fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
       return;
     }
-
+  fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                           FP_FINGER_STATUS_PRESENT,
+                                           FP_FINGER_STATUS_NONE);
   if (resp->capture_data_resp.img_quality == 0)
     {
       fpi_ssm_mark_failed (self->task_ssm,
@@ -435,6 +437,9 @@ fp_verify_sm_run_state (FpiSsm *ssm, FpDevice *device)
   switch (fpi_ssm_get_cur_state (ssm))
     {
     case FP_VERIFY_CAPTURE:
+      fpi_device_report_finger_status_changes (device,
+                                               FP_FINGER_STATUS_NEEDED,
+                                               FP_FINGER_STATUS_NONE);
       goodix_sensor_cmd (self, MOC_CMD0_CAPTURE_DATA, MOC_CMD1_DEFAULT,
                          true,
                          (const guint8 *) &param,
@@ -629,7 +634,9 @@ fp_enroll_capture_cb (FpiDeviceGoodixMoc  *self,
       fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_CAPTURE);
       return;
     }
-
+  fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                           FP_FINGER_STATUS_PRESENT,
+                                           FP_FINGER_STATUS_NONE);
   if ((resp->capture_data_resp.img_quality < self->sensorcfg->config[4]) ||
       (resp->capture_data_resp.img_coverage < self->sensorcfg->config[5]))
     {
@@ -764,6 +771,9 @@ fp_finger_mode_cb (FpiDeviceGoodixMoc  *self,
                                                      "Switch finger mode failed"));
       return;
     }
+  fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                           FP_FINGER_STATUS_NONE,
+                                           FP_FINGER_STATUS_PRESENT);
   if (self->enroll_stage < self->max_enroll_stage)
     {
       fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_CAPTURE);
@@ -826,6 +836,9 @@ fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
       break;
 
     case FP_ENROLL_CAPTURE:
+      fpi_device_report_finger_status_changes (device,
+                                               FP_FINGER_STATUS_NEEDED,
+                                               FP_FINGER_STATUS_NONE);
       goodix_sensor_cmd (self, MOC_CMD0_CAPTURE_DATA, MOC_CMD1_DEFAULT,
                          true,
                          (const guint8 *) &dummy,

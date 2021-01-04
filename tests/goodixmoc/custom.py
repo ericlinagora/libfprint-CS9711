@@ -20,6 +20,7 @@ d.open_sync()
 template = FPrint.Print.new(d)
 
 def enroll_progress(*args):
+    assert d.get_finger_status() == FPrint.FingerStatusFlags.NEEDED
     print('enroll progress: ' + str(args))
 
 def identify_done(dev, res):
@@ -31,7 +32,9 @@ def identify_done(dev, res):
 
 # List, enroll, list, verify, identify, delete
 print("enrolling")
+assert d.get_finger_status() == FPrint.FingerStatusFlags.NONE
 p = d.enroll_sync(template, None, enroll_progress, None)
+assert d.get_finger_status() == FPrint.FingerStatusFlags.NONE
 print("enroll done")
 
 print("listing")
@@ -40,7 +43,9 @@ print("listing done")
 assert len(stored) == 1
 assert stored[0].equal(p)
 print("verifying")
+assert d.get_finger_status() == FPrint.FingerStatusFlags.NONE
 verify_res, verify_print = d.verify_sync(p)
+assert d.get_finger_status() == FPrint.FingerStatusFlags.NONE
 print("verify done")
 del p
 assert verify_res == True
