@@ -50,7 +50,7 @@ test_context_has_virtual_device (void)
   GPtrArray *devices;
   unsigned int i;
 
-  fpt_setup_virtual_device_environment ();
+  fpt_setup_virtual_device_environment (FPT_VIRTUAL_DEVICE_IMAGE);
 
   context = fp_context_new ();
   devices = fp_context_get_devices (context);
@@ -82,7 +82,7 @@ test_context_enumerates_new_devices (void)
 
   context = fp_context_new ();
 
-  fpt_setup_virtual_device_environment ();
+  fpt_setup_virtual_device_environment (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_context_enumerate (context);
   devices = fp_context_get_devices (context);
@@ -120,7 +120,7 @@ context_device_removed_cb (FpContext *ctx, FpDevice *device, FptContext *tctx)
 static void
 test_context_remove_device_closed (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
   gboolean removed;
 
   tctx->user_data = NULL;
@@ -162,7 +162,7 @@ close_done_cb (GObject *device, GAsyncResult *res, gpointer user_data)
 static void
 test_context_remove_device_closing (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
   g_autoptr(GError) close_error = NULL;
   g_autoptr(GError) error = NULL;
   gboolean removed;
@@ -207,7 +207,7 @@ test_context_remove_device_closing (void)
 static void
 test_context_remove_device_open (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
   g_autoptr(GError) error = NULL;
   gboolean removed = FALSE;
 
@@ -267,7 +267,7 @@ open_done_cb (GObject *device, GAsyncResult *res, gpointer user_data)
 static void
 test_context_remove_device_opening (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
   g_autoptr(GError) close_error = NULL;
   gboolean open_done = FALSE;
   gboolean removed;
@@ -327,7 +327,7 @@ enroll_done_cb (GObject *device, GAsyncResult *res, gpointer user_data)
 static void
 test_context_remove_device_active (void)
 {
-  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_imgdev ();
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
   g_autoptr(GError) error = NULL;
   g_autoptr(GCancellable) cancellable = NULL;
   g_autoptr(GError) enroll_error = NULL;

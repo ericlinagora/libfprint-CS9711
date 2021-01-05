@@ -22,16 +22,29 @@
 
 #include "test-utils.h"
 
+struct
+{
+  const char *envvar;
+  const char *driver_id;
+  const char *device_id;
+} devtype_vars[FPT_NUM_VIRTUAL_DEVICE_TYPES] = {
+  { "FP_VIRTUAL_IMAGE", "virtual_image", "virtual_image" },               /* FPT_VIRTUAL_DEVICE_IMAGE */
+};
+
+static FptVirtualDeviceType global_devtype;
+
 void
 fpt_teardown_virtual_device_environment (void)
 {
-  const char *path = g_getenv ("FP_VIRTUAL_IMAGE");
+  const char *path;
+
+  path = g_getenv (devtype_vars[global_devtype].envvar);
 
   if (path)
     {
       g_autofree char *temp_dir = g_path_get_dirname (path);
 
-      g_unsetenv ("FP_VIRTUAL_IMAGE");
+      g_unsetenv (devtype_vars[global_devtype].envvar);
       g_unlink (path);
       g_rmdir (temp_dir);
     }
@@ -44,19 +57,23 @@ on_signal_event (int sig)
 }
 
 void
-fpt_setup_virtual_device_environment (void)
+fpt_setup_virtual_device_environment (FptVirtualDeviceType devtype)
 {
   g_autoptr(GError) error = NULL;
   g_autofree char *temp_dir = NULL;
   g_autofree char *temp_path = NULL;
+  g_autofree char *filename = NULL;
 
-  g_assert_null (g_getenv ("FP_VIRTUAL_IMAGE"));
+  g_assert_null (g_getenv (devtype_vars[devtype].envvar));
 
   temp_dir = g_dir_make_tmp ("libfprint-XXXXXX", &error);
   g_assert_no_error (error);
 
-  temp_path = g_build_filename (temp_dir, "virtual-image.socket", NULL);
-  g_setenv ("FP_VIRTUAL_IMAGE", temp_path, TRUE);
+  filename = g_strdup_printf ("%s.socket", devtype_vars[devtype].device_id);
+  temp_path = g_build_filename (temp_dir, filename, NULL);
+  g_setenv (devtype_vars[devtype].envvar, temp_path, TRUE);
+
+  global_devtype = devtype;
 
   signal (SIGKILL, on_signal_event);
   signal (SIGABRT, on_signal_event);
@@ -78,13 +95,16 @@ fpt_context_new (void)
 }
 
 FptContext *
-fpt_context_new_with_virtual_imgdev (void)
+fpt_context_new_with_virtual_device (FptVirtualDeviceType devtype)
 {
   FptContext *tctx;
   GPtrArray *devices;
   unsigned int i;
 
-  fpt_setup_virtual_device_environment ();
+  g_assert_true (devtype >= FPT_VIRTUAL_DEVICE_IMAGE &&
+                 devtype < FPT_NUM_VIRTUAL_DEVICE_TYPES);
+
+  fpt_setup_virtual_device_environment (devtype);
 
   tctx = fpt_context_new ();
   devices = fp_context_get_devices (tctx->fp_context);
@@ -96,7 +116,7 @@ fpt_context_new_with_virtual_imgdev (void)
     {
       FpDevice *device = devices->pdata[i];
 
-      if (g_strcmp0 (fp_device_get_driver (device), "virtual_image") == 0)
+      if (g_strcmp0 (fp_device_get_driver (device), devtype_vars[devtype].driver_id) == 0)
         {
           tctx->device = device;
           break;
