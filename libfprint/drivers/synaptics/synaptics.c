@@ -27,6 +27,9 @@
 
 G_DEFINE_TYPE (FpiDeviceSynaptics, fpi_device_synaptics, FP_TYPE_DEVICE)
 
+static void init_identify_msg (FpDevice *device);
+static void compose_and_send_identify_msg (FpDevice *device);
+
 static const FpIdEntry id_table[] = {
   { .vid = SYNAPTICS_VENDOR_ID,  .pid = 0xBD,  },
   { .vid = SYNAPTICS_VENDOR_ID,  .pid = 0xE9,  },
@@ -739,6 +742,12 @@ identify_msg_cb (FpiDeviceSynaptics *self,
       fp_info ("Place Finger on the Sensor!");
       break;
 
+    case BMKT_RSP_SEND_NEXT_USER_ID:
+      {
+        compose_and_send_identify_msg (device);
+        break;
+      }
+
     case BMKT_RSP_ID_FAIL:
       if (resp->result == BMKT_SENSOR_STIMULUS_ERROR)
         {
@@ -801,6 +810,21 @@ identify_msg_cb (FpiDeviceSynaptics *self,
 static void
 identify (FpDevice *device)
 {
+  init_identify_msg (device);
+  compose_and_send_identify_msg (device);
+}
+
+static void
+init_identify_msg (FpDevice *device)
+{
+  FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
+
+  self->id_idx = 0;
+}
+
+static void
+compose_and_send_identify_msg (FpDevice *device)
+{
   FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
   FpPrint *print = NULL;
   GPtrArray *prints = NULL;
@@ -809,28 +833,77 @@ identify (FpDevice *device)
   guint8 finger;
   const guint8 *user_id;
   gsize user_id_len = 0;
-  gint cnt = 0;
+  g_autofree guint8 *payload = NULL;
+  guint8 payload_len = 0;
+  guint8 payloadOffset = 0;
 
   fpi_device_get_identify_data (device, &prints);
-
-  for (cnt = 0; cnt < prints->len; cnt++)
+  if (prints->len > UINT8_MAX)
     {
-      print = g_ptr_array_index (prints, cnt);
-      g_object_get (print, "fpi-data", &data, NULL);
-      g_debug ("data is %p", data);
-      if (!parse_print_data (data, &finger, &user_id, &user_id_len))
-        {
-          fpi_device_identify_complete (device,
-                                        fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID));
-          return;
-        }
+      fpi_device_identify_complete (device,
+                                    fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID));
+      return;
     }
-  G_DEBUG_HERE ();
+  if(self->id_idx >= prints->len)
+    {
+      fp_warn ("Device asked for more prints than we are providing.");
+      fpi_device_identify_complete (device,
+                                    fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
+                                                              "Unexpected index"));
+      return;
+    }
+  print = g_ptr_array_index (prints, self->id_idx);
+  g_object_get (print, "fpi-data", &data, NULL);
+  g_debug ("data is %p", data);
+  if (!parse_print_data (data, &finger, &user_id, &user_id_len))
+    {
+      fpi_device_identify_complete (device,
+                                    fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID));
+      return;
+    }
+  if(self->id_idx == 0)
+    {
+      /*
+       * Construct payload.
+       * 1st byte is total number of IDs in list.
+       * 2nd byte is number of IDs in list.
+       * 1 byte for each ID length, maximum id length is 100.
+       * user_id_len bytes of each ID
+       */
+      payload_len = 2 + 1 + user_id_len;
+      payload = g_malloc0 (payload_len);
+      payload[payloadOffset] = prints->len;
+      payloadOffset += 1;
+      payload[payloadOffset] = 1; /* send one id per message */
+      payloadOffset += 1;
+      payload[payloadOffset] = user_id_len;
+      payloadOffset += 1;
+      memcpy (&payload[payloadOffset], user_id, user_id_len);
+      payloadOffset += user_id_len;
 
-  synaptics_sensor_cmd (self, 0, BMKT_CMD_ID_USER, NULL, 0, identify_msg_cb);
+      G_DEBUG_HERE ();
+
+      synaptics_sensor_cmd (self, 0, BMKT_CMD_ID_USER_IN_ORDER, payload, payloadOffset, identify_msg_cb);
+    }
+  else
+    {
+      /*
+       * 1st byte is the number of IDs
+       * 1 byte for each ID length
+       * id_length bytes for each ID
+       */
+      payload_len = 1 + 1 + user_id_len;
+      payload = g_malloc0 (payload_len);
+      payload[payloadOffset] = 1; /* send one id per message */
+      payloadOffset += 1;
+      payload[payloadOffset] = user_id_len;
+      payloadOffset += 1;
+      memcpy (&payload[payloadOffset], user_id, user_id_len);
+      payloadOffset += user_id_len;
+      synaptics_sensor_cmd (self, self->cmd_seq_num, BMKT_CMD_ID_NEXT_USER, payload, payloadOffset, NULL);
+    }
+  self->id_idx++;
 }
-
-
 static void
 enroll_msg_cb (FpiDeviceSynaptics *self,
                bmkt_response_t    *resp,
