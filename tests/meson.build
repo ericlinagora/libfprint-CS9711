@@ -33,43 +33,51 @@ drivers_tests = [
 
 if get_option('introspection')
     envs.prepend('GI_TYPELIB_PATH', join_paths(meson.build_root(), 'libfprint'))
+    virtual_devices_tests = [
+        'virtual-image',
+        'virtual-device',
+    ]
 
-    if 'virtual_image' in drivers
-        python3 = find_program('python3')
-        unittest_inspector = find_program('unittest_inspector.py')
-        base_args = files('virtual-image.py')
-        suite = []
+    unittest_inspector = find_program('unittest_inspector.py')
 
-        r = run_command(unittest_inspector, files('virtual-image.py'))
-        unit_tests = r.stdout().strip().split('\n')
+    foreach vdtest: virtual_devices_tests
+        driver_name = '_'.join(vdtest.split('-'))
+        if driver_name in drivers
+            python3 = find_program('python3')
+            base_args = files(vdtest + '.py')
+            suite = ['virtual-driver']
 
-        if r.returncode() == 0 and unit_tests.length() > 0
-            suite += 'virtual-image'
-        else
-            unit_tests = ['virtual-image']
-        endif
+            r = run_command(unittest_inspector, files(vdtest + '.py'))
+            unit_tests = r.stdout().strip().split('\n')
 
-        foreach ut: unit_tests
-            ut_suite = suite
-            ut_args = base_args
-            if unit_tests.length() > 1
-                ut_args += ut
-                ut_suite += ut.split('.')[0]
+            if r.returncode() == 0 and unit_tests.length() > 0
+                suite += vdtest
+            else
+                unit_tests = [vdtest]
             endif
-            test(ut,
-                python3,
-                args: ut_args,
-                suite: ut_suite,
-                depends: libfprint_typelib,
-                env: envs,
+
+            foreach ut: unit_tests
+                ut_suite = suite
+                ut_args = base_args
+                if unit_tests.length() > 1
+                    ut_args += ut
+                    ut_suite += ut.split('.')[0]
+                endif
+                test(ut,
+                    python3,
+                    args: ut_args,
+                    suite: ut_suite,
+                    depends: libfprint_typelib,
+                    env: envs,
+                )
+            endforeach
+        else
+            test(vdtest,
+                find_program('sh'),
+                args: ['-c', 'exit 77']
             )
-        endforeach
-    else
-        test('virtual-image',
-            find_program('sh'),
-            args: ['-c', 'exit 77']
-        )
-    endif
+        endif
+    endforeach
 
     foreach driver_test: drivers_tests
         driver_envs = envs
