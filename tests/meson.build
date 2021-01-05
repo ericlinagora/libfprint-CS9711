@@ -13,7 +13,11 @@ envs.prepend('LD_LIBRARY_PATH', join_paths(meson.build_root(), 'libfprint'))
 envs.set('FP_DEVICE_EMULATION', '1')
 
 # Set a colon-separated list of native drivers we enable in tests
-envs.set('FP_DRIVERS_WHITELIST', 'virtual_image')
+envs.set('FP_DRIVERS_WHITELIST', ':'.join([
+    'virtual_image',
+    'virtual_device',
+    'virtual_device_storage',
+]))
 
 envs.set('NO_AT_BRIDGE', '1')
 

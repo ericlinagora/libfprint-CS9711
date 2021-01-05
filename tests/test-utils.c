@@ -29,6 +29,8 @@ struct
   const char *device_id;
 } devtype_vars[FPT_NUM_VIRTUAL_DEVICE_TYPES] = {
   { "FP_VIRTUAL_IMAGE", "virtual_image", "virtual_image" },               /* FPT_VIRTUAL_DEVICE_IMAGE */
+  { "FP_VIRTUAL_DEVICE", "virtual_device", "virtual_device" },            /* FPT_VIRTUAL_DEVICE_NONIMAGE */
+  { "FP_VIRTUAL_DEVICE_STORAGE", "virtual_device_storage", "virtual_device_storage" } /* FPT_VIRTUAL_DEVICE_NONIMAGE_STORAGE */
 };
 
 static FptVirtualDeviceType global_devtype;
