@@ -1134,6 +1134,44 @@ delete_print (FpDevice *device)
 }
 
 static void
+prob_msg_cb (FpiDeviceSynaptics *self,
+             bmkt_response_t    *resp,
+             GError             *error)
+{
+  GUsbDevice *usb_dev = NULL;
+  g_autofree gchar *serial = NULL;
+
+  usb_dev = fpi_device_get_usb_device (FP_DEVICE (self));
+
+  if (error)
+    {
+      g_usb_device_close (usb_dev, NULL);
+      fpi_device_probe_complete (FP_DEVICE (self), NULL, NULL,
+                                 fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL, "unsupported firmware version"));
+      return;
+    }
+
+  if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+    serial = g_strdup ("emulated-device");
+  else
+    serial = g_usb_device_get_string_descriptor (usb_dev,
+                                                 g_usb_device_get_serial_number_index (usb_dev),
+                                                 &error);
+
+  if (resp->result == BMKT_SUCCESS)
+    {
+      g_usb_device_close (usb_dev, NULL);
+      fpi_device_probe_complete (FP_DEVICE (self), serial, NULL, error);
+    }
+  else
+    {
+      g_warning ("Probe fingerprint sensor failed with %d!", resp->result);
+      g_usb_device_close (usb_dev, NULL);
+      fpi_device_probe_complete (FP_DEVICE (self), serial, NULL, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
+    }
+}
+
+static void
 dev_probe (FpDevice *device)
 {
   FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
@@ -1233,40 +1271,7 @@ dev_probe (FpDevice *device)
   fp_dbg ("Target: %d", self->mis_version.target);
   fp_dbg ("Product: %d", self->mis_version.product);
 
-
-  /* We need at least firmware version 10.1, and for 10.1 build 2989158 */
-  if (self->mis_version.version_major < 10 ||
-      self->mis_version.version_minor < 1 ||
-      (self->mis_version.version_major == 10 &&
-       self->mis_version.version_minor == 1 &&
-       self->mis_version.build_num < 2989158))
-    {
-      fp_warn ("Firmware version %d.%d with build number %d is unsupported",
-               self->mis_version.version_major,
-               self->mis_version.version_minor,
-               self->mis_version.build_num);
-
-      error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                        "Unsupported firmware version "
-                                        "(%d.%d with build number %d)",
-                                        self->mis_version.version_major,
-                                        self->mis_version.version_minor,
-                                        self->mis_version.build_num);
-      goto err_close;
-    }
-
-  /* This is the same as the serial_number from above, hex encoded and somewhat reordered */
-  /* Should we add in more, e.g. the chip revision? */
-  if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
-    serial = g_strdup ("emulated-device");
-  else
-    serial = g_usb_device_get_string_descriptor (usb_dev,
-                                                 g_usb_device_get_serial_number_index (usb_dev),
-                                                 &error);
-
-  g_usb_device_close (usb_dev, NULL);
-
-  fpi_device_probe_complete (device, serial, NULL, error);
+  synaptics_sensor_cmd (self, 0, BMKT_CMD_FPS_INIT, NULL, 0, prob_msg_cb);
 
   return;
 
