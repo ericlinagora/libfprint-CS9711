@@ -1,6 +1,16 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2020-12-01: v1.90.7 release
+
+Highlights:
+ * vfs5011: Fix possible use-after-free
+ * goodixmoc: Add two new PIDs (0x63AC, 0x639C)
+ * goodixmoc: Support finger status API
+ * synaptics: Only identify within provided prints
+ * synaptics: Reject devices with old firmware during probe (#239)
+
+
 2020-12-01: v1.90.6 release
 
 This release is primarily a bugfix release for some older issues.
