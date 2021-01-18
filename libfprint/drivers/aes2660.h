@@ -21,6 +21,8 @@
 
 #define AES2660_FRAME_SIZE 0x354
 
+/* *INDENT-OFF* */
+
 /* First init sequence, 0x07 cmd returns following before INIT1:
  * { 0x07, 0x05, 0x00, 0x91, 0x26, 0x21, 0x00, 0x00  }
  */

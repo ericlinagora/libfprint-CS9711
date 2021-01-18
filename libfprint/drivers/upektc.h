@@ -19,6 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+/* *INDENT-OFF* */
+
 #pragma once
 
 #define UPEKTC_CMD_LEN 0x40

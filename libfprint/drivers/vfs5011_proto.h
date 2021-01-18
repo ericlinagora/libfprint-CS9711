@@ -1,5 +1,7 @@
 #pragma once
 
+/* *INDENT-OFF* */
+
 #define VFS5011_LINE_SIZE 240
 #define VFS5011_IMAGE_WIDTH 160
 
