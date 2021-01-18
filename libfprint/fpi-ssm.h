@@ -112,4 +112,15 @@ void fpi_ssm_usb_transfer_with_weak_pointer_cb (FpiUsbTransfer *transfer,
                                                 gpointer        weak_ptr,
                                                 GError         *error);
 
+typedef struct _FpiSpiTransfer FpiSpiTransfer;
+
+void fpi_ssm_spi_transfer_cb (FpiSpiTransfer *transfer,
+                              FpDevice       *device,
+                              gpointer        unused_data,
+                              GError         *error);
+void fpi_ssm_spi_transfer_with_weak_pointer_cb (FpiSpiTransfer *transfer,
+                                                FpDevice       *device,
+                                                gpointer        weak_ptr,
+                                                GError         *error);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpiSsm, fpi_ssm_free)

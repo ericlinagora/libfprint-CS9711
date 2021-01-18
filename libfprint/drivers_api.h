@@ -29,4 +29,5 @@
 #include "fpi-log.h"
 #include "fpi-print.h"
 #include "fpi-usb-transfer.h"
+#include "fpi-spi-transfer.h"
 #include "fpi-ssm.h"
