@@ -187,7 +187,7 @@ fpi_usb_transfer_fill_bulk (FpiUsbTransfer *transfer,
  * fpi_usb_transfer_fill_bulk_full:
  * @transfer: The #FpiUsbTransfer
  * @endpoint: The endpoint to send the transfer to
- * @buffer: The data to send. A buffer will be created and managed for you if you pass NULL.
+ * @buffer: The data to send.
  * @length: The size of @buffer
  * @free_func: (destroy buffer): Destroy notify for @buffer
  *
@@ -275,7 +275,7 @@ fpi_usb_transfer_fill_interrupt (FpiUsbTransfer *transfer,
  * fpi_usb_transfer_fill_interrupt_full:
  * @transfer: The #FpiUsbTransfer
  * @endpoint: The endpoint to send the transfer to
- * @buffer: The data to send. A buffer will be created and managed for you if you pass NULL.
+ * @buffer: The data to send.
  * @length: The size of @buffer
  * @free_func: (destroy buffer): Destroy notify for @buffer
  *
