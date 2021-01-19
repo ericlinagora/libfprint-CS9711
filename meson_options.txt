@@ -10,8 +10,8 @@ option('udev_rules',
        description: 'Whether to create a udev rules file',
        type: 'boolean',
        value: true)
-option('udev_rules_dir',
-       description: 'Installation path for udev rules',
+option('udev_hwdb_dir',
+       description: 'Installation path for udev hwdb',
        type: 'string',
        value: 'auto')
 option('gtk-examples',

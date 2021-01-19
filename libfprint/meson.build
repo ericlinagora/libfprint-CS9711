@@ -295,19 +295,19 @@ libfprint_private_dep = declare_dependency(
     ]
 )
 
-udev_rules = executable('fprint-list-udev-rules',
-    'fprint-list-udev-rules.c',
+udev_hwdb = executable('fprint-list-udev-hwdb',
+    'fprint-list-udev-hwdb.c',
     dependencies: libfprint_private_dep,
     link_with: libfprint_drivers,
     install: false)
 
 if get_option('udev_rules')
     custom_target('udev-rules',
-        output: '60-@0@-autosuspend.rules'.format(versioned_libname),
+        output: '60-autosuspend-@0@.hwdb'.format(versioned_libname),
         capture: true,
-        command: [ udev_rules ],
+        command: [ udev_hwdb ],
         install: true,
-        install_dir: udev_rules_dir)
+        install_dir: udev_hwdb_dir)
 endif
 
 supported_devices = executable('fprint-list-supported-devices',

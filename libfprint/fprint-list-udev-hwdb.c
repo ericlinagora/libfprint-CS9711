@@ -147,17 +147,20 @@ print_driver (const FpDeviceClass *cls)
       g_hash_table_insert (printed, key, (void *) cls->id);
 
       if (num_printed == 0)
-        g_print ("# %s\n", cls->full_name);
+        {
+          if (cls != &whitelist)
+            g_print ("\n# Supported by libfprint driver %s\n", cls->id);
+          else
+            g_print ("\n# Known unsupported devices\n");
+        }
 
-      g_print ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n",
+      g_print ("usb:v%04Xp%04X*\n",
                entry->vid, entry->pid);
-      g_print ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n",
-               entry->vid, entry->pid, cls->full_name);
       num_printed++;
     }
 
   if (num_printed > 0)
-    g_print ("\n");
+    g_print (" ID_AUTOSUSPEND=1\n");
 }
 
 int
