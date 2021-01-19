@@ -58,6 +58,7 @@ struct _FpiDeviceGoodixMoc
   GPtrArray         *list_result;
   guint8             template_id[TEMPLATE_ID_SIZE];
   gboolean           is_enroll_identify;
+  gboolean           is_power_button_shield_on;
 
 };
 
@@ -309,6 +310,35 @@ goodix_sensor_cmd (FpiDeviceGoodixMoc *self,
 
 
 }
+
+/******************************************************************************
+ *
+ *  fp_pwr_btn_shield_cb Function
+ *
+ *****************************************************************************/
+static void
+fp_pwr_btn_shield_cb (FpiDeviceGoodixMoc  *self,
+                      gxfp_cmd_response_t *resp,
+                      GError              *error)
+{
+  if (error)
+    {
+      fpi_ssm_mark_failed (self->task_ssm, error);
+      return;
+    }
+  if (resp->result >= GX_FAILED)
+    {
+      fp_dbg ("Setting power button shield failed, result: 0x%x", resp->result);
+      fpi_ssm_mark_failed (self->task_ssm,
+                           fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
+      return;
+    }
+  if (resp->power_button_shield_resp.resp_cmd1 == MOC_CMD1_PWR_BTN_SHIELD_ON)
+    self->is_power_button_shield_on = true;
+  else
+    self->is_power_button_shield_on = false;
+  fpi_ssm_next_state (self->task_ssm);
+}
 /******************************************************************************
  *
  *  fp_verify_xxxx Function
@@ -419,7 +449,7 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
         fpi_device_identify_report (device, NULL, NULL, error);
     }
 
-  fpi_ssm_mark_completed (self->task_ssm);
+  fpi_ssm_next_state (self->task_ssm);
 
 }
 
@@ -436,6 +466,14 @@ fp_verify_sm_run_state (FpiSsm *ssm, FpDevice *device)
 
   switch (fpi_ssm_get_cur_state (ssm))
     {
+    case FP_VERIFY_PWR_BTN_SHIELD_ON:
+      goodix_sensor_cmd (self, MOC_CMD0_PWR_BTN_SHIELD, MOC_CMD1_PWR_BTN_SHIELD_ON,
+                         false,
+                         NULL,
+                         0,
+                         fp_pwr_btn_shield_cb);
+      break;
+
     case FP_VERIFY_CAPTURE:
       fpi_device_report_finger_status_changes (device,
                                                FP_FINGER_STATUS_NEEDED,
@@ -453,6 +491,14 @@ fp_verify_sm_run_state (FpiSsm *ssm, FpDevice *device)
                          (const guint8 *) nonce,
                          TEMPLATE_ID_SIZE,
                          fp_verify_cb);
+      break;
+
+    case FP_VERIFY_PWR_BTN_SHIELD_OFF:
+      goodix_sensor_cmd (self, MOC_CMD0_PWR_BTN_SHIELD, MOC_CMD1_PWR_BTN_SHIELD_OFF,
+                         false,
+                         NULL,
+                         0,
+                         fp_pwr_btn_shield_cb);
       break;
     }
 
@@ -812,6 +858,16 @@ fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
       }
       break;
 
+    case FP_ENROLL_PWR_BTN_SHIELD_ON:
+      {
+        goodix_sensor_cmd (self, MOC_CMD0_PWR_BTN_SHIELD, MOC_CMD1_PWR_BTN_SHIELD_ON,
+                           false,
+                           NULL,
+                           0,
+                           fp_pwr_btn_shield_cb);
+      }
+      break;
+
     case FP_ENROLL_IDENTIFY:
       {
         dummy[0] = 0x01;
@@ -926,9 +982,17 @@ fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
 
       }
       break;
+
+    case FP_ENROLL_PWR_BTN_SHIELD_OFF:
+      {
+        goodix_sensor_cmd (self, MOC_CMD0_PWR_BTN_SHIELD, MOC_CMD1_PWR_BTN_SHIELD_OFF,
+                           false,
+                           NULL,
+                           0,
+                           fp_pwr_btn_shield_cb);
+      }
+      break;
     }
-
-
 }
 
 static void
@@ -1282,6 +1346,7 @@ gx_fp_init (FpDevice *device)
   int ret = 0;
 
   self->max_stored_prints = FP_MAX_FINGERNUM;
+  self->is_power_button_shield_on = false;
 
   self->cancellable = g_cancellable_new ();
 
@@ -1317,20 +1382,59 @@ gx_fp_init (FpDevice *device)
 }
 
 static void
-gx_fp_exit (FpDevice *device)
+gx_fp_release_interface (FpiDeviceGoodixMoc *self,
+                         GError             *error)
 {
-  FpiDeviceGoodixMoc *self = FPI_DEVICE_GOODIXMOC (device);
-  GError *error = NULL;
+  g_autoptr(GError) release_error = NULL;
 
   g_clear_object (&self->cancellable);
   g_clear_pointer (&self->sensorcfg, g_free);
 
   /* Release usb interface */
-  g_usb_device_release_interface (fpi_device_get_usb_device (FP_DEVICE (device)),
-                                  0, 0, &error);
+  g_usb_device_release_interface (fpi_device_get_usb_device (FP_DEVICE (self)),
+                                  0, 0, &release_error);
+  /* Retain passed error if set, otherwise propagate error from release. */
+  if (error == NULL)
+    error = g_steal_pointer (&release_error);
 
   /* Notify close complete */
   fpi_device_close_complete (FP_DEVICE (self), error);
+
+}
+
+static void
+gx_fp_exit_cb (FpiDeviceGoodixMoc  *self,
+               gxfp_cmd_response_t *resp,
+               GError              *error)
+{
+
+
+  if (resp->result >= GX_FAILED)
+    fp_dbg ("Setting power button shield failed, result: 0x%x", resp->result);
+  self->is_power_button_shield_on = false;
+  gx_fp_release_interface (self, error);
+}
+
+static void
+gx_fp_exit (FpDevice *device)
+{
+  FpiDeviceGoodixMoc *self = FPI_DEVICE_GOODIXMOC (device);
+
+  if (self->is_power_button_shield_on)
+    {
+      goodix_sensor_cmd (self,
+                         MOC_CMD0_PWR_BTN_SHIELD,
+                         MOC_CMD1_PWR_BTN_SHIELD_OFF,
+                         false,
+                         NULL,
+                         0,
+                         gx_fp_exit_cb);
+    }
+  else
+    {
+      gx_fp_release_interface (self, NULL);
+    }
+
 }
 
 
@@ -1432,7 +1536,6 @@ fpi_device_goodixmoc_init (FpiDeviceGoodixMoc *self)
 static void
 gx_fp_cancel (FpDevice *device)
 {
-
   FpiDeviceGoodixMoc *self = FPI_DEVICE_GOODIXMOC (device);
 
   /* Cancel any current interrupt transfer (resulting us to go into

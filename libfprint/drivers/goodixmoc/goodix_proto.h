@@ -75,6 +75,11 @@
 #define MOC_CMD1_GET_FINGER_MODE 0x00
 #define MOC_CMD1_SET_FINGER_DOWN 0x01
 #define MOC_CMD1_SET_FINGER_UP 0x02
+
+#define MOC_CMD0_PWR_BTN_SHIELD 0xE0
+#define MOC_CMD1_PWR_BTN_SHIELD_OFF 0x00
+#define MOC_CMD1_PWR_BTN_SHIELD_ON 0x01
+
 /* */
 
 typedef struct _gxfp_version_info
@@ -173,6 +178,11 @@ typedef struct _fp_finger_config
   uint8_t max_stored_prints;
 } fp_finger_config_t, *pfp_finger_config_t;
 
+typedef struct _fp_pwr_btn_shield
+{
+  uint8_t resp_cmd1;
+} fp_pwr_btn_shield_t, *pfp_pwr_btn_shield_t;
+
 typedef struct _fp_cmd_response
 {
   uint8_t result;
@@ -189,6 +199,7 @@ typedef struct _fp_cmd_response
     gxfp_version_info_t    version_info;
     fp_finger_status_t     finger_status;
     fp_finger_config_t     finger_config;
+    fp_pwr_btn_shield_t    power_button_shield_resp;
   };
 } gxfp_cmd_response_t, *pgxfp_cmd_response_t;
 

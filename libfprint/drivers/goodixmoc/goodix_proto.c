@@ -317,6 +317,16 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint16_t buffer_len, pgxfp_c
       /* just check result */
       break;
 
+    case MOC_CMD0_PWR_BTN_SHIELD:
+      presp->power_button_shield_resp.resp_cmd1 = LOBYTE (cmd);
+      if (buffer_len >= 2)
+        {
+          uint8_t support_pwr_shield = buffer[1];
+          if (support_pwr_shield == 0xFF)
+            g_debug ("Power button shield feature not supported!\n");
+        }
+      break;
+
     case MOC_CMD0_GET_VERSION:
       if (buffer_len < sizeof (gxfp_version_info_t) + 1)
         return -1;
