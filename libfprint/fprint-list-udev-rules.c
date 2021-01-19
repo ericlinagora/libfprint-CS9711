@@ -110,6 +110,7 @@ static const FpIdEntry blacklist_id_table[] = {
 static const FpDeviceClass whitelist = {
   .type = FP_DEVICE_TYPE_USB,
   .id_table = whitelist_id_table,
+  .id = "whitelist",
   .full_name = "Hardcoded whitelist"
 };
 
@@ -138,13 +139,15 @@ print_driver (const FpDeviceClass *cls)
 
       key = g_strdup_printf ("%04x:%04x", entry->vid, entry->pid);
 
-      if (g_hash_table_lookup (printed, key) != NULL)
+      if (cls == &whitelist && g_hash_table_lookup (printed, key) != NULL)
         {
+          g_warning ("%s implemented by driver %s",
+                     key, (const char *) g_hash_table_lookup (printed, key));
           g_free (key);
           continue;
         }
 
-      g_hash_table_insert (printed, key, GINT_TO_POINTER (1));
+      g_hash_table_insert (printed, key, (void *) cls->id);
 
       if (num_printed == 0)
         g_print ("# %s\n", cls->full_name);
