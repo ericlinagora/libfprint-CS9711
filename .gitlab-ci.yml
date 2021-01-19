@@ -112,6 +112,15 @@ test_indent:
     - git diff
     - "! git status -s | grep -q ."
 
+test_unsupported_list:
+  stage: check-source
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true
+  script:
+    - tests/hwdb-check-unsupported.py
+
 flatpak:
   stage: flatpak
   extends: .flatpak
