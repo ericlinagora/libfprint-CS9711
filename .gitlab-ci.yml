@@ -50,12 +50,12 @@ build:
   <<: *build
 #  <<: *check_abi
   after_script:
-    - cp _build/libfprint/60-autosuspend-libfprint-2.hwdb .
+    - cp _build/libfprint/60-autosuspend-libfprint.hwdb .
   artifacts:
     expose_as: "HTML Documentation"
     paths:
     - _build/doc/html/
-    - 60-autosuspend-libfprint-2.hwdb
+    - 60-autosuspend-libfprint.hwdb
     expire_in: 1 week
 
 test:

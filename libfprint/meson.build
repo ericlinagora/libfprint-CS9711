@@ -304,7 +304,7 @@ udev_hwdb = executable('fprint-list-udev-hwdb',
 # We always build this file; primarily so that systemd can pull it
 # from the artefacts!
 custom_target('udev-rules',
-    output: '60-autosuspend-@0@.hwdb'.format(versioned_libname),
+    output: '60-autosuspend-@0@.hwdb'.format(meson.project_name()),
     capture: true,
     command: [ udev_hwdb ],
     install: get_option('udev_rules'),
