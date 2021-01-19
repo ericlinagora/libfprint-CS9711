@@ -181,6 +181,8 @@ if get_option('udev_rules')
         udev_dep = dependency('udev')
         udev_hwdb_dir = udev_dep.get_pkgconfig_variable('udevdir') + '/hwdb.d'
     endif
+else
+    udev_hwdb_dir = false
 endif
 
 if get_option('gtk-examples')

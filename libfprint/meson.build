@@ -301,14 +301,16 @@ udev_hwdb = executable('fprint-list-udev-hwdb',
     link_with: libfprint_drivers,
     install: false)
 
-if get_option('udev_rules')
-    custom_target('udev-rules',
-        output: '60-autosuspend-@0@.hwdb'.format(versioned_libname),
-        capture: true,
-        command: [ udev_hwdb ],
-        install: true,
-        install_dir: udev_hwdb_dir)
-endif
+# We always build this file; primarily so that systemd can pull it
+# from the artefacts!
+custom_target('udev-rules',
+    output: '60-autosuspend-@0@.hwdb'.format(versioned_libname),
+    capture: true,
+    command: [ udev_hwdb ],
+    install: get_option('udev_rules'),
+    install_dir: udev_hwdb_dir,
+    build_by_default: true
+    )
 
 supported_devices = executable('fprint-list-supported-devices',
     'fprint-list-supported-devices.c',
