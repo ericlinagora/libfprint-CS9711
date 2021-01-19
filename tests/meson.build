@@ -168,6 +168,11 @@ foreach test_name: unit_tests
     )
 endforeach
 
+# Run udev rule generator with fatal warnings
+test('udev-rules',
+     udev_rules,
+     env: envs)
+
 gdb = find_program('gdb', required: false)
 if gdb.found()
     add_test_setup('gdb',
