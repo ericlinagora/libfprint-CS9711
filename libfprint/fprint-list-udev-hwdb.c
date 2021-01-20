@@ -136,10 +136,11 @@ print_driver (const FpDeviceClass *cls)
 
       key = g_strdup_printf ("%04x:%04x", entry->vid, entry->pid);
 
-      if (cls == &whitelist && g_hash_table_lookup (printed, key) != NULL)
+      if (g_hash_table_lookup (printed, key) != NULL)
         {
-          g_warning ("%s implemented by driver %s",
-                     key, (const char *) g_hash_table_lookup (printed, key));
+          if (cls == &whitelist)
+            g_warning ("%s implemented by driver %s",
+                       key, (const char *) g_hash_table_lookup (printed, key));
           g_free (key);
           continue;
         }
