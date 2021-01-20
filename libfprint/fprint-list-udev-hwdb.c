@@ -172,6 +172,8 @@ main (int argc, char **argv)
   guint i;
 
   program_name = g_path_get_basename (argv[0]);
+
+  g_print ("# SPDX-License-Identifier: LGPL-2.1-or-later\n");
   g_print ("# This file has been generated using %s with all drivers enabled\n",
            program_name);
 
