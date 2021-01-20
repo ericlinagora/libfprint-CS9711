@@ -135,6 +135,18 @@ if drivers.length() == 0 or drivers[0] == ''
     error('Cannot build libfprint without drivers, please specify a valid value for the drivers option')
 endif
 
+if drivers == all_drivers or drivers == default_drivers
+    default_drivers_are_enabled = true
+else
+    default_drivers_are_enabled = true
+    foreach driver: default_drivers
+        if driver not in drivers
+            default_drivers_are_enabled = false
+            break
+        endif
+    endforeach
+endif
+
 nss_dep = dependency('', required: false)
 imaging_dep = dependency('', required: false)
 libfprint_conf.set10('HAVE_PIXMAN', false)

@@ -168,7 +168,12 @@ int
 main (int argc, char **argv)
 {
   g_autoptr(GArray) drivers = fpi_get_driver_types ();
+  g_autofree char *program_name = NULL;
   guint i;
+
+  program_name = g_path_get_basename (argv[0]);
+  g_print ("# This file has been generated using %s with all drivers enabled\n",
+           program_name);
 
   printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 

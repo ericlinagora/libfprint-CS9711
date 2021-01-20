@@ -5,6 +5,7 @@ envs.set('G_MESSAGES_DEBUG', 'all')
 
 # Setup paths
 envs.set('MESON_SOURCE_ROOT', meson.source_root())
+envs.set('MESON_BUILD_ROOT', meson.build_root())
 envs.prepend('LD_LIBRARY_PATH', join_paths(meson.build_root(), 'libfprint'))
 
 # Set FP_DEVICE_EMULATION so that drivers can adapt (e.g. to use fixed
@@ -170,8 +171,10 @@ foreach test_name: unit_tests
 endforeach
 
 # Run udev rule generator with fatal warnings
+envs.set('UDEV_HWDB', udev_hwdb.full_path())
+envs.set('UDEV_HWDB_CHECK_CONTENTS', default_drivers_are_enabled ? '1' : '0')
 test('udev-hwdb',
-     udev_hwdb,
+     find_program('test-generated-hwdb.sh'),
      env: envs)
 
 gdb = find_program('gdb', required: false)
