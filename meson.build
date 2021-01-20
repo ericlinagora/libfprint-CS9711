@@ -240,6 +240,7 @@ if get_option('gtk-examples')
     subdir('demo')
 endif
 
+subdir('data')
 subdir('tests')
 
 pkgconfig = import('pkgconfig')
