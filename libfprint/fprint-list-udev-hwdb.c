@@ -164,6 +164,15 @@ print_driver (const FpDeviceClass *cls)
     g_print (" ID_AUTOSUSPEND=1\n");
 }
 
+static int
+driver_compare (gconstpointer p1, gconstpointer p2)
+{
+  g_autoptr(FpDeviceClass) cls1 = g_type_class_ref (*(GType *) p1);
+  g_autoptr(FpDeviceClass) cls2 = g_type_class_ref (*(GType *) p2);
+
+  return g_strcmp0 (cls1->id, cls2->id);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -178,6 +187,7 @@ main (int argc, char **argv)
            program_name);
 
   printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  g_array_sort (drivers, driver_compare);
 
   for (i = 0; i < drivers->len; i++)
     {
