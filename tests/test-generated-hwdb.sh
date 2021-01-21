@@ -15,7 +15,7 @@ if [ "$UDEV_HWDB_CHECK_CONTENTS" != 1 ]; then
     exit 77
 fi
 
-if ! cmp "$MESON_SOURCE_ROOT/data/autosuspend.hwdb" "$generated_rules"; then
+if ! diff -u "$MESON_SOURCE_ROOT/data/autosuspend.hwdb" "$generated_rules"; then
     echo "E: Autosuspend file needs to be re-generated!"
     echo "   ninja -C $MESON_BUILD_ROOT libfprint/sync-udev-hwdb"
     exit 1
