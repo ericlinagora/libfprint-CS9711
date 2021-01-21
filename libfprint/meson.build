@@ -267,7 +267,7 @@ libfprint_drivers = static_library('fprint-drivers',
 mapfile = files('libfprint.ver')
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.source_root(), mapfile[0])
 
-libfprint = library(versioned_libname.split('lib')[1],
+libfprint = shared_library(versioned_libname.split('lib')[1],
     sources: [
         fp_enums,
         libfprint_sources,
