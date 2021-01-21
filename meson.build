@@ -212,15 +212,27 @@ drivers_type_func += '}'
 
 root_inc = include_directories('.')
 
-if get_option('udev_rules')
+udev_hwdb = get_option('udev_hwdb')
+if not udev_hwdb.disabled()
+    # systemd v248 includes our autosuspend rules
+    udev_versioned_dep = dependency('udev', version: '>= 248', required: false)
     udev_hwdb_dir = get_option('udev_hwdb_dir')
+    if udev_hwdb.auto()
+        if udev_versioned_dep.found()
+            udev_hwdb_dir = ''
+        endif
+    else
+        if udev_versioned_dep.found()
+            warning('udev hwdb will be installed by both systemd and libfprint')
+        endif
+    endif
 
     if udev_hwdb_dir == 'auto'
         udev_dep = dependency('udev')
         udev_hwdb_dir = udev_dep.get_pkgconfig_variable('udevdir') + '/hwdb.d'
     endif
 else
-    udev_hwdb_dir = false
+    udev_hwdb_dir = ''
 endif
 
 if get_option('gtk-examples')

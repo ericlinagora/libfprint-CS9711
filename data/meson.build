@@ -1,4 +1,4 @@
-if get_option('udev_rules')
+if udev_hwdb_dir != ''
     # This file has to be updated using
     # ninja -C <builddir> libfprint/sync-udev-hwdb
     # Note that the unsupported device list needs to be manually synced from
