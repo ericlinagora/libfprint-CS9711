@@ -184,6 +184,10 @@ foreach driver: drivers
     endif
 endforeach
 
+if default_drivers_are_enabled and supported_drivers != drivers
+    default_drivers_are_enabled = false
+endif
+
 # Export the drivers' types to the core code
 drivers_type_list = []
 drivers_type_func = []
