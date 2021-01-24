@@ -76,6 +76,8 @@ struct _FpDeviceVirtualDevice
   GPtrArray               *pending_commands;
 
   GHashTable              *prints_storage;
+
+  guint                    wait_command_id;
 };
 
 /* Not really final here, but we can do this to share the FpDeviceVirtualDevice
@@ -91,3 +93,5 @@ G_DECLARE_FINAL_TYPE (FpDeviceVirtualDeviceStorage, fpi_device_virtual_device_st
 
 
 char * process_cmds (FpDeviceVirtualDevice * self, gboolean scan, GError **error);
+gboolean should_wait_for_command (FpDeviceVirtualDevice *self,
+                                  GError                *error);

@@ -36,14 +36,16 @@ G_DEFINE_TYPE (FpDeviceVirtualDeviceStorage, fpi_device_virtual_device_storage, 
 static void
 dev_identify (FpDevice *dev)
 {
+  g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
   GPtrArray *prints;
-  GError *error = NULL;
   g_autofree char *scan_id = NULL;
 
   fpi_device_get_identify_data (dev, &prints);
 
   scan_id = process_cmds (self, TRUE, &error);
+  if (should_wait_for_command (self, error))
+    return;
 
   if (scan_id)
     {
@@ -71,7 +73,7 @@ dev_identify (FpDevice *dev)
                                   NULL);
     }
 
-  fpi_device_identify_complete (dev, error);
+  fpi_device_identify_complete (dev, g_steal_pointer (&error));
 }
 
 struct ListData

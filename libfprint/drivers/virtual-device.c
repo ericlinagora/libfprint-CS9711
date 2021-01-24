@@ -41,8 +41,34 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 
 #define LIST_CMD "LIST"
 
+static void
+maybe_continue_current_action (FpDeviceVirtualDevice *self)
+{
+  FpDevice *dev = FP_DEVICE (self);
+
+  switch (fpi_device_get_current_action (dev))
+    {
+    case FPI_DEVICE_ACTION_ENROLL:
+      FP_DEVICE_GET_CLASS (self)->enroll (dev);
+      break;
+
+    case FPI_DEVICE_ACTION_VERIFY:
+      FP_DEVICE_GET_CLASS (self)->verify (dev);
+      break;
+
+    case FPI_DEVICE_ACTION_IDENTIFY:
+      FP_DEVICE_GET_CLASS (self)->identify (dev);
+      break;
+
+    default:
+      break;
+    }
+}
+
 char *
-process_cmds (FpDeviceVirtualDevice * self, gboolean scan, GError * *error)
+process_cmds (FpDeviceVirtualDevice * self,
+              gboolean scan,
+              GError * *error)
 {
   while (self->pending_commands->len > 0)
     {
@@ -96,7 +122,7 @@ process_cmds (FpDeviceVirtualDevice * self, gboolean scan, GError * *error)
     }
 
   /* No commands left, throw a timeout error. */
-  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT, "No commands left that can be run!");
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "No commands left that can be run!");
   return NULL;
 }
 
@@ -120,7 +146,7 @@ recv_instruction_cb (GObject      *source_object,
   gsize bytes;
 
   bytes = fp_device_virtual_listener_read_finish (listener, res, &error);
-  fp_dbg ("Got instructions of length %ld\n", bytes);
+  fp_dbg ("Got instructions of length %ld", bytes);
 
   if (error)
     {
@@ -139,6 +165,7 @@ recv_instruction_cb (GObject      *source_object,
       self = FP_DEVICE_VIRTUAL_DEVICE (user_data);
 
       cmd = g_strndup (self->recv_buf, bytes);
+      fp_dbg ("Received command %s", cmd);
 
       if (g_str_has_prefix (cmd, LIST_CMD))
         {
@@ -148,6 +175,9 @@ recv_instruction_cb (GObject      *source_object,
       else
         {
           g_ptr_array_add (self->pending_commands, g_steal_pointer (&cmd));
+          g_clear_handle_id (&self->wait_command_id, g_source_remove);
+
+          maybe_continue_current_action (self);
         }
     }
 
@@ -204,17 +234,46 @@ dev_init (FpDevice *dev)
   fpi_device_open_complete (dev, NULL);
 }
 
+static gboolean
+wait_for_command_timeout (gpointer data)
+{
+  FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (data);
+  GError *error = NULL;
+
+  self->wait_command_id = 0;
+  error = g_error_new (G_IO_ERROR, G_IO_ERROR_TIMED_OUT, "No commands arrived in time to run!");
+  fpi_device_action_error (FP_DEVICE (self), error);
+
+  return FALSE;
+}
+
+gboolean
+should_wait_for_command (FpDeviceVirtualDevice *self,
+                         GError                *error)
+{
+  if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+    return FALSE;
+
+  if (self->wait_command_id)
+    return FALSE;
+
+  self->wait_command_id = g_timeout_add (500, wait_for_command_timeout, self);
+  return TRUE;
+}
+
 static void
 dev_verify (FpDevice *dev)
 {
+  g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
   FpPrint *print;
-  GError *error = NULL;
   g_autofree char *scan_id = NULL;
 
   fpi_device_get_verify_data (dev, &print);
 
   scan_id = process_cmds (self, TRUE, &error);
+  if (should_wait_for_command (self, error))
+    return;
 
   if (scan_id)
     {
@@ -240,23 +299,25 @@ dev_verify (FpDevice *dev)
     }
   else
     {
-      g_debug ("Virtual device scann failed with error: %s", error->message);
+      g_debug ("Virtual device scan failed with error: %s", error->message);
     }
 
-  fpi_device_verify_complete (dev, error);
+  fpi_device_verify_complete (dev, g_steal_pointer (&error));
 }
 
 static void
 dev_enroll (FpDevice *dev)
 {
+  g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
-  GError *error = NULL;
   FpPrint *print = NULL;
   g_autofree char *id = NULL;
 
   fpi_device_get_enroll_data (dev, &print);
 
   id = process_cmds (self, TRUE, &error);
+  if (should_wait_for_command (self, error))
+    return;
 
   if (id)
     {
@@ -272,11 +333,11 @@ dev_enroll (FpDevice *dev)
           fpi_print_set_device_stored (print, TRUE);
         }
 
-      fpi_device_enroll_complete (dev, g_object_ref (print), error);
+      fpi_device_enroll_complete (dev, g_object_ref (print), NULL);
     }
   else
     {
-      fpi_device_enroll_complete (dev, NULL, error);
+      fpi_device_enroll_complete (dev, NULL, g_steal_pointer (&error));
     }
 }
 
@@ -285,6 +346,7 @@ dev_deinit (FpDevice *dev)
 {
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
 
+  g_clear_handle_id (&self->wait_command_id, g_source_remove);
   g_cancellable_cancel (self->cancellable);
   g_clear_object (&self->cancellable);
   g_clear_object (&self->listener);
