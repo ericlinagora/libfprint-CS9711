@@ -94,7 +94,7 @@ class VirtualDevice(unittest.TestCase):
 
     def send_command(self, command, *args):
         self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY',
-            'FINGER'])
+            'FINGER', 'SET_ENROLL_STAGES'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -145,6 +145,7 @@ class VirtualDevice(unittest.TestCase):
                 self.send_command('SCAN', nick)
                 stage += 1
 
+        self.assertEqual(self._enroll_stage, stage)
         self.assertEqual(self._enroll_stage, self.dev.get_nr_enroll_stages())
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
 
@@ -245,6 +246,40 @@ class VirtualDevice(unittest.TestCase):
             ctx.iteration(True)
 
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
+
+    def test_change_enroll_stages(self):
+        notified_spec = None
+        def on_stage_changed(dev, spec):
+            nonlocal notified_spec
+            notified_spec = spec
+
+        self.dev.connect('notify::nr-enroll-stages', on_stage_changed)
+
+        notified_spec = None
+        self.send_command('SET_ENROLL_STAGES', 20)
+        self.assertEqual(self.dev.get_nr_enroll_stages(), 20)
+        self.assertEqual(notified_spec.name, 'nr-enroll-stages')
+
+        notified_spec = None
+        self.send_command('SET_ENROLL_STAGES', 1)
+        self.assertEqual(self.dev.get_nr_enroll_stages(), 1)
+        self.assertEqual(notified_spec.name, 'nr-enroll-stages')
+
+        GLib.test_expect_message('libfprint-device',
+            GLib.LogLevelFlags.LEVEL_CRITICAL, '*enroll_stages > 0*')
+        notified_spec = None
+        self.send_command('SET_ENROLL_STAGES', 0)
+        self.assertEqual(self.dev.get_nr_enroll_stages(), 1)
+        self.assertIsNone(notified_spec)
+        GLib.test_assert_expected_messages_internal('libfprint-device',
+            __file__, 0, 'test_change_enroll_stages')
+
+    def test_quick_enroll(self):
+        self.send_command('SET_ENROLL_STAGES', 1)
+        self.assertEqual(self.dev.get_nr_enroll_stages(), 1)
+        matching = self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)
+        self.assertEqual(matching.get_username(), 'testuser')
+        self.assertEqual(matching.get_finger(), FPrint.Finger.LEFT_LITTLE)
 
 class VirtualDeviceStorage(VirtualDevice):
 

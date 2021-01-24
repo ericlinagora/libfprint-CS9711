@@ -40,6 +40,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define ERROR_CMD_PREFIX "ERROR "
 #define RETRY_CMD_PREFIX "RETRY "
 #define FINGER_CMD_PREFIX "FINGER "
+#define SET_ENROLL_STAGES_PREFIX "SET_ENROLL_STAGES "
 
 #define LIST_CMD "LIST"
 
@@ -195,6 +196,13 @@ recv_instruction_cb (GObject      *source_object,
         {
           if (self->prints_storage)
             g_hash_table_foreach (self->prints_storage, write_key_to_listener, listener);
+        }
+      else if (g_str_has_prefix (cmd, SET_ENROLL_STAGES_PREFIX))
+        {
+          guint stages;
+
+          stages = g_ascii_strtoull (cmd + strlen (SET_ENROLL_STAGES_PREFIX), NULL, 10);
+          fpi_device_set_nr_enroll_stages (FP_DEVICE (self), stages);
         }
       else
         {
@@ -376,7 +384,7 @@ dev_enroll (FpDevice *dev)
 
       self->enroll_stages_passed++;
       fpi_device_enroll_progress (dev, self->enroll_stages_passed, print, NULL);
-      if (self->enroll_stages_passed == FP_DEVICE_GET_CLASS (self)->nr_enroll_stages)
+      if (self->enroll_stages_passed == fp_device_get_nr_enroll_stages (FP_DEVICE (self)))
         {
           if (self->prints_storage)
             {
