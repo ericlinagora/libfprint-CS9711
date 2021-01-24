@@ -356,6 +356,10 @@ class VirtualDevice(unittest.TestCase):
 
 class VirtualDeviceStorage(VirtualDevice):
 
+    def tearDown(self):
+        self.cleanup_device_storage()
+        super().tearDown()
+
     def cleanup_device_storage(self):
         for print in self.dev.list_prints_sync():
             self.assertTrue(self.dev.delete_print_sync(print, None))
@@ -373,17 +377,14 @@ class VirtualDeviceStorage(VirtualDevice):
         self.assertTrue(self.dev.has_storage())
 
     def test_list_empty(self):
-        self.cleanup_device_storage()
         self.assertFalse(self.dev.list_prints_sync())
 
     def test_list_populated(self):
-        self.cleanup_device_storage()
         self.send_command('INSERT', 'p1')
         print2 = self.enroll_print('p2', FPrint.Finger.LEFT_LITTLE)
         self.assertEqual({'p1', 'p2'}, {p.props.fpi_data.get_string() for p in self.dev.list_prints_sync()})
 
     def test_list_delete(self):
-        self.cleanup_device_storage()
         p = self.enroll_print('testprint', FPrint.Finger.RIGHT_THUMB)
         l = self.dev.list_prints_sync()
         print(l[0])
@@ -394,7 +395,6 @@ class VirtualDeviceStorage(VirtualDevice):
         self.assertFalse(self.dev.list_prints_sync())
 
     def test_list_delete_missing(self):
-        self.cleanup_device_storage()
         p = self.enroll_print('testprint', FPrint.Finger.RIGHT_THUMB)
         self.send_command('REMOVE', 'testprint')
 
