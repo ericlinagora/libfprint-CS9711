@@ -94,7 +94,7 @@ class VirtualDevice(unittest.TestCase):
 
     def send_command(self, command, *args):
         self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY',
-            'FINGER', 'SET_ENROLL_STAGES'])
+            'FINGER', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -291,6 +291,29 @@ class VirtualDevice(unittest.TestCase):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)
         self.assertEqual(matching.get_username(), 'testuser')
         self.assertEqual(matching.get_finger(), FPrint.Finger.LEFT_LITTLE)
+
+    def test_change_scan_type(self):
+        notified_spec = None
+        def on_scan_type_changed(dev, spec):
+            nonlocal notified_spec
+            notified_spec = spec
+
+        self.dev.connect('notify::scan-type', on_scan_type_changed)
+
+        for scan_type in [FPrint.ScanType.PRESS, FPrint.ScanType.SWIPE]:
+            notified_spec = None
+            self.send_command('SET_SCAN_TYPE', scan_type.value_nick)
+            self.assertEqual(self.dev.get_scan_type(), scan_type)
+            self.assertEqual(notified_spec.name, 'scan-type')
+
+        GLib.test_expect_message('libfprint-virtual_device',
+            GLib.LogLevelFlags.LEVEL_WARNING, '*Scan type*not found')
+        notified_spec = None
+        self.send_command('SET_SCAN_TYPE', 'eye-contact')
+        self.assertEqual(self.dev.get_scan_type(), FPrint.ScanType.SWIPE)
+        self.assertIsNone(notified_spec)
+        GLib.test_assert_expected_messages_internal('libfprint-device',
+            __file__, 0, 'test_change_scan_type')
 
 class VirtualDeviceStorage(VirtualDevice):
 

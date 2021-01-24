@@ -41,6 +41,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define RETRY_CMD_PREFIX "RETRY "
 #define FINGER_CMD_PREFIX "FINGER "
 #define SET_ENROLL_STAGES_PREFIX "SET_ENROLL_STAGES "
+#define SET_SCAN_TYPE_PREFIX "SET_SCAN_TYPE "
 
 #define LIST_CMD "LIST"
 
@@ -203,6 +204,17 @@ recv_instruction_cb (GObject      *source_object,
 
           stages = g_ascii_strtoull (cmd + strlen (SET_ENROLL_STAGES_PREFIX), NULL, 10);
           fpi_device_set_nr_enroll_stages (FP_DEVICE (self), stages);
+        }
+      else if (g_str_has_prefix (cmd, SET_SCAN_TYPE_PREFIX))
+        {
+          const char *scan_type = cmd + strlen (SET_SCAN_TYPE_PREFIX);
+          g_autoptr(GEnumClass) scan_types = g_type_class_ref (fp_scan_type_get_type ());
+          GEnumValue *value = g_enum_get_value_by_nick (scan_types, scan_type);
+
+          if (value)
+            fpi_device_set_scan_type (FP_DEVICE (self), value->value);
+          else
+            g_warning ("Scan type '%s' not found", scan_type);
         }
       else
         {
