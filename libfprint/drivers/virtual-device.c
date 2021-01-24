@@ -279,6 +279,7 @@ dev_verify (FpDevice *dev)
   g_autofree char *scan_id = NULL;
 
   fpi_device_get_verify_data (dev, &print);
+  fpi_device_report_finger_status (dev, FP_FINGER_STATUS_NEEDED);
 
   scan_id = process_cmds (self, TRUE, &error);
   if (should_wait_for_command (self, error))
@@ -325,6 +326,7 @@ dev_enroll (FpDevice *dev)
   FpPrint *print = NULL;
   g_autofree char *id = NULL;
 
+  fpi_device_report_finger_status (dev, FP_FINGER_STATUS_NEEDED);
   fpi_device_get_enroll_data (dev, &print);
 
   id = process_cmds (self, TRUE, &error);
