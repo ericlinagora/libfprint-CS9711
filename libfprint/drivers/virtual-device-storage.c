@@ -62,6 +62,8 @@ dev_identify (FpDevice *dev)
       data = g_variant_new_string (scan_id);
       g_object_set (new_scan, "fpi-data", data, NULL);
 
+      g_debug ("Trying to identify print '%s' against a gallery of %u prints", scan_id, prints->len);
+
       if (g_ptr_array_find_with_equal_func (prints,
                                             new_scan,
                                             (GEqualFunc) fp_print_equal,

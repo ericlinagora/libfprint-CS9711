@@ -201,10 +201,14 @@ class VirtualDevice(unittest.TestCase):
 
         return self._enrolled
 
-    def check_verify(self, p, scan_nick, match):
+    def check_verify(self, p, scan_nick, match, identify=False):
         self._verify_match = None
         self._verify_fp = None
         self._verify_error = None
+        self._verify_completed = False
+
+        if identify:
+            self.assertTrue(self.dev.supports_identify())
 
         if isinstance(scan_nick, str):
             self.send_command('SCAN', scan_nick)
@@ -213,16 +217,31 @@ class VirtualDevice(unittest.TestCase):
 
         def verify_cb(dev, res):
             try:
-                self._verify_match, self._verify_fp = dev.verify_finish(res)
+                self._verify_match, self._verify_fp = (
+                    dev.identify_finish(res) if identify else dev.verify_finish(res))
             except gi.repository.GLib.Error as e:
                 self._verify_error = e
 
-        self.dev.verify(p, callback=verify_cb)
-        while self._verify_match is None and self._verify_error is None:
+            self._verify_completed = True
+
+        if identify:
+            self.dev.identify(p if isinstance(p, list) else [p], callback=verify_cb)
+        else:
+            self.dev.verify(p, callback=verify_cb)
+
+        while not self._verify_completed:
             ctx.iteration(True)
 
-        if match:
-            assert self._verify_fp.equal(p)
+        if identify:
+            if match:
+                self.assertIsNotNone(self._verify_match)
+            else:
+                self.assertIsNone(self._verify_match)
+        else:
+            if self._verify_fp:
+                self.assertEqual(self._verify_fp.equal(p), match)
+            else:
+                self.assertFalse(match)
 
         if isinstance(scan_nick, str):
             self.assertEqual(self._verify_fp.props.fpi_data.get_string(), scan_nick)
@@ -400,6 +419,25 @@ class VirtualDeviceStorage(VirtualDevice):
 
         with self.assertRaisesRegex(GLib.GError, 'Print was not found'):
             self.dev.delete_print_sync(p)
+
+    def test_identify_match(self):
+        rt = self.enroll_print('right-thumb', FPrint.Finger.RIGHT_THUMB)
+        lt = self.enroll_print('left-thumb', FPrint.Finger.LEFT_THUMB)
+
+        self.check_verify([rt, lt], 'right-thumb', identify=True, match=True)
+        self.check_verify([rt, lt], 'left-thumb', identify=True, match=True)
+
+    def test_identify_no_match(self):
+        rt = self.enroll_print('right-thumb', FPrint.Finger.RIGHT_THUMB)
+        lt = self.enroll_print('left-thumb', FPrint.Finger.LEFT_THUMB)
+
+        self.check_verify(lt, 'right-thumb', identify=True, match=False)
+        self.check_verify(rt, 'left-thumb', identify=True, match=False)
+
+    def test_identify_retry(self):
+        with self.assertRaisesRegex(GLib.GError, 'too short'):
+            self.check_verify(FPrint.Print.new(self.dev),
+                FPrint.DeviceRetry.TOO_SHORT, identify=True, match=False)
 
 
 if __name__ == '__main__':
