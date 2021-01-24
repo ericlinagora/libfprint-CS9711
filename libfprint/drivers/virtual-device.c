@@ -38,6 +38,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define REMOVE_CMD_PREFIX "REMOVE "
 #define SCAN_CMD_PREFIX "SCAN "
 #define ERROR_CMD_PREFIX "ERROR "
+#define RETRY_CMD_PREFIX "RETRY "
 
 #define LIST_CMD "LIST"
 
@@ -110,6 +111,14 @@ process_cmds (FpDeviceVirtualDevice * self,
         {
           g_propagate_error (error,
                              fpi_device_error_new (g_ascii_strtoull (cmd + strlen (ERROR_CMD_PREFIX), NULL, 10)));
+
+          g_ptr_array_remove_index (self->pending_commands, 0);
+          return NULL;
+        }
+      else if (g_str_has_prefix (cmd, RETRY_CMD_PREFIX))
+        {
+          g_propagate_error (error,
+                             fpi_device_retry_new (g_ascii_strtoull (cmd + strlen (RETRY_CMD_PREFIX), NULL, 10)));
 
           g_ptr_array_remove_index (self->pending_commands, 0);
           return NULL;
@@ -302,6 +311,9 @@ dev_verify (FpDevice *dev)
       g_debug ("Virtual device scan failed with error: %s", error->message);
     }
 
+  if (error && error->domain == FP_DEVICE_RETRY)
+    fpi_device_verify_report (dev, FPI_MATCH_ERROR, NULL, g_steal_pointer (&error));
+
   fpi_device_verify_complete (dev, g_steal_pointer (&error));
 }
 
@@ -337,7 +349,10 @@ dev_enroll (FpDevice *dev)
     }
   else
     {
-      fpi_device_enroll_complete (dev, NULL, g_steal_pointer (&error));
+      if (error && error->domain == FP_DEVICE_RETRY)
+        fpi_device_enroll_progress (dev, 0, NULL, g_steal_pointer (&error));
+      else
+        fpi_device_enroll_complete (dev, NULL, g_steal_pointer (&error));
     }
 }
 

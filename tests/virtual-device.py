@@ -93,7 +93,7 @@ class VirtualDevice(unittest.TestCase):
         super().tearDown()
 
     def send_command(self, command, *args):
-        self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR'])
+        self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -133,6 +133,8 @@ class VirtualDevice(unittest.TestCase):
             self.send_command('SCAN', scan_nick)
         elif isinstance(scan_nick, FPrint.DeviceError):
             self.send_command('ERROR', int(scan_nick))
+        elif isinstance(scan_nick, FPrint.DeviceRetry):
+            self.send_command('RETRY', int(scan_nick))
 
         def verify_cb(dev, res):
             try:
@@ -186,6 +188,10 @@ class VirtualDevice(unittest.TestCase):
         with self.assertRaisesRegex(GLib.Error, r"An unspecified error occurred"):
             self.check_verify(matching, FPrint.DeviceError.GENERAL, match=False)
 
+    def test_enroll_verify_retry(self):
+        with self.assertRaisesRegex(GLib.GError, 'too short'):
+            self.check_verify(FPrint.Print.new(self.dev),
+                FPrint.DeviceRetry.TOO_SHORT, match=False)
 
 class VirtualDeviceStorage(VirtualDevice):
 
