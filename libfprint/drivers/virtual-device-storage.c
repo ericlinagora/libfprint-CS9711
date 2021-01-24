@@ -42,6 +42,7 @@ dev_identify (FpDevice *dev)
   g_autofree char *scan_id = NULL;
 
   fpi_device_get_identify_data (dev, &prints);
+  fpi_device_report_finger_status (dev, FP_FINGER_STATUS_NEEDED);
 
   scan_id = process_cmds (self, TRUE, &error);
   if (should_wait_for_command (self, error))
