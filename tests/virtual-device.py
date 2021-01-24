@@ -133,7 +133,7 @@ class VirtualDevice(unittest.TestCase):
         else:
             raise Exception('No known type found for {}'.format(obj))
 
-    def enroll_print(self, nick, finger, username='testuser'):
+    def enroll_print(self, nick, finger, username='testuser', retry_scan=-1):
         self._enrolled = None
 
         def done_cb(dev, res):
@@ -145,22 +145,38 @@ class VirtualDevice(unittest.TestCase):
             self._enroll_stage = stage
             self._enroll_progress_error = error
 
-        stage = 1
+        self.assertLessEqual(retry_scan, self.dev.get_nr_enroll_stages())
+
+        retries = 1
+        should_retry = retry_scan > 0
+
         def enroll_in_progress():
             if self._enroll_stage < 0 and not self._enrolled:
                 return True
 
-            nonlocal stage
+            nonlocal retries
             self.assertLessEqual(self._enroll_stage, self.dev.get_nr_enroll_stages())
-            self.assertEqual(self._enroll_stage, stage)
+            if should_retry and retries > retry_scan:
+                self.assertEqual(self._enroll_stage, retries - 1)
+            else:
+                self.assertEqual(self._enroll_stage, retries)
+
+            if retries == retry_scan + 1:
+                self.assertIsNotNone(self._enroll_progress_error)
+                self.assertEqual(self._enroll_progress_error.code, FPrint.DeviceRetry.TOO_SHORT)
+            else:
+                self.assertIsNone(self._enroll_progress_error)
 
             if self._enroll_stage < self.dev.get_nr_enroll_stages():
                 self._enroll_stage = -1
                 self.assertIsNone(self._enrolled)
                 self.assertEqual(self.dev.get_finger_status(),
                     FPrint.FingerStatusFlags.NEEDED)
-                GLib.idle_add(self.send_command, 'SCAN', nick)
-                stage += 1
+                if retry_scan == retries:
+                    GLib.idle_add(self.send_auto, FPrint.DeviceRetry.TOO_SHORT)
+                else:
+                    GLib.idle_add(self.send_command, 'SCAN', nick)
+                retries += 1
 
             return not self._enrolled
 
@@ -176,7 +192,7 @@ class VirtualDevice(unittest.TestCase):
         while enroll_in_progress():
             ctx.iteration(False)
 
-        self.assertEqual(self._enroll_stage, stage)
+        self.assertEqual(self._enroll_stage, retries if not should_retry else retries - 1)
         self.assertEqual(self._enroll_stage, self.dev.get_nr_enroll_stages())
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
 
@@ -227,6 +243,11 @@ class VirtualDevice(unittest.TestCase):
 
     def test_enroll(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)
+        self.assertEqual(matching.get_username(), 'testuser')
+        self.assertEqual(matching.get_finger(), FPrint.Finger.LEFT_LITTLE)
+
+    def test_enroll_with_retry(self):
+        matching = self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE, retry_scan=2)
         self.assertEqual(matching.get_username(), 'testuser')
         self.assertEqual(matching.get_finger(), FPrint.Finger.LEFT_LITTLE)
 
