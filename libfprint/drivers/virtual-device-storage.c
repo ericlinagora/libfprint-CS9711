@@ -167,6 +167,16 @@ fpi_device_virtual_device_storage_init (FpDeviceVirtualDeviceStorage *self)
                                                 NULL);
 }
 
+static void
+fpi_device_virtual_device_storage_finalize (GObject *object)
+{
+  FpDeviceVirtualDevice *vdev = FP_DEVICE_VIRTUAL_DEVICE (object);
+
+  G_DEBUG_HERE ();
+  g_clear_pointer (&vdev->prints_storage, g_hash_table_destroy);
+  G_OBJECT_CLASS (fpi_device_virtual_device_storage_parent_class)->finalize (object);
+}
+
 static const FpIdEntry driver_ids[] = {
   { .virtual_envvar = "FP_VIRTUAL_DEVICE_STORAGE" },
   { .virtual_envvar = "FP_VIRTUAL_DEVICE_IDENT" },
@@ -177,6 +187,9 @@ static void
 fpi_device_virtual_device_storage_class_init (FpDeviceVirtualDeviceStorageClass *klass)
 {
   FpDeviceClass *dev_class = FP_DEVICE_CLASS (klass);
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->finalize = fpi_device_virtual_device_storage_finalize;
 
   dev_class->id = FP_COMPONENT;
   dev_class->full_name = "Virtual device with storage and identification for debugging";

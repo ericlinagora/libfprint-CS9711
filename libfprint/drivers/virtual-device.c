@@ -419,7 +419,11 @@ dev_deinit (FpDevice *dev)
 static void
 fpi_device_virtual_device_finalize (GObject *object)
 {
+  FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (object);
+
   G_DEBUG_HERE ();
+  g_clear_pointer (&self->pending_commands, g_ptr_array_unref);
+  G_OBJECT_CLASS (fpi_device_virtual_device_parent_class)->finalize (object);
 }
 
 static void
