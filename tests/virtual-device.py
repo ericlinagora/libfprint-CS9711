@@ -113,6 +113,26 @@ class VirtualDevice(unittest.TestCase):
             while not (self.dev.get_finger_status() & expected):
                 ctx.iteration(True)
 
+    def send_error(self, error):
+        self.assertIsInstance(error, FPrint.DeviceError)
+        self.send_command('ERROR', int(error))
+
+    def send_retry(self, retry):
+        self.assertIsInstance(retry, FPrint.DeviceRetry)
+        self.send_command('RETRY', int(retry))
+
+    def send_auto(self, obj):
+        if isinstance(obj, FPrint.DeviceError):
+            self.send_error(obj)
+        elif isinstance(obj, FPrint.DeviceRetry):
+            self.send_retry(obj)
+        elif isinstance(obj, FPrint.FingerStatusFlags):
+            self.send_finger_report(obj & FPrint.FingerStatusFlags.PRESENT, iterate=False)
+        elif isinstance(obj, FPrint.ScanType):
+            self.send_command('SET_SCAN_TYPE', obj.value_nick)
+        else:
+            raise Exception('No known type found for {}'.format(obj))
+
     def enroll_print(self, nick, finger, username='testuser'):
         self._enrolled = None
 
@@ -172,10 +192,8 @@ class VirtualDevice(unittest.TestCase):
 
         if isinstance(scan_nick, str):
             self.send_command('SCAN', scan_nick)
-        elif isinstance(scan_nick, FPrint.DeviceError):
-            self.send_command('ERROR', int(scan_nick))
-        elif isinstance(scan_nick, FPrint.DeviceRetry):
-            self.send_command('RETRY', int(scan_nick))
+        else:
+            self.send_auto(scan_nick)
 
         def verify_cb(dev, res):
             try:
@@ -302,7 +320,7 @@ class VirtualDevice(unittest.TestCase):
 
         for scan_type in [FPrint.ScanType.PRESS, FPrint.ScanType.SWIPE]:
             notified_spec = None
-            self.send_command('SET_SCAN_TYPE', scan_type.value_nick)
+            self.send_auto(scan_type)
             self.assertEqual(self.dev.get_scan_type(), scan_type)
             self.assertEqual(notified_spec.name, 'scan-type')
 
