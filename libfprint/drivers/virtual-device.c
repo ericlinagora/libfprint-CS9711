@@ -39,6 +39,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define SCAN_CMD_PREFIX "SCAN "
 #define ERROR_CMD_PREFIX "ERROR "
 #define RETRY_CMD_PREFIX "RETRY "
+#define FINGER_CMD_PREFIX "FINGER "
 
 #define LIST_CMD "LIST"
 
@@ -74,6 +75,8 @@ process_cmds (FpDeviceVirtualDevice * self,
   while (self->pending_commands->len > 0)
     {
       gchar *cmd = g_ptr_array_index (self->pending_commands, 0);
+
+      g_debug ("Processing command %s", cmd);
 
       /* These are always processed. */
       if (g_str_has_prefix (cmd, INSERT_CMD_PREFIX))
@@ -122,6 +125,18 @@ process_cmds (FpDeviceVirtualDevice * self,
 
           g_ptr_array_remove_index (self->pending_commands, 0);
           return NULL;
+        }
+      else if (g_str_has_prefix (cmd, FINGER_CMD_PREFIX))
+        {
+          gboolean finger_present;
+
+          finger_present = g_ascii_strtoull (cmd + strlen (FINGER_CMD_PREFIX), NULL, 10) != 0;
+          fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                                   finger_present ? FP_FINGER_STATUS_PRESENT : FP_FINGER_STATUS_NONE,
+                                                   finger_present ? FP_FINGER_STATUS_NONE : FP_FINGER_STATUS_PRESENT);
+
+          g_ptr_array_remove_index (self->pending_commands, 0);
+          continue;
         }
       else
         {
