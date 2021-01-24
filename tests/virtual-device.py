@@ -120,9 +120,29 @@ class VirtualDevice(unittest.TestCase):
             print("Enroll done")
             self._enrolled = dev.enroll_finish(res)
 
+        self._enroll_stage = -1
         def progress_cb(dev, stage, pnt, data, error):
             self._enroll_stage = stage
             self._enroll_progress_error = error
+
+        stage = 1
+        def enroll_in_progress():
+            if self._enroll_stage < 0 and not self._enrolled:
+                return True
+
+            nonlocal stage
+            self.assertLessEqual(self._enroll_stage, self.dev.get_nr_enroll_stages())
+            self.assertEqual(self._enroll_stage, stage)
+
+            if self._enroll_stage < self.dev.get_nr_enroll_stages():
+                self._enroll_stage = -1
+                self.assertIsNone(self._enrolled)
+                self.assertEqual(self.dev.get_finger_status(),
+                    FPrint.FingerStatusFlags.NEEDED)
+                GLib.idle_add(self.send_command, 'SCAN', nick)
+                stage += 1
+
+            return not self._enrolled
 
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
 
@@ -132,18 +152,9 @@ class VirtualDevice(unittest.TestCase):
         template.set_finger(finger)
         template.set_username(username)
 
-        stage = 1
         self.dev.enroll(template, callback=done_cb, progress_cb=progress_cb)
-        while self._enrolled is None:
+        while enroll_in_progress():
             ctx.iteration(False)
-
-            if not self._enrolled:
-                self.assertEqual(self.dev.get_finger_status(),
-                    FPrint.FingerStatusFlags.NEEDED)
-                self.assertEqual(self._enroll_stage, stage)
-                self.assertLess(self._enroll_stage, self.dev.get_nr_enroll_stages())
-                self.send_command('SCAN', nick)
-                stage += 1
 
         self.assertEqual(self._enroll_stage, stage)
         self.assertEqual(self._enroll_stage, self.dev.get_nr_enroll_stages())
