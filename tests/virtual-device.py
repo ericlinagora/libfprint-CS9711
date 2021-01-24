@@ -131,8 +131,8 @@ class VirtualDevice(unittest.TestCase):
 
         if isinstance(scan_nick, str):
             self.send_command('SCAN', scan_nick)
-        else:
-            self.send_command('ERROR', scan_nick)
+        elif isinstance(scan_nick, FPrint.DeviceError):
+            self.send_command('ERROR', int(scan_nick))
 
         def verify_cb(dev, res):
             try:
@@ -184,7 +184,7 @@ class VirtualDevice(unittest.TestCase):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_RING)
 
         with self.assertRaisesRegex(GLib.Error, r"An unspecified error occurred"):
-            self.check_verify(matching, 0, match=False)
+            self.check_verify(matching, FPrint.DeviceError.GENERAL, match=False)
 
 
 class VirtualDeviceStorage(VirtualDevice):
