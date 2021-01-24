@@ -120,6 +120,10 @@ class VirtualDevice(unittest.TestCase):
             print("Enroll done")
             self._enrolled = dev.enroll_finish(res)
 
+        def progress_cb(dev, stage, pnt, data, error):
+            self._enroll_stage = stage
+            self._enroll_progress_error = error
+
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
 
         self.send_command('SCAN', nick)
@@ -128,14 +132,20 @@ class VirtualDevice(unittest.TestCase):
         template.set_finger(finger)
         template.set_username(username)
 
-        self.dev.enroll(template, None, None, tuple(), done_cb)
+        stage = 1
+        self.dev.enroll(template, callback=done_cb, progress_cb=progress_cb)
         while self._enrolled is None:
             ctx.iteration(False)
 
             if not self._enrolled:
                 self.assertEqual(self.dev.get_finger_status(),
                     FPrint.FingerStatusFlags.NEEDED)
+                self.assertEqual(self._enroll_stage, stage)
+                self.assertLess(self._enroll_stage, self.dev.get_nr_enroll_stages())
+                self.send_command('SCAN', nick)
+                stage += 1
 
+        self.assertEqual(self._enroll_stage, self.dev.get_nr_enroll_stages())
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
 
         self.assertEqual(self._enrolled.get_device_stored(),

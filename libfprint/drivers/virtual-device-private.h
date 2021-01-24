@@ -78,6 +78,7 @@ struct _FpDeviceVirtualDevice
   GHashTable              *prints_storage;
 
   guint                    wait_command_id;
+  guint                    enroll_stages_passed;
 };
 
 /* Not really final here, but we can do this to share the FpDeviceVirtualDevice

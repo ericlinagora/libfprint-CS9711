@@ -352,24 +352,53 @@ dev_enroll (FpDevice *dev)
     {
       GVariant *data;
 
-      fpi_print_set_type (print, FPI_PRINT_RAW);
-      data = g_variant_new_string (id);
-      g_object_set (print, "fpi-data", data, NULL);
-
-      if (self->prints_storage)
+      if (self->enroll_stages_passed == 0)
         {
-          g_hash_table_add (self->prints_storage, g_strdup (id));
-          fpi_print_set_device_stored (print, TRUE);
+          fpi_print_set_type (print, FPI_PRINT_RAW);
+          data = g_variant_new_string (id);
+          g_object_set (print, "fpi-data", data, NULL);
+        }
+      else
+        {
+          gboolean changed;
+
+          g_object_get (print, "fpi-data", &data, NULL);
+          changed = !g_str_equal (id, g_variant_get_string (data, NULL));
+          g_variant_unref (data);
+
+          if (changed)
+            {
+              g_set_error (&error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL, "ID Mismatch");
+              fpi_device_enroll_progress (dev, self->enroll_stages_passed, NULL, error);
+              return;
+            }
         }
 
-      fpi_device_enroll_complete (dev, g_object_ref (print), NULL);
+      self->enroll_stages_passed++;
+      fpi_device_enroll_progress (dev, self->enroll_stages_passed, print, NULL);
+      if (self->enroll_stages_passed == FP_DEVICE_GET_CLASS (self)->nr_enroll_stages)
+        {
+          if (self->prints_storage)
+            {
+              fpi_print_set_device_stored (print, TRUE);
+              g_hash_table_add (self->prints_storage, g_strdup (id));
+            }
+
+          fpi_device_enroll_complete (dev, g_object_ref (print), NULL);
+          self->enroll_stages_passed = 0;
+        }
     }
   else
     {
       if (error && error->domain == FP_DEVICE_RETRY)
-        fpi_device_enroll_progress (dev, 0, NULL, g_steal_pointer (&error));
+        {
+          fpi_device_enroll_progress (dev, self->enroll_stages_passed, NULL, g_steal_pointer (&error));
+        }
       else
-        fpi_device_enroll_complete (dev, NULL, g_steal_pointer (&error));
+        {
+          self->enroll_stages_passed = 0;
+          fpi_device_enroll_complete (dev, NULL, g_steal_pointer (&error));
+        }
     }
 }
 
