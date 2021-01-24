@@ -216,6 +216,7 @@ fpi_device_set_nr_enroll_stages (FpDevice *device,
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
+  g_return_if_fail (enroll_stages > 0);
 
   priv->nr_enroll_stages = enroll_stages;
   g_object_notify (G_OBJECT (device), "nr-enroll-stages");

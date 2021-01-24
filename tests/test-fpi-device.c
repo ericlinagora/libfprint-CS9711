@@ -433,7 +433,7 @@ test_driver_set_nr_enroll_stages (void)
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
   g_autoptr(GParamSpec) pspec = NULL;
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
-  int expected_stages = g_random_int_range (G_MININT32, G_MAXINT32);
+  int expected_stages = g_random_int_range (1, G_MAXINT32);
 
   g_signal_connect (device, "notify::nr-enroll-stages", G_CALLBACK (on_device_notify), NULL);
   fpi_device_set_nr_enroll_stages (device, expected_stages);
@@ -443,6 +443,18 @@ test_driver_set_nr_enroll_stages (void)
 
   pspec = g_steal_pointer (&fake_dev->user_data);
   g_assert_cmpstr (pspec->name, ==, "nr-enroll-stages");
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
+                         "*enroll_stages > 0*");
+  fpi_device_set_nr_enroll_stages (device, 0);
+  g_assert_cmpint (fp_device_get_nr_enroll_stages (device), ==, expected_stages);
+  g_test_assert_expected_messages ();
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
+                         "*enroll_stages > 0*");
+  fpi_device_set_nr_enroll_stages (device, -2);
+  g_assert_cmpint (fp_device_get_nr_enroll_stages (device), ==, expected_stages);
+  g_test_assert_expected_messages ();
 }
 
 static void
