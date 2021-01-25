@@ -79,6 +79,10 @@ dev_identify (FpDevice *dev)
       fpi_device_identify_report (dev, NULL, NULL, g_steal_pointer (&error));
     }
 
+  fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                           FP_FINGER_STATUS_NONE,
+                                           FP_FINGER_STATUS_PRESENT);
+
   fpi_device_identify_complete (dev, g_steal_pointer (&error));
 }
 

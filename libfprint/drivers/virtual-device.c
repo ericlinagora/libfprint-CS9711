@@ -383,6 +383,10 @@ start_scan_command (FpDeviceVirtualDevice *self,
 
   if (local_error)
     g_propagate_error (error, g_steal_pointer (&local_error));
+  else
+    fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                             FP_FINGER_STATUS_PRESENT,
+                                             FP_FINGER_STATUS_NONE);
 
   return g_steal_pointer (&scan_id);
 }
@@ -428,6 +432,10 @@ dev_verify (FpDevice *dev)
       g_debug ("Virtual device scan failed with error: %s", error->message);
     }
 
+  fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                           FP_FINGER_STATUS_NONE,
+                                           FP_FINGER_STATUS_PRESENT);
+
   if (error && error->domain == FP_DEVICE_RETRY)
     fpi_device_verify_report (dev, FPI_MATCH_ERROR, NULL, g_steal_pointer (&error));
 
@@ -451,6 +459,7 @@ dev_enroll (FpDevice *dev)
   if (id)
     {
       GVariant *data;
+      gboolean completed;
 
       if (self->enroll_stages_passed == 0)
         {
@@ -475,8 +484,16 @@ dev_enroll (FpDevice *dev)
         }
 
       self->enroll_stages_passed++;
+      completed = self->enroll_stages_passed == fp_device_get_nr_enroll_stages (FP_DEVICE (self));
+      fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                               completed ?
+                                               FP_FINGER_STATUS_NEEDED :
+                                               FP_FINGER_STATUS_NONE,
+                                               FP_FINGER_STATUS_PRESENT);
+
       fpi_device_enroll_progress (dev, self->enroll_stages_passed, print, NULL);
-      if (self->enroll_stages_passed == fp_device_get_nr_enroll_stages (FP_DEVICE (self)))
+
+      if (completed)
         {
           if (self->prints_storage)
             {
@@ -490,6 +507,10 @@ dev_enroll (FpDevice *dev)
     }
   else
     {
+      fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                               FP_FINGER_STATUS_NONE,
+                                               FP_FINGER_STATUS_PRESENT);
+
       if (error && error->domain == FP_DEVICE_RETRY)
         {
           fpi_device_enroll_progress (dev, self->enroll_stages_passed, NULL, g_steal_pointer (&error));
