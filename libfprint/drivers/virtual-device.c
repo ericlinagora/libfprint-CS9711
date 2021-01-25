@@ -44,6 +44,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define SET_SCAN_TYPE_PREFIX "SET_SCAN_TYPE "
 
 #define LIST_CMD "LIST"
+#define UNPLUG_CMD "UNPLUG"
 
 static void
 maybe_continue_current_action (FpDeviceVirtualDevice *self)
@@ -197,6 +198,10 @@ recv_instruction_cb (GObject      *source_object,
         {
           if (self->prints_storage)
             g_hash_table_foreach (self->prints_storage, write_key_to_listener, listener);
+        }
+      else if (g_str_has_prefix (cmd, UNPLUG_CMD))
+        {
+          fpi_device_remove (FP_DEVICE (self));
         }
       else if (g_str_has_prefix (cmd, SET_ENROLL_STAGES_PREFIX))
         {

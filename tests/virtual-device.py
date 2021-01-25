@@ -82,19 +82,21 @@ class VirtualDevice(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
+        self._close_on_teardown = True
         self.assertFalse(self.dev.is_open())
         self.dev.open_sync()
         self.assertTrue(self.dev.is_open())
 
     def tearDown(self):
-        self.assertTrue(self.dev.is_open())
-        self.dev.close_sync()
+        if self._close_on_teardown:
+            self.assertTrue(self.dev.is_open())
+            self.dev.close_sync()
         self.assertFalse(self.dev.is_open())
         super().tearDown()
 
     def send_command(self, command, *args):
         self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY',
-            'FINGER', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE'])
+            'FINGER', 'UNPLUG', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -373,6 +375,30 @@ class VirtualDevice(unittest.TestCase):
         GLib.test_assert_expected_messages_internal('libfprint-device',
             __file__, 0, 'test_change_scan_type')
 
+    def test_device_unplug(self):
+        self._close_on_teardown = False
+        notified_spec = None
+        def on_removed_notify(dev, spec):
+            nonlocal notified_spec
+            notified_spec = spec
+
+        removed = False
+        def on_removed(dev):
+            nonlocal removed
+            removed = True
+
+        self.assertFalse(self.dev.props.removed)
+
+        self.dev.connect('notify::removed', on_removed_notify)
+        self.dev.connect('removed', on_removed)
+        self.send_command('UNPLUG')
+        self.assertEqual(notified_spec.name, 'removed')
+        self.assertTrue(self.dev.props.removed)
+        self.assertTrue(removed)
+
+        with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
+            self.dev.close_sync()
+
 class VirtualDeviceStorage(VirtualDevice):
 
     def tearDown(self):
@@ -380,8 +406,9 @@ class VirtualDeviceStorage(VirtualDevice):
         super().tearDown()
 
     def cleanup_device_storage(self):
-        for print in self.dev.list_prints_sync():
-            self.assertTrue(self.dev.delete_print_sync(print, None))
+        if self.dev.is_open() and not self.dev.props.removed:
+            for print in self.dev.list_prints_sync():
+                self.assertTrue(self.dev.delete_print_sync(print, None))
 
     def test_device_properties(self):
         self.assertEqual(self.dev.get_driver(), 'virtual_device_storage')
