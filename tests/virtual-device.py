@@ -203,19 +203,15 @@ class VirtualDevice(unittest.TestCase):
 
         return self._enrolled
 
-    def check_verify(self, p, scan_nick, match, identify=False):
+    def start_verify(self, p, identify=False):
         self._verify_match = None
         self._verify_fp = None
         self._verify_error = None
         self._verify_completed = False
+        self._cancellable = Gio.Cancellable()
 
         if identify:
             self.assertTrue(self.dev.supports_identify())
-
-        if isinstance(scan_nick, str):
-            self.send_command('SCAN', scan_nick)
-        else:
-            self.send_auto(scan_nick)
 
         def verify_cb(dev, res):
             try:
@@ -227,12 +223,35 @@ class VirtualDevice(unittest.TestCase):
             self._verify_completed = True
 
         if identify:
-            self.dev.identify(p if isinstance(p, list) else [p], callback=verify_cb)
+            self.dev.identify(p if isinstance(p, list) else [p],
+                cancellable=self._cancellable, callback=verify_cb)
         else:
-            self.dev.verify(p, callback=verify_cb)
+            self.dev.verify(p, cancellable=self._cancellable, callback=verify_cb)
 
+    def cancel_verify(self):
+        self._cancellable.cancel()
         while not self._verify_completed:
             ctx.iteration(True)
+
+        self.assertIsNone(self._verify_match)
+        self.assertIsNotNone(self._verify_error)
+        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
+
+    def complete_verify(self):
+        while not self._verify_completed:
+            ctx.iteration(True)
+
+        if self._verify_error is not None:
+            raise self._verify_error
+
+    def check_verify(self, p, scan_nick, match, identify=False):
+        if isinstance(scan_nick, str):
+            self.send_command('SCAN', scan_nick)
+        else:
+            self.send_auto(scan_nick)
+
+        self.start_verify(p, identify)
+        self.complete_verify()
 
         if identify:
             if match:
@@ -247,9 +266,6 @@ class VirtualDevice(unittest.TestCase):
 
         if isinstance(scan_nick, str):
             self.assertEqual(self._verify_fp.props.fpi_data.get_string(), scan_nick)
-
-        if self._verify_error is not None:
-            raise self._verify_error
 
     def test_device_properties(self):
         self.assertEqual(self.dev.get_driver(), 'virtual_device')
@@ -294,16 +310,8 @@ class VirtualDevice(unittest.TestCase):
                 FPrint.DeviceRetry.TOO_SHORT, match=False)
 
     def test_finger_status(self):
-        cancellable = Gio.Cancellable()
-        got_cb = False
-
-        def verify_cb(dev, res):
-            nonlocal got_cb
-            got_cb = True
-
-        self.dev.verify(FPrint.Print.new(self.dev), callback=verify_cb, cancellable=cancellable)
-        while not self.dev.get_finger_status() is FPrint.FingerStatusFlags.NEEDED:
-            ctx.iteration(True)
+        self.start_verify(FPrint.Print.new(self.dev),
+            identify=self.dev.supports_identify())
 
         self.send_finger_report(True)
         self.assertEqual(self.dev.get_finger_status(),
@@ -312,11 +320,7 @@ class VirtualDevice(unittest.TestCase):
         self.send_finger_report(False)
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NEEDED)
 
-        cancellable.cancel()
-        while not got_cb:
-            ctx.iteration(True)
-
-        self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
+        self.cancel_verify()
 
     def test_change_enroll_stages(self):
         notified_spec = None
