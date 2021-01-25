@@ -92,6 +92,15 @@ process_cmds (FpDeviceVirtualDevice * self,
               gboolean                scan,
               GError                **error)
 {
+  if (g_cancellable_is_cancelled (self->cancellable) ||
+      (fpi_device_get_current_action (FP_DEVICE (self)) != FPI_DEVICE_ACTION_NONE &&
+       g_cancellable_is_cancelled (fpi_device_get_cancellable (FP_DEVICE (self)))))
+    {
+      g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_CANCELLED,
+                           "Operation was cancelled");
+      return NULL;
+    }
+
   while (self->pending_commands->len > 0)
     {
       gchar *cmd = g_ptr_array_index (self->pending_commands, 0);
@@ -458,6 +467,17 @@ dev_enroll (FpDevice *dev)
 }
 
 static void
+dev_cancel (FpDevice *dev)
+{
+  FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
+
+  g_debug ("Got cancellation!");
+  g_clear_handle_id (&self->sleep_timeout_id, g_source_remove);
+
+  maybe_continue_current_action (self);
+}
+
+static void
 dev_deinit (FpDevice *dev)
 {
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
@@ -511,4 +531,5 @@ fpi_device_virtual_device_class_init (FpDeviceVirtualDeviceClass *klass)
   dev_class->close = dev_deinit;
   dev_class->verify = dev_verify;
   dev_class->enroll = dev_enroll;
+  dev_class->cancel = dev_cancel;
 }
