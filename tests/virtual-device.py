@@ -344,12 +344,39 @@ class VirtualDevice(unittest.TestCase):
         self.start_verify(FPrint.Print.new(self.dev),
             identify=self.dev.supports_identify())
 
+        self.assertEqual(self.dev.get_finger_status(),
+                         FPrint.FingerStatusFlags.NEEDED)
+
         self.send_finger_report(True)
         self.assertEqual(self.dev.get_finger_status(),
             FPrint.FingerStatusFlags.NEEDED | FPrint.FingerStatusFlags.PRESENT)
 
         self.send_finger_report(False)
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NEEDED)
+
+        self.cancel_verify()
+
+    def test_finger_status_after_sleep(self):
+        self.send_command('SLEEP', 10)
+        self.start_verify(FPrint.Print.new(self.dev),
+                          identify=self.dev.supports_identify())
+
+        self.assertEqual(self.dev.get_finger_status(),
+                         FPrint.FingerStatusFlags.NONE)
+
+        while self.dev.get_finger_status() != FPrint.FingerStatusFlags.NEEDED:
+            ctx.iteration(True)
+
+        self.assertEqual(self.dev.get_finger_status(),
+                         FPrint.FingerStatusFlags.NEEDED)
+
+        self.send_finger_report(True)
+        self.assertEqual(self.dev.get_finger_status(),
+                         FPrint.FingerStatusFlags.NEEDED | FPrint.FingerStatusFlags.PRESENT)
+
+        self.send_finger_report(False)
+        self.assertEqual(self.dev.get_finger_status(),
+                         FPrint.FingerStatusFlags.NEEDED)
 
         self.cancel_verify()
 

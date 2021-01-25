@@ -41,12 +41,11 @@ dev_identify (FpDevice *dev)
   GPtrArray *prints;
   g_autofree char *scan_id = NULL;
 
-  fpi_device_get_identify_data (dev, &prints);
-  fpi_device_report_finger_status (dev, FP_FINGER_STATUS_NEEDED);
-
-  scan_id = process_cmds (self, TRUE, &error);
-  if (should_wait_for_command (self, error))
+  scan_id = start_scan_command (self, &error);
+  if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_PENDING))
     return;
+
+  fpi_device_get_identify_data (dev, &prints);
 
   if (scan_id)
     {

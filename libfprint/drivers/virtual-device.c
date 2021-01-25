@@ -358,6 +358,35 @@ should_wait_for_command (FpDeviceVirtualDevice *self,
   return TRUE;
 }
 
+char *
+start_scan_command (FpDeviceVirtualDevice *self,
+                    GError               **error)
+{
+  g_autoptr(GError) local_error = NULL;
+  g_autofree char *scan_id = NULL;
+
+  scan_id = process_cmds (self, TRUE, &local_error);
+
+  if (!self->sleep_timeout_id)
+    {
+      fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                               FP_FINGER_STATUS_NEEDED,
+                                               FP_FINGER_STATUS_NONE);
+    }
+
+  if (should_wait_for_command (self, local_error))
+    {
+      g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PENDING,
+                           "Still waiting for command");
+      return NULL;
+    }
+
+  if (local_error)
+    g_propagate_error (error, g_steal_pointer (&local_error));
+
+  return g_steal_pointer (&scan_id);
+}
+
 static void
 dev_verify (FpDevice *dev)
 {
@@ -366,12 +395,11 @@ dev_verify (FpDevice *dev)
   FpPrint *print;
   g_autofree char *scan_id = NULL;
 
-  fpi_device_get_verify_data (dev, &print);
-  fpi_device_report_finger_status (dev, FP_FINGER_STATUS_NEEDED);
-
-  scan_id = process_cmds (self, TRUE, &error);
-  if (should_wait_for_command (self, error))
+  scan_id = start_scan_command (self, &error);
+  if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_PENDING))
     return;
+
+  fpi_device_get_verify_data (dev, &print);
 
   if (scan_id)
     {
@@ -414,12 +442,11 @@ dev_enroll (FpDevice *dev)
   FpPrint *print = NULL;
   g_autofree char *id = NULL;
 
-  fpi_device_report_finger_status (dev, FP_FINGER_STATUS_NEEDED);
-  fpi_device_get_enroll_data (dev, &print);
-
-  id = process_cmds (self, TRUE, &error);
-  if (should_wait_for_command (self, error))
+  id = start_scan_command (self, &error);
+  if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_PENDING))
     return;
+
+  fpi_device_get_enroll_data (dev, &print);
 
   if (id)
     {

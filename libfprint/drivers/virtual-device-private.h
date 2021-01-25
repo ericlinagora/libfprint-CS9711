@@ -96,5 +96,7 @@ G_DECLARE_FINAL_TYPE (FpDeviceVirtualDeviceStorage, fpi_device_virtual_device_st
 
 
 char * process_cmds (FpDeviceVirtualDevice * self, gboolean scan, GError **error);
+char * start_scan_command (FpDeviceVirtualDevice *self,
+                           GError               **error);
 gboolean should_wait_for_command (FpDeviceVirtualDevice *self,
                                   GError                *error);
