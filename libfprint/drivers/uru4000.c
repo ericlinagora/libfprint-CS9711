@@ -375,6 +375,10 @@ stop_irq_handler (FpImageDevice *dev, irqs_stopped_cb_fn cb)
       g_cancellable_cancel (self->irq_cancellable);
       self->irqs_stopped_cb = cb;
     }
+  else
+    {
+      cb (dev);
+    }
 }
 
 /***** STATE CHANGING *****/
