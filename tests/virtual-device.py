@@ -406,6 +406,39 @@ class VirtualDevice(unittest.TestCase):
         with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
             self.dev.close_sync()
 
+    def test_device_unplug_during_verify(self):
+        self._close_on_teardown = False
+
+        notified_spec = None
+        def on_removed_notify(dev, spec):
+            nonlocal notified_spec
+            notified_spec = spec
+
+        removed = False
+        def on_removed(dev):
+            nonlocal removed
+            removed = True
+
+        self.assertFalse(self.dev.props.removed)
+        self.dev.connect('notify::removed', on_removed_notify)
+        self.dev.connect('removed', on_removed)
+
+        self.start_verify(FPrint.Print.new(self.dev),
+            identify=self.dev.supports_identify())
+
+        self.send_command('UNPLUG')
+        self.assertEqual(notified_spec.name, 'removed')
+        self.assertTrue(self.dev.props.removed)
+        self.assertFalse(removed)
+
+        with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
+            self.complete_verify()
+
+        self.assertTrue(removed)
+
+        with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
+            self.dev.close_sync()
+
 class VirtualDeviceStorage(VirtualDevice):
 
     def tearDown(self):
