@@ -96,7 +96,7 @@ class VirtualDevice(unittest.TestCase):
 
     def send_command(self, command, *args):
         self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY',
-            'FINGER', 'UNPLUG', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE'])
+            'FINGER', 'UNPLUG', 'SLEEP', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -438,6 +438,24 @@ class VirtualDevice(unittest.TestCase):
 
         with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
             self.dev.close_sync()
+
+    def test_device_sleep(self):
+        enrolled = self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)
+
+        timeout_reached = False
+        def on_timeout():
+            nonlocal timeout_reached
+            timeout_reached = True
+
+        self.send_command('SLEEP', 1500)
+        GLib.timeout_add(300, on_timeout)
+
+        self.start_verify(enrolled, identify=self.dev.supports_identify())
+        while not timeout_reached:
+            ctx.iteration(False)
+
+        self.assertFalse(self._verify_completed)
+        self.cancel_verify()
 
 class VirtualDeviceStorage(VirtualDevice):
 

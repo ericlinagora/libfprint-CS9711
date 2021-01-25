@@ -40,6 +40,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define ERROR_CMD_PREFIX "ERROR "
 #define RETRY_CMD_PREFIX "RETRY "
 #define FINGER_CMD_PREFIX "FINGER "
+#define SLEEP_CMD_PREFIX "SLEEP "
 #define SET_ENROLL_STAGES_PREFIX "SET_ENROLL_STAGES "
 #define SET_SCAN_TYPE_PREFIX "SET_SCAN_TYPE "
 
@@ -70,10 +71,26 @@ maybe_continue_current_action (FpDeviceVirtualDevice *self)
     }
 }
 
+static gboolean
+sleep_timeout_cb (gpointer data)
+{
+  FpDeviceVirtualDevice *self = data;
+
+  self->sleep_timeout_id = 0;
+
+  if (g_cancellable_is_cancelled (self->cancellable))
+    return FALSE;
+
+  g_debug ("Sleeping completed");
+  maybe_continue_current_action (self);
+
+  return FALSE;
+}
+
 char *
 process_cmds (FpDeviceVirtualDevice * self,
-              gboolean scan,
-              GError * *error)
+              gboolean                scan,
+              GError                **error)
 {
   while (self->pending_commands->len > 0)
     {
@@ -100,6 +117,16 @@ process_cmds (FpDeviceVirtualDevice * self,
 
           g_ptr_array_remove_index (self->pending_commands, 0);
           continue;
+        }
+      else if (g_str_has_prefix (cmd, SLEEP_CMD_PREFIX))
+        {
+          guint64 sleep_ms = g_ascii_strtoull (cmd + strlen (SLEEP_CMD_PREFIX), NULL, 10);
+
+          g_debug ("Sleeping %lums", sleep_ms);
+          self->sleep_timeout_id = g_timeout_add (sleep_ms, sleep_timeout_cb, self);
+          g_ptr_array_remove_index (self->pending_commands, 0);
+
+          return NULL;
         }
 
       /* If we are not scanning, then we have to stop here. */
@@ -300,6 +327,9 @@ gboolean
 should_wait_for_command (FpDeviceVirtualDevice *self,
                          GError                *error)
 {
+  if (!error && self->sleep_timeout_id)
+    return TRUE;
+
   if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
     return FALSE;
 
@@ -433,6 +463,7 @@ dev_deinit (FpDevice *dev)
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
 
   g_clear_handle_id (&self->wait_command_id, g_source_remove);
+  g_clear_handle_id (&self->sleep_timeout_id, g_source_remove);
   g_cancellable_cancel (self->cancellable);
   g_clear_object (&self->cancellable);
   g_clear_object (&self->listener);

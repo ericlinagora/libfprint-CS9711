@@ -78,6 +78,7 @@ struct _FpDeviceVirtualDevice
   GHashTable              *prints_storage;
 
   guint                    wait_command_id;
+  guint                    sleep_timeout_id;
   guint                    enroll_stages_passed;
 };
 
