@@ -291,18 +291,21 @@ class VirtualDevice(unittest.TestCase):
     def test_enroll_verify_match(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_THUMB)
 
-        self.check_verify(matching, 'testprint', match=True)
+        self.check_verify(matching, 'testprint', match=True,
+            identify=self.dev.supports_identify())
 
     def test_enroll_verify_no_match(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_RING)
 
-        self.check_verify(matching, 'not-testprint', match=False)
+        self.check_verify(matching, 'not-testprint', match=False,
+            identify=self.dev.supports_identify())
 
     def test_enroll_verify_error(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_RING)
 
         with self.assertRaisesRegex(GLib.Error, r"An unspecified error occurred"):
-            self.check_verify(matching, FPrint.DeviceError.GENERAL, match=False)
+            self.check_verify(matching, FPrint.DeviceError.GENERAL, match=False,
+                identify=self.dev.supports_identify())
 
     def test_enroll_verify_retry(self):
         with self.assertRaisesRegex(GLib.GError, 'too short'):
