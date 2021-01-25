@@ -208,11 +208,20 @@ class VirtualDevice(unittest.TestCase):
         self._verify_match = None
         self._verify_fp = None
         self._verify_error = None
+        self._verify_report_match = None
+        self._verify_report_print = None
         self._verify_completed = False
+        self._verify_reported = False
         self._cancellable = Gio.Cancellable()
 
         if identify:
             self.assertTrue(self.dev.supports_identify())
+
+        def match_cb(dev, match, pnt, data, error):
+            self._verify_reported = True
+            self._verify_report_match = match
+            self._verify_report_print = pnt
+            self._verify_report_error = error
 
         def verify_cb(dev, res):
             try:
@@ -225,9 +234,10 @@ class VirtualDevice(unittest.TestCase):
 
         if identify:
             self.dev.identify(p if isinstance(p, list) else [p],
-                cancellable=self._cancellable, callback=verify_cb)
+                cancellable=self._cancellable, match_cb=match_cb, callback=verify_cb)
         else:
-            self.dev.verify(p, cancellable=self._cancellable, callback=verify_cb)
+            self.dev.verify(p, cancellable=self._cancellable, match_cb=match_cb,
+                callback=verify_cb)
 
     def cancel_verify(self):
         self._cancellable.cancel()
@@ -254,14 +264,21 @@ class VirtualDevice(unittest.TestCase):
         self.start_verify(p, identify)
         self.complete_verify()
 
+        self.assertTrue(self._verify_reported)
+
+        if not match:
+            self.assertIsNone(self._verify_report_match)
+
         if identify:
             if match:
+                self.assertIsNotNone(self._verify_report_match)
                 self.assertIsNotNone(self._verify_match)
-            else:
-                self.assertIsNone(self._verify_match)
         else:
             if self._verify_fp:
                 self.assertEqual(self._verify_fp.equal(p), match)
+                if match:
+                    self.assertTrue(
+                        self._verify_fp.equal(self._verify_report_match))
             else:
                 self.assertFalse(match)
 
