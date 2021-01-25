@@ -43,6 +43,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define SLEEP_CMD_PREFIX "SLEEP "
 #define SET_ENROLL_STAGES_PREFIX "SET_ENROLL_STAGES "
 #define SET_SCAN_TYPE_PREFIX "SET_SCAN_TYPE "
+#define SET_CANCELLATION_PREFIX "SET_CANCELLATION_ENABLED "
 
 #define LIST_CMD "LIST"
 #define UNPLUG_CMD "UNPLUG"
@@ -256,6 +257,14 @@ recv_instruction_cb (GObject      *source_object,
             fpi_device_set_scan_type (FP_DEVICE (self), value->value);
           else
             g_warning ("Scan type '%s' not found", scan_type);
+        }
+      else if (g_str_has_prefix (cmd, SET_CANCELLATION_PREFIX))
+        {
+          self->supports_cancellation = g_ascii_strtoull (
+            cmd + strlen (SET_CANCELLATION_PREFIX), NULL, 10) != 0;
+
+          g_debug ("Cancellation support toggled: %d",
+                   self->supports_cancellation);
         }
       else
         {
@@ -471,6 +480,9 @@ dev_cancel (FpDevice *dev)
 {
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
 
+  if (!self->supports_cancellation)
+    return;
+
   g_debug ("Got cancellation!");
   g_clear_handle_id (&self->sleep_timeout_id, g_source_remove);
 
@@ -505,6 +517,7 @@ fpi_device_virtual_device_finalize (GObject *object)
 static void
 fpi_device_virtual_device_init (FpDeviceVirtualDevice *self)
 {
+  self->supports_cancellation = TRUE;
   self->pending_commands = g_ptr_array_new_with_free_func (g_free);
 }
 

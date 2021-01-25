@@ -80,6 +80,7 @@ struct _FpDeviceVirtualDevice
   guint                    wait_command_id;
   guint                    sleep_timeout_id;
   guint                    enroll_stages_passed;
+  gboolean                 supports_cancellation;
 };
 
 /* Not really final here, but we can do this to share the FpDeviceVirtualDevice

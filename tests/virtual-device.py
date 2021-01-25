@@ -96,7 +96,8 @@ class VirtualDevice(unittest.TestCase):
 
     def send_command(self, command, *args):
         self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY',
-            'FINGER', 'UNPLUG', 'SLEEP', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE'])
+            'FINGER', 'UNPLUG', 'SLEEP', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE',
+            'SET_CANCELLATION_ENABLED'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -450,6 +451,43 @@ class VirtualDevice(unittest.TestCase):
 
         self.start_verify(FPrint.Print.new(self.dev),
             identify=self.dev.supports_identify())
+        while not timeout_reached:
+            ctx.iteration(False)
+
+        self.assertFalse(self._verify_completed)
+
+        timeout_reached = False
+        self._cancellable.cancel()
+        GLib.timeout_add(200, on_timeout)
+
+        while not timeout_reached:
+            ctx.iteration(False)
+
+        self.assertTrue(self._verify_completed)
+        self.cancel_verify()
+
+    def test_device_sleep_on_cancellation(self):
+        timeout_reached = False
+        def on_timeout():
+            nonlocal timeout_reached
+            timeout_reached = True
+
+        self.send_command('SET_CANCELLATION_ENABLED', int(False))
+        self.send_command('SLEEP', 1500)
+        self.send_command('SCAN', 'foo-print')
+        GLib.timeout_add(300, on_timeout)
+
+        self.start_verify(FPrint.Print.new(self.dev),
+            identify=self.dev.supports_identify())
+        while not timeout_reached:
+            ctx.iteration(False)
+
+        self.assertFalse(self._verify_completed)
+
+        timeout_reached = False
+        self._cancellable.cancel()
+        GLib.timeout_add(300, on_timeout)
+
         while not timeout_reached:
             ctx.iteration(False)
 
