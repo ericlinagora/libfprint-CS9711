@@ -209,6 +209,7 @@ if valgrind.found()
         timeout_multiplier: 10,
         env: [
             'G_SLICE=always-malloc',
+            'UNDER_VALGRIND=1',
             ('LIBFPRINT_TEST_WRAPPER=@0@ --tool=memcheck --leak-check=full ' +
              '--suppressions=@1@ --suppressions=@2@').format(
                 valgrind.path(), glib_suppressions, python_suppressions)

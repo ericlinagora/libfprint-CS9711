@@ -146,6 +146,11 @@ class VirtualDevice(unittest.TestCase):
         else:
             raise Exception('No known type found for {}'.format(obj))
 
+    def send_sleep(self, interval):
+        self.assertGreater(interval, 0)
+        multiplier = 5 if 'UNDER_VALGRIND' in os.environ else 1
+        self.send_command('SLEEP', interval * multiplier)
+
     def enroll_print(self, nick, finger, username='testuser', retry_scan=-1):
         self._enrolled = None
 
@@ -357,7 +362,7 @@ class VirtualDevice(unittest.TestCase):
         self.cancel_verify()
 
     def test_finger_status_after_sleep(self):
-        self.send_command('SLEEP', 10)
+        self.send_sleep(10)
         self.start_verify(FPrint.Print.new(self.dev),
                           identify=self.dev.supports_identify())
 
@@ -495,7 +500,7 @@ class VirtualDevice(unittest.TestCase):
             self.dev.close_sync()
 
     def test_device_sleep(self):
-        self.send_command('SLEEP', 1500)
+        self.send_sleep(1500)
 
         self.start_verify(FPrint.Print.new(self.dev),
             identify=self.dev.supports_identify())
@@ -511,7 +516,7 @@ class VirtualDevice(unittest.TestCase):
 
     def test_device_sleep_on_cancellation(self):
         self.send_command('SET_CANCELLATION_ENABLED', int(False))
-        self.send_command('SLEEP', 1500)
+        self.send_sleep(1500)
         self.send_command('SCAN', 'foo-print')
 
         self.start_verify(FPrint.Print.new(self.dev),
@@ -529,10 +534,10 @@ class VirtualDevice(unittest.TestCase):
     def test_device_sleep_before_completing_verify(self):
         enrolled = self.enroll_print('foo-print', FPrint.Finger.LEFT_RING)
 
-        self.send_command('SLEEP', 100)
+        self.send_sleep(100)
         self.start_verify(enrolled, identify=self.dev.supports_identify())
         self.send_command('SCAN', 'bar-print')
-        self.send_command('SLEEP', 800)
+        self.send_sleep(800)
 
         while not self._verify_reported:
             ctx.iteration(False)
@@ -555,7 +560,7 @@ class VirtualDevice(unittest.TestCase):
             except GLib.Error as e:
                 close_res = e
 
-        self.send_command('SLEEP', 100)
+        self.send_sleep(100)
         self.send_error(FPrint.DeviceError.BUSY)
         self.dev.close(callback=on_closed)
         self.wait_timeout(2)
@@ -616,7 +621,7 @@ class VirtualDeviceStorage(VirtualDevice):
             except GLib.Error as e:
                 deleted_res = e
 
-        self.send_command('SLEEP', 100)
+        self.send_sleep(100)
         self.send_error(FPrint.DeviceError.DATA_NOT_FOUND)
         self.dev.delete_print(FPrint.Print.new(self.dev), callback=on_deleted)
         self.wait_timeout(2)
@@ -637,7 +642,7 @@ class VirtualDeviceStorage(VirtualDevice):
             except GLib.Error as e:
                 list_res = e
 
-        self.send_command('SLEEP', 100)
+        self.send_sleep(100)
         self.send_error(FPrint.DeviceError.BUSY)
         self.dev.list_prints(callback=on_listed)
         self.wait_timeout(2)
