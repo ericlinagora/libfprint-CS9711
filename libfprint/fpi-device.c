@@ -1530,7 +1530,7 @@ fpi_device_report_finger_status (FpDevice           *device,
  * fpi_device_report_finger_status_changes:
  * @device: The #FpDevice
  * @added_status: The #FpFingerStatusFlags to add
- * @added_status: The #FpFingerStatusFlags to remove
+ * @removed_status: The #FpFingerStatusFlags to remove
  *
  * Report the finger status for the @device adding the @added_status flags
  * and removing the @removed_status flags.
