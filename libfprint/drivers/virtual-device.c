@@ -78,6 +78,10 @@ maybe_continue_current_action (FpDeviceVirtualDevice *self)
       FP_DEVICE_GET_CLASS (self)->delete (dev);
       break;
 
+    case FPI_DEVICE_ACTION_CLOSE:
+      FP_DEVICE_GET_CLASS (self)->close (dev);
+      break;
+
     default:
       break;
     }
@@ -635,7 +639,19 @@ dev_cancel (FpDevice *dev)
 static void
 dev_deinit (FpDevice *dev)
 {
+  g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
+
+  process_cmds (self, FALSE, &error);
+  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+    {
+      fpi_device_close_complete (dev, g_steal_pointer (&error));
+      return;
+    }
+  else if (self->sleep_timeout_id)
+    {
+      return;
+    }
 
   g_clear_handle_id (&self->wait_command_id, g_source_remove);
   g_clear_handle_id (&self->sleep_timeout_id, g_source_remove);

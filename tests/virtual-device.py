@@ -544,6 +544,27 @@ class VirtualDevice(unittest.TestCase):
         self.complete_verify()
         self.assertTrue(self._verify_reported)
 
+    def test_close_error(self):
+        self._close_on_teardown = False
+        close_res = None
+
+        def on_closed(dev, res):
+            nonlocal close_res
+            try:
+                close_res = dev.close_finish(res)
+            except GLib.Error as e:
+                close_res = e
+
+        self.send_command('SLEEP', 100)
+        self.send_error(FPrint.DeviceError.BUSY)
+        self.dev.close(callback=on_closed)
+        self.wait_timeout(2)
+        self.assertIsNone(close_res)
+
+        while not close_res:
+            ctx.iteration(True)
+
+        self.assertEqual(close_res.code, int(FPrint.DeviceError.BUSY))
 
 class VirtualDeviceStorage(VirtualDevice):
 
