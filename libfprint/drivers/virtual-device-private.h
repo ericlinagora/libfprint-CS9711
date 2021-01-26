@@ -80,7 +80,9 @@ struct _FpDeviceVirtualDevice
   guint                    wait_command_id;
   guint                    sleep_timeout_id;
   guint                    enroll_stages_passed;
+  gboolean                 match_reported;
   gboolean                 supports_cancellation;
+  gboolean                 injected_synthetic_cmd;
 };
 
 /* Not really final here, but we can do this to share the FpDeviceVirtualDevice
@@ -100,3 +102,6 @@ char * start_scan_command (FpDeviceVirtualDevice *self,
                            GError               **error);
 gboolean should_wait_for_command (FpDeviceVirtualDevice *self,
                                   GError                *error);
+gboolean should_wait_to_sleep (FpDeviceVirtualDevice *self,
+                               const char            *scan_id,
+                               GError                *error);

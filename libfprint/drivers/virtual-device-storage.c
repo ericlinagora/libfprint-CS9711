@@ -69,10 +69,14 @@ dev_identify (FpDevice *dev)
                                             &idx))
         match = g_ptr_array_index (prints, idx);
 
-      fpi_device_identify_report (dev,
-                                  match,
-                                  new_scan,
-                                  NULL);
+      if (!self->match_reported)
+        {
+          self->match_reported = TRUE;
+          fpi_device_identify_report (dev,
+                                      match,
+                                      new_scan,
+                                      NULL);
+        }
     }
   else if (error && error->domain == FP_DEVICE_RETRY)
     {
@@ -83,6 +87,10 @@ dev_identify (FpDevice *dev)
                                            FP_FINGER_STATUS_NONE,
                                            FP_FINGER_STATUS_PRESENT);
 
+  if (should_wait_to_sleep (self, scan_id, error))
+    return;
+
+  self->match_reported = FALSE;
   fpi_device_identify_complete (dev, g_steal_pointer (&error));
 }
 

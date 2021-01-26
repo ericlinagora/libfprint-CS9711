@@ -53,6 +53,9 @@ maybe_continue_current_action (FpDeviceVirtualDevice *self)
 {
   FpDevice *dev = FP_DEVICE (self);
 
+  if (self->sleep_timeout_id)
+    return;
+
   switch (fpi_device_get_current_action (dev))
     {
     case FPI_DEVICE_ACTION_ENROLL:
@@ -365,6 +368,9 @@ start_scan_command (FpDeviceVirtualDevice *self,
   g_autoptr(GError) local_error = NULL;
   g_autofree char *scan_id = NULL;
 
+  if (fp_device_get_finger_status (FP_DEVICE (self)) == FP_FINGER_STATUS_NONE)
+    self->injected_synthetic_cmd = FALSE;
+
   scan_id = process_cmds (self, TRUE, &local_error);
 
   if (!self->sleep_timeout_id)
@@ -376,6 +382,8 @@ start_scan_command (FpDeviceVirtualDevice *self,
 
   if (should_wait_for_command (self, local_error))
     {
+      g_assert (!scan_id);
+
       g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PENDING,
                            "Still waiting for command");
       return NULL;
@@ -389,6 +397,51 @@ start_scan_command (FpDeviceVirtualDevice *self,
                                              FP_FINGER_STATUS_NONE);
 
   return g_steal_pointer (&scan_id);
+}
+
+gboolean
+should_wait_to_sleep (FpDeviceVirtualDevice *self,
+                      const char            *scan_id,
+                      GError                *error)
+{
+  const gchar *cmd;
+
+  if (self->sleep_timeout_id)
+    return TRUE;
+
+  if (!self->pending_commands->len)
+    return FALSE;
+
+  cmd = g_ptr_array_index (self->pending_commands, 0);
+
+  if (g_str_has_prefix (cmd, SLEEP_CMD_PREFIX))
+    {
+      g_free (process_cmds (self, FALSE, NULL));
+
+      g_assert (!self->injected_synthetic_cmd);
+      g_assert (self->sleep_timeout_id != 0);
+
+      if (!self->pending_commands->len)
+        {
+          g_autofree char *injected_cmd = NULL;
+
+          if (scan_id)
+            injected_cmd = g_strconcat (SCAN_CMD_PREFIX, scan_id, NULL);
+          else if (error && error->domain == FP_DEVICE_ERROR)
+            injected_cmd = g_strdup_printf (ERROR_CMD_PREFIX " %d", error->code);
+          else if (error && error->domain == FP_DEVICE_RETRY)
+            injected_cmd = g_strdup_printf (RETRY_CMD_PREFIX " %d", error->code);
+          else
+            return TRUE;
+
+          g_debug ("Sleeping now, command queued for later: %s", injected_cmd);
+
+          g_ptr_array_insert (self->pending_commands, 0, g_steal_pointer (&injected_cmd));
+          self->injected_synthetic_cmd = TRUE;
+        }
+    }
+
+  return self->sleep_timeout_id != 0;
 }
 
 static void
@@ -422,10 +475,14 @@ dev_verify (FpDevice *dev)
 
       success = fp_print_equal (print, new_scan);
 
-      fpi_device_verify_report (dev,
-                                success ? FPI_MATCH_SUCCESS : FPI_MATCH_FAIL,
-                                new_scan,
-                                NULL);
+      if (!self->match_reported)
+        {
+          self->match_reported = TRUE;
+          fpi_device_verify_report (dev,
+                                    success ? FPI_MATCH_SUCCESS : FPI_MATCH_FAIL,
+                                    new_scan,
+                                    NULL);
+        }
     }
   else
     {
@@ -439,6 +496,10 @@ dev_verify (FpDevice *dev)
   if (error && error->domain == FP_DEVICE_RETRY)
     fpi_device_verify_report (dev, FPI_MATCH_ERROR, NULL, g_steal_pointer (&error));
 
+  if (should_wait_to_sleep (self, scan_id, error))
+    return;
+
+  self->match_reported = FALSE;
   fpi_device_verify_complete (dev, g_steal_pointer (&error));
 }
 
@@ -517,6 +578,9 @@ dev_enroll (FpDevice *dev)
         }
       else
         {
+          if (should_wait_to_sleep (self, id, error))
+            return;
+
           self->enroll_stages_passed = 0;
           fpi_device_enroll_complete (dev, NULL, g_steal_pointer (&error));
         }
@@ -527,6 +591,12 @@ static void
 dev_cancel (FpDevice *dev)
 {
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
+
+  if (self->injected_synthetic_cmd)
+    {
+      self->injected_synthetic_cmd = FALSE;
+      g_ptr_array_remove_index (self->pending_commands, 0);
+    }
 
   if (!self->supports_cancellation)
     return;

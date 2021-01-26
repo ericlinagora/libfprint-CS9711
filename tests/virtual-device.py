@@ -526,6 +526,25 @@ class VirtualDevice(unittest.TestCase):
         self.assertFalse(self._verify_completed)
         self.cancel_verify()
 
+    def test_device_sleep_before_completing_verify(self):
+        enrolled = self.enroll_print('foo-print', FPrint.Finger.LEFT_RING)
+
+        self.send_command('SLEEP', 100)
+        self.start_verify(enrolled, identify=self.dev.supports_identify())
+        self.send_command('SCAN', 'bar-print')
+        self.send_command('SLEEP', 800)
+
+        while not self._verify_reported:
+            ctx.iteration(False)
+
+        self.assertFalse(self._verify_completed)
+        self.wait_timeout(10)
+        self.assertFalse(self._verify_completed)
+
+        self.complete_verify()
+        self.assertTrue(self._verify_reported)
+
+
 class VirtualDeviceStorage(VirtualDevice):
 
     def tearDown(self):
