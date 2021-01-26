@@ -122,10 +122,19 @@ static void
 dev_list (FpDevice *dev)
 {
   g_autoptr(GPtrArray) prints_list = NULL;
+  g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *vdev = FP_DEVICE_VIRTUAL_DEVICE (dev);
   struct ListData data;
 
-  process_cmds (vdev, FALSE, NULL);
+  process_cmds (vdev, FALSE, &error);
+  if (should_wait_for_command (vdev, error))
+    return;
+
+  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+    {
+      fpi_device_list_complete (dev, NULL, g_steal_pointer (&error));
+      return;
+    }
 
   prints_list = g_ptr_array_new_full (g_hash_table_size (vdev->prints_storage), NULL);
   data.dev = dev;
@@ -140,11 +149,20 @@ static void
 dev_delete (FpDevice *dev)
 {
   g_autoptr(GVariant) data = NULL;
+  g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *vdev = FP_DEVICE_VIRTUAL_DEVICE (dev);
   FpPrint *print = NULL;
   const char *id = NULL;
 
-  process_cmds (vdev, FALSE, NULL);
+  process_cmds (vdev, FALSE, &error);
+  if (should_wait_for_command (vdev, error))
+    return;
+
+  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+    {
+      fpi_device_delete_complete (dev, g_steal_pointer (&error));
+      return;
+    }
 
   fpi_device_get_delete_data (dev, &print);
 

@@ -70,6 +70,14 @@ maybe_continue_current_action (FpDeviceVirtualDevice *self)
       FP_DEVICE_GET_CLASS (self)->identify (dev);
       break;
 
+    case FPI_DEVICE_ACTION_LIST:
+      FP_DEVICE_GET_CLASS (self)->list (dev);
+      break;
+
+    case FPI_DEVICE_ACTION_DELETE:
+      FP_DEVICE_GET_CLASS (self)->delete (dev);
+      break;
+
     default:
       break;
     }
@@ -141,6 +149,14 @@ process_cmds (FpDeviceVirtualDevice * self,
 
           return NULL;
         }
+      else if (g_str_has_prefix (cmd, ERROR_CMD_PREFIX))
+        {
+          g_propagate_error (error,
+                             fpi_device_error_new (g_ascii_strtoull (cmd + strlen (ERROR_CMD_PREFIX), NULL, 10)));
+
+          g_ptr_array_remove_index (self->pending_commands, 0);
+          return NULL;
+        }
 
       /* If we are not scanning, then we have to stop here. */
       if (!scan)
@@ -152,14 +168,6 @@ process_cmds (FpDeviceVirtualDevice * self,
 
           g_ptr_array_remove_index (self->pending_commands, 0);
           return res;
-        }
-      else if (g_str_has_prefix (cmd, ERROR_CMD_PREFIX))
-        {
-          g_propagate_error (error,
-                             fpi_device_error_new (g_ascii_strtoull (cmd + strlen (ERROR_CMD_PREFIX), NULL, 10)));
-
-          g_ptr_array_remove_index (self->pending_commands, 0);
-          return NULL;
         }
       else if (g_str_has_prefix (cmd, RETRY_CMD_PREFIX))
         {
@@ -338,6 +346,20 @@ wait_for_command_timeout (gpointer data)
   GError *error = NULL;
 
   self->wait_command_id = 0;
+
+  switch (fpi_device_get_current_action (FP_DEVICE (self)))
+    {
+    case FPI_DEVICE_ACTION_LIST:
+    case FPI_DEVICE_ACTION_DELETE:
+      self->ignore_wait = TRUE;
+      maybe_continue_current_action (self);
+      self->ignore_wait = FALSE;
+      return FALSE;
+
+    default:
+      break;
+    }
+
   error = g_error_new (G_IO_ERROR, G_IO_ERROR_TIMED_OUT, "No commands arrived in time to run!");
   fpi_device_action_error (FP_DEVICE (self), error);
 
@@ -350,6 +372,9 @@ should_wait_for_command (FpDeviceVirtualDevice *self,
 {
   if (!error && self->sleep_timeout_id)
     return TRUE;
+
+  if (self->ignore_wait)
+    return FALSE;
 
   if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
     return FALSE;

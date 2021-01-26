@@ -586,6 +586,47 @@ class VirtualDeviceStorage(VirtualDevice):
         self.dev.delete_print_sync(p)
         self.assertFalse(self.dev.list_prints_sync())
 
+    def test_delete_error(self):
+        deleted_res = None
+        def on_deleted(dev, res):
+            nonlocal deleted_res
+            try:
+                deleted_res = dev.delete_print_finish(res)
+            except GLib.Error as e:
+                deleted_res = e
+
+        self.send_command('SLEEP', 100)
+        self.send_error(FPrint.DeviceError.DATA_NOT_FOUND)
+        self.dev.delete_print(FPrint.Print.new(self.dev), callback=on_deleted)
+        self.wait_timeout(2)
+        self.assertIsNone(deleted_res)
+
+        while not deleted_res:
+            ctx.iteration(True)
+
+        self.assertEqual(deleted_res.code, int(FPrint.DeviceError.DATA_NOT_FOUND))
+
+    def test_list_error(self):
+        list_res = None
+
+        def on_listed(dev, res):
+            nonlocal list_res
+            try:
+                list_res = dev.list_prints_finish(res)
+            except GLib.Error as e:
+                list_res = e
+
+        self.send_command('SLEEP', 100)
+        self.send_error(FPrint.DeviceError.BUSY)
+        self.dev.list_prints(callback=on_listed)
+        self.wait_timeout(2)
+        self.assertIsNone(list_res)
+
+        while not list_res:
+            ctx.iteration(True)
+
+        self.assertEqual(list_res.code, int(FPrint.DeviceError.BUSY))
+
     def test_list_delete_missing(self):
         p = self.enroll_print('testprint', FPrint.Finger.RIGHT_THUMB)
         self.send_command('REMOVE', 'testprint')
