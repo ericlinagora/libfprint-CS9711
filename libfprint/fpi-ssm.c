@@ -130,6 +130,7 @@ fpi_ssm_new_full (FpDevice             *dev,
 {
   FpiSsm *machine;
 
+  BUG_ON (dev == NULL);
   BUG_ON (nr_states < 1);
   BUG_ON (handler == NULL);
 
@@ -155,6 +156,8 @@ fpi_ssm_set_data (FpiSsm        *machine,
                   gpointer       ssm_data,
                   GDestroyNotify ssm_data_destroy)
 {
+  g_return_if_fail (machine);
+
   if (machine->ssm_data_destroy && machine->ssm_data)
     machine->ssm_data_destroy (machine->ssm_data);
 
@@ -173,12 +176,16 @@ fpi_ssm_set_data (FpiSsm        *machine,
 void *
 fpi_ssm_get_data (FpiSsm *machine)
 {
+  g_return_val_if_fail (machine, NULL);
+
   return machine->ssm_data;
 }
 
 static void
 fpi_ssm_clear_delayed_action (FpiSsm *machine)
 {
+  g_return_if_fail (machine);
+
   if (machine->cancellable_id)
     {
       g_cancellable_disconnect (machine->cancellable, machine->cancellable_id);
@@ -235,6 +242,8 @@ fpi_ssm_set_delayed_action_timeout (FpiSsm        *machine,
                                     gpointer       user_data,
                                     GDestroyNotify destroy_func)
 {
+  g_return_if_fail (machine);
+
   BUG_ON (machine->completed);
   BUG_ON (machine->timeout != NULL);
 
@@ -302,6 +311,8 @@ __ssm_call_handler (FpiSsm *machine)
 void
 fpi_ssm_start (FpiSsm *ssm, FpiSsmCompletedCallback callback)
 {
+  g_return_if_fail (ssm != NULL);
+
   BUG_ON (!ssm->completed);
   ssm->callback = callback;
   ssm->cur_state = 0;
@@ -336,6 +347,9 @@ __subsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 void
 fpi_ssm_start_subsm (FpiSsm *parent, FpiSsm *child)
 {
+  g_return_if_fail (parent != NULL);
+  g_return_if_fail (child != NULL);
+
   BUG_ON (parent->timeout);
   child->parentsm = parent;
 
@@ -355,6 +369,8 @@ fpi_ssm_start_subsm (FpiSsm *parent, FpiSsm *child)
 void
 fpi_ssm_mark_completed (FpiSsm *machine)
 {
+  g_return_if_fail (machine != NULL);
+
   BUG_ON (machine->completed);
   BUG_ON (machine->timeout != NULL);
 
@@ -427,6 +443,7 @@ fpi_ssm_mark_completed_delayed (FpiSsm       *machine,
 void
 fpi_ssm_mark_failed (FpiSsm *machine, GError *error)
 {
+  g_return_if_fail (machine != NULL);
   g_assert (error);
   if (machine->error)
     {
@@ -534,6 +551,8 @@ fpi_ssm_next_state_delayed (FpiSsm       *machine,
 void
 fpi_ssm_jump_to_state (FpiSsm *machine, int state)
 {
+  g_return_if_fail (machine != NULL);
+
   BUG_ON (machine->completed);
   BUG_ON (state < 0 || state >= machine->nr_states);
   BUG_ON (machine->timeout != NULL);
@@ -610,6 +629,8 @@ fpi_ssm_jump_to_state_delayed (FpiSsm       *machine,
 int
 fpi_ssm_get_cur_state (FpiSsm *machine)
 {
+  g_return_val_if_fail (machine != NULL, 0);
+
   return machine->cur_state;
 }
 
@@ -624,6 +645,8 @@ fpi_ssm_get_cur_state (FpiSsm *machine)
 GError *
 fpi_ssm_get_error (FpiSsm *machine)
 {
+  g_return_val_if_fail (machine != NULL, NULL);
+
   return machine->error;
 }
 
@@ -638,6 +661,8 @@ fpi_ssm_get_error (FpiSsm *machine)
 GError *
 fpi_ssm_dup_error (FpiSsm *machine)
 {
+  g_return_val_if_fail (machine != NULL, NULL);
+
   if (machine->error)
     return g_error_copy (machine->error);
 
