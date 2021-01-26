@@ -513,7 +513,7 @@ dev_verify (FpDevice *dev)
                                     NULL);
         }
     }
-  else
+  else if (error)
     {
       g_debug ("Virtual device scan failed with error: %s", error->message);
     }
