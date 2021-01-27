@@ -136,7 +136,7 @@ dev_list (FpDevice *dev)
       return;
     }
 
-  prints_list = g_ptr_array_new_full (g_hash_table_size (vdev->prints_storage), NULL);
+  prints_list = g_ptr_array_new_full (g_hash_table_size (vdev->prints_storage), g_object_unref);
   data.dev = dev;
   data.res = prints_list;
 
