@@ -558,6 +558,16 @@ dev_enroll (FpDevice *dev)
       GVariant *data;
       gboolean completed;
 
+      if (self->prints_storage && g_hash_table_contains (self->prints_storage, id))
+        {
+          if (should_wait_to_sleep (self, id, error))
+            return;
+
+          fpi_device_enroll_complete (dev, NULL,
+                                      fpi_device_error_new (FP_DEVICE_ERROR_DATA_DUPLICATE));
+          return;
+        }
+
       if (self->enroll_stages_passed == 0)
         {
           fpi_print_set_type (print, FPI_PRINT_RAW);
