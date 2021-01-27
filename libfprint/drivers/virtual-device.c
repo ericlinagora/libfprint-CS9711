@@ -478,22 +478,21 @@ dev_verify (FpDevice *dev)
 {
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
-  FpPrint *print;
   g_autofree char *scan_id = NULL;
 
   scan_id = start_scan_command (self, &error);
   if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_PENDING))
     return;
 
-  fpi_device_get_verify_data (dev, &print);
-
   if (scan_id)
     {
       GVariant *data = NULL;
       FpPrint *new_scan;
+      FpPrint *print;
       gboolean success;
 
       g_debug ("Virtual device scanned print %s", scan_id);
+      fpi_device_get_verify_data (dev, &print);
 
       new_scan = fp_print_new (dev);
       fpi_print_set_type (new_scan, FPI_PRINT_RAW);
@@ -502,7 +501,15 @@ dev_verify (FpDevice *dev)
       data = g_variant_new_string (scan_id);
       g_object_set (new_scan, "fpi-data", data, NULL);
 
-      success = fp_print_equal (print, new_scan);
+      if (self->prints_storage && !g_hash_table_contains (self->prints_storage, scan_id))
+        {
+          error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND);
+          success = FALSE;
+        }
+      else
+        {
+          success = fp_print_equal (print, new_scan);
+        }
 
       if (!self->match_reported)
         {

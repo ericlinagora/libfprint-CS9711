@@ -33,22 +33,23 @@
 
 G_DEFINE_TYPE (FpDeviceVirtualDeviceStorage, fpi_device_virtual_device_storage, fpi_device_virtual_device_get_type ())
 
+static GPtrArray * get_stored_prints (FpDeviceVirtualDevice * self);
+
 static void
 dev_identify (FpDevice *dev)
 {
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
-  GPtrArray *prints;
   g_autofree char *scan_id = NULL;
 
   scan_id = start_scan_command (self, &error);
   if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_PENDING))
     return;
 
-  fpi_device_get_identify_data (dev, &prints);
-
   if (scan_id)
     {
+      g_autoptr(GPtrArray) stored = get_stored_prints (self);
+      GPtrArray *prints;
       GVariant *data = NULL;
       FpPrint *new_scan;
       FpPrint *match = NULL;
@@ -56,17 +57,22 @@ dev_identify (FpDevice *dev)
 
       new_scan = fp_print_new (dev);
       fpi_print_set_type (new_scan, FPI_PRINT_RAW);
-      if (self->prints_storage)
-        fpi_print_set_device_stored (new_scan, TRUE);
+      fpi_print_set_device_stored (new_scan, TRUE);
       data = g_variant_new_string (scan_id);
       g_object_set (new_scan, "fpi-data", data, NULL);
 
+      fpi_device_get_identify_data (dev, &prints);
       g_debug ("Trying to identify print '%s' against a gallery of %u prints", scan_id, prints->len);
 
-      if (g_ptr_array_find_with_equal_func (prints,
-                                            new_scan,
-                                            (GEqualFunc) fp_print_equal,
-                                            &idx))
+      if (!g_ptr_array_find_with_equal_func (stored,
+                                             new_scan,
+                                             (GEqualFunc) fp_print_equal,
+                                             NULL))
+        error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND);
+      else if (g_ptr_array_find_with_equal_func (prints,
+                                                 new_scan,
+                                                 (GEqualFunc) fp_print_equal,
+                                                 &idx))
         match = g_ptr_array_index (prints, idx);
 
       if (!self->match_reported)
@@ -118,13 +124,28 @@ dev_list_insert_print (gpointer key,
   g_ptr_array_add (data->res, print);
 }
 
+static GPtrArray *
+get_stored_prints (FpDeviceVirtualDevice *self)
+{
+  GPtrArray * prints_list;
+  struct ListData data;
+
+  prints_list = g_ptr_array_new_full (g_hash_table_size (self->prints_storage),
+                                      g_object_unref);
+  data.dev = FP_DEVICE (self);
+  data.res = prints_list;
+
+  g_hash_table_foreach (self->prints_storage, dev_list_insert_print, &data);
+
+  return prints_list;
+}
+
 static void
 dev_list (FpDevice *dev)
 {
   g_autoptr(GPtrArray) prints_list = NULL;
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *vdev = FP_DEVICE_VIRTUAL_DEVICE (dev);
-  struct ListData data;
 
   process_cmds (vdev, FALSE, &error);
   if (should_wait_for_command (vdev, error))
@@ -136,13 +157,7 @@ dev_list (FpDevice *dev)
       return;
     }
 
-  prints_list = g_ptr_array_new_full (g_hash_table_size (vdev->prints_storage), g_object_unref);
-  data.dev = dev;
-  data.res = prints_list;
-
-  g_hash_table_foreach (vdev->prints_storage, dev_list_insert_print, &data);
-
-  fpi_device_list_complete (dev, g_steal_pointer (&prints_list), NULL);
+  fpi_device_list_complete (dev, get_stored_prints (vdev), NULL);
 }
 
 static void
