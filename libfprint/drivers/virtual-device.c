@@ -164,7 +164,11 @@ process_cmds (FpDeviceVirtualDevice * self,
 
       /* If we are not scanning, then we have to stop here. */
       if (!scan)
-        break;
+        {
+          g_warning ("Could not process command: %s", cmd);
+          g_ptr_array_remove_index (self->pending_commands, 0);
+          break;
+        }
 
       if (g_str_has_prefix (cmd, SCAN_CMD_PREFIX))
         {

@@ -556,6 +556,12 @@ class VirtualDevice(unittest.TestCase):
         self.assertFalse(self._verify_completed)
         self.cancel_verify()
 
+        # Since we don't really cancel here, next command will be passed to release
+        self._close_on_teardown = False
+        with GLibErrorMessage('libfprint-virtual_device',
+            GLib.LogLevelFlags.LEVEL_WARNING, 'Could not process command: SCAN *'):
+            self.dev.close_sync()
+
     def test_device_sleep_before_completing_verify(self):
         enrolled = self.enroll_print('foo-print', FPrint.Finger.LEFT_RING)
 
