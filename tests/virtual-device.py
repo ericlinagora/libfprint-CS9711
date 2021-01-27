@@ -156,7 +156,10 @@ class VirtualDevice(unittest.TestCase):
 
         def done_cb(dev, res):
             print("Enroll done")
-            self._enrolled = dev.enroll_finish(res)
+            try:
+                self._enrolled = dev.enroll_finish(res)
+            except Exception as e:
+                self._enrolled = e
 
         self._enroll_stage = -1
         def progress_cb(dev, stage, pnt, data, error):
@@ -171,6 +174,9 @@ class VirtualDevice(unittest.TestCase):
         def enroll_in_progress():
             if self._enroll_stage < 0 and not self._enrolled:
                 return True
+
+            if isinstance(self._enrolled, Exception):
+                raise(self._enrolled)
 
             nonlocal retries
             self.assertLessEqual(self._enroll_stage, self.dev.get_nr_enroll_stages())
