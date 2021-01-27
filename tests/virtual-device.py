@@ -13,6 +13,7 @@ try:
     import struct
     import subprocess
     import shutil
+    import traceback
     import glob
     import tempfile
 except Exception as e:
@@ -45,6 +46,21 @@ class Connection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.con.close()
         del self.con
+
+
+class GLibErrorMessage:
+    def __init__(self, component, level, expected_message):
+        self.level = level
+        self.component = component
+        self.expected_message = expected_message
+
+    def __enter__(self):
+        GLib.test_expect_message(self.component, self.level, self.expected_message)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        (filename, line, func_name, text) = traceback.extract_stack()[-2]
+        GLib.test_assert_expected_messages_internal(self.component,
+            filename, line, func_name)
 
 class VirtualDevice(unittest.TestCase):
 
@@ -416,14 +432,12 @@ class VirtualDevice(unittest.TestCase):
         self.assertEqual(self.dev.get_nr_enroll_stages(), 1)
         self.assertEqual(notified_spec.name, 'nr-enroll-stages')
 
-        GLib.test_expect_message('libfprint-device',
-            GLib.LogLevelFlags.LEVEL_CRITICAL, '*enroll_stages > 0*')
-        notified_spec = None
-        self.send_command('SET_ENROLL_STAGES', 0)
-        self.assertEqual(self.dev.get_nr_enroll_stages(), 1)
-        self.assertIsNone(notified_spec)
-        GLib.test_assert_expected_messages_internal('libfprint-device',
-            __file__, 0, 'test_change_enroll_stages')
+        with GLibErrorMessage('libfprint-device',
+            GLib.LogLevelFlags.LEVEL_CRITICAL, '*enroll_stages > 0*'):
+            notified_spec = None
+            self.send_command('SET_ENROLL_STAGES', 0)
+            self.assertEqual(self.dev.get_nr_enroll_stages(), 1)
+            self.assertIsNone(notified_spec)
 
     def test_quick_enroll(self):
         self.send_command('SET_ENROLL_STAGES', 1)
@@ -446,14 +460,12 @@ class VirtualDevice(unittest.TestCase):
             self.assertEqual(self.dev.get_scan_type(), scan_type)
             self.assertEqual(notified_spec.name, 'scan-type')
 
-        GLib.test_expect_message('libfprint-virtual_device',
-            GLib.LogLevelFlags.LEVEL_WARNING, '*Scan type*not found')
-        notified_spec = None
-        self.send_command('SET_SCAN_TYPE', 'eye-contact')
-        self.assertEqual(self.dev.get_scan_type(), FPrint.ScanType.SWIPE)
-        self.assertIsNone(notified_spec)
-        GLib.test_assert_expected_messages_internal('libfprint-device',
-            __file__, 0, 'test_change_scan_type')
+        with GLibErrorMessage('libfprint-virtual_device',
+            GLib.LogLevelFlags.LEVEL_WARNING, '*Scan type*not found'):
+            notified_spec = None
+            self.send_command('SET_SCAN_TYPE', 'eye-contact')
+            self.assertEqual(self.dev.get_scan_type(), FPrint.ScanType.SWIPE)
+            self.assertIsNone(notified_spec)
 
     def test_device_unplug(self):
         self._close_on_teardown = False
