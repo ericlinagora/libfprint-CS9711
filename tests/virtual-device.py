@@ -337,6 +337,12 @@ class VirtualDevice(unittest.TestCase):
         self.assertFalse(self.dev.supports_identify())
         self.assertFalse(self.dev.supports_capture())
         self.assertFalse(self.dev.has_storage())
+        self.assertEqual(self.dev.props.driver, self.dev.get_driver())
+        self.assertEqual(self.dev.props.device_id, self.dev.get_device_id())
+        self.assertEqual(self.dev.props.name, self.dev.get_name())
+        self.assertEqual(self.dev.props.scan_type, self.dev.get_scan_type())
+        self.assertEqual(self.dev.props.nr_enroll_stages, self.dev.get_nr_enroll_stages())
+        self.assertEqual(self.dev.props.open, self.dev.is_open())
 
     def test_open_error(self):
         self._close_on_teardown = False
