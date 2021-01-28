@@ -456,14 +456,18 @@ class VirtualDevice(VirtualDeviceBase):
     def test_enroll_verify_error(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_RING)
 
-        with self.assertRaisesRegex(GLib.Error, r"An unspecified error occurred"):
+        with self.assertRaises(GLib.Error) as error:
             self.check_verify(matching, FPrint.DeviceError.GENERAL, match=False,
                 identify=self.dev.supports_identify())
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.GENERAL))
 
     def test_enroll_verify_retry(self):
-        with self.assertRaisesRegex(GLib.GError, 'too short'):
+        with self.assertRaises(GLib.GError) as error:
             self.check_verify(FPrint.Print.new(self.dev),
                 FPrint.DeviceRetry.TOO_SHORT, match=False)
+        self.assertTrue(error.exception.matches(FPrint.DeviceRetry.quark(),
+                                                FPrint.DeviceRetry.TOO_SHORT))
 
     def test_enroll_script_interactive(self):
         enrolled = None
@@ -695,8 +699,10 @@ class VirtualDevice(VirtualDeviceBase):
         self.assertTrue(self.dev.props.removed)
         self.assertTrue(removed)
 
-        with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
+        with self.assertRaises(GLib.GError) as error:
             self.dev.close_sync()
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.REMOVED))
 
     def test_device_unplug_during_verify(self):
         self._close_on_teardown = False
@@ -723,13 +729,17 @@ class VirtualDevice(VirtualDeviceBase):
         self.assertTrue(self.dev.props.removed)
         self.assertFalse(removed)
 
-        with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
+        with self.assertRaises(GLib.GError) as error:
             self.complete_verify()
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.REMOVED))
 
         self.assertTrue(removed)
 
-        with self.assertRaisesRegex(GLib.GError, 'device has been removed from the system'):
+        with self.assertRaises(GLib.GError) as error:
             self.dev.close_sync()
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.REMOVED))
 
     def test_device_sleep(self):
         self.send_sleep(1500)
@@ -1060,26 +1070,34 @@ class VirtualDeviceStorage(VirtualDevice):
         self.check_verify(rt, 'left-thumb', identify=True, match=False)
 
     def test_identify_retry(self):
-        with self.assertRaisesRegex(GLib.GError, 'too short'):
+        with self.assertRaises(GLib.GError) as error:
             self.check_verify(FPrint.Print.new(self.dev),
                 FPrint.DeviceRetry.TOO_SHORT, identify=True, match=False)
+        self.assertTrue(error.exception.matches(FPrint.DeviceRetry.quark(),
+                                                FPrint.DeviceRetry.TOO_SHORT))
 
     def test_delete_multiple_times(self):
         rt = self.enroll_print('right-thumb', FPrint.Finger.RIGHT_THUMB)
         self.dev.delete_print_sync(rt)
 
-        with self.assertRaisesRegex(GLib.Error, 'Print was not found'):
+        with self.assertRaises(GLib.Error) as error:
             self.dev.delete_print_sync(rt)
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.DATA_NOT_FOUND))
 
     def test_verify_missing_print(self):
-        with self.assertRaisesRegex(GLib.Error, 'Print was not found'):
+        with self.assertRaises(GLib.Error) as error:
             self.check_verify(FPrint.Print.new(self.dev),
                 'not-existing-print', False, identify=False)
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.DATA_NOT_FOUND))
 
     def test_identify_missing_print(self):
-        with self.assertRaisesRegex(GLib.Error, 'Print was not found'):
+        with self.assertRaises(GLib.Error) as error:
             self.check_verify(FPrint.Print.new(self.dev),
                               'not-existing-print', False, identify=True)
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.DATA_NOT_FOUND))
 
 
 if __name__ == '__main__':
