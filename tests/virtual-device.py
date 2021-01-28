@@ -427,6 +427,87 @@ class VirtualDevice(VirtualDeviceBase):
             self.check_verify(FPrint.Print.new(self.dev),
                 FPrint.DeviceRetry.TOO_SHORT, match=False)
 
+    def test_enroll_script_interactive(self):
+        enrolled = None
+        def done_cb(dev, res):
+            nonlocal enrolled
+            try:
+                enrolled = dev.enroll_finish(res)
+            except Exception as e:
+                enrolled = e
+
+        enroll_stage = 0
+        enroll_progress_error = None
+        def progress_cb(dev, stage, pnt, data, error):
+            nonlocal enroll_stage, enroll_progress_error
+            enroll_stage = stage
+            enroll_progress_error = error
+
+        def wait_for_next_stage(expected):
+            nonlocal enroll_stage, enroll_progress_error
+            enroll_progress_error = None
+            next_stage = enroll_stage + 1
+            while enroll_stage < next_stage and not enroll_progress_error:
+                ctx.iteration(True)
+
+            if isinstance(expected, FPrint.DeviceRetry):
+                self.assertEqual(enroll_stage, next_stage - 1)
+                self.assertEqual(enroll_progress_error.code, int(expected))
+            else:
+                self.assertEqual(enroll_stage, expected)
+                self.assertIsNone(enroll_progress_error)
+            self.assertIsNone(enrolled)
+
+        self.send_sleep(50)
+        self.send_command('SCAN', 'print-id')
+        self.send_command('SCAN', 'print-id')
+        self.send_auto(FPrint.DeviceRetry.TOO_SHORT)
+        self.send_command('SCAN', 'print-id')
+        self.send_sleep(50)
+        self.send_command('SCAN', 'print-id')
+        self.send_auto(FPrint.DeviceRetry.CENTER_FINGER)
+        self.send_command('SCAN', 'another-id')
+        self.send_command('SCAN', 'print-id')
+
+        self.dev.enroll(FPrint.Print.new(self.dev), callback=done_cb,
+            progress_cb=progress_cb)
+
+        wait_for_next_stage(1)
+        wait_for_next_stage(2)
+        wait_for_next_stage(FPrint.DeviceRetry.TOO_SHORT)
+        wait_for_next_stage(3)
+        wait_for_next_stage(4)
+        wait_for_next_stage(FPrint.DeviceRetry.CENTER_FINGER)
+        wait_for_next_stage(FPrint.DeviceRetry.GENERAL)
+        wait_for_next_stage(5)
+
+        while not enrolled:
+            ctx.iteration(True)
+
+        self.assertEqual(enrolled.get_driver(), self.dev.get_driver())
+
+    def test_enroll_script(self):
+        self.send_command('SET_ENROLL_STAGES', 8)
+        self.send_command('SCAN', 'print-id')
+        self.send_command('SCAN', 'print-id')
+        self.send_auto(FPrint.DeviceRetry.TOO_SHORT)
+        self.send_command('SCAN', 'print-id')
+        self.send_auto(FPrint.DeviceRetry.REMOVE_FINGER)
+        self.send_command('SCAN', 'print-id')
+        self.send_auto(FPrint.DeviceRetry.CENTER_FINGER)
+        self.send_command('SCAN', 'print-id')
+        self.send_sleep(10)
+        self.send_sleep(20)
+        self.send_auto(FPrint.DeviceRetry.GENERAL)
+        self.send_auto(FPrint.DeviceRetry.REMOVE_FINGER)
+        self.send_command('SCAN', 'print-id')
+        self.send_command('SCAN', 'another-id')
+        self.send_command('SCAN', 'print-id')
+        self.send_command('SCAN', 'print-id')
+
+        enrolled = self.dev.enroll_sync(FPrint.Print.new(self.dev))
+        self.assertEqual(enrolled.get_driver(), self.dev.get_driver())
+
     def test_finger_status(self):
         self.start_verify(FPrint.Print.new(self.dev),
             identify=self.dev.supports_identify())

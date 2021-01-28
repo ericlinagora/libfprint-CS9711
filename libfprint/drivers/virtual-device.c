@@ -613,7 +613,11 @@ dev_enroll (FpDevice *dev)
           if (changed)
             {
               g_set_error (&error, FP_DEVICE_RETRY, FP_DEVICE_RETRY_GENERAL, "ID Mismatch");
-              fpi_device_enroll_progress (dev, self->enroll_stages_passed, NULL, error);
+              fpi_device_enroll_progress (dev, self->enroll_stages_passed, NULL,
+                                          g_steal_pointer (&error));
+
+              if (!should_wait_to_sleep (self, id, error))
+                self->sleep_timeout_id = g_idle_add (sleep_timeout_cb, self);
               return;
             }
         }
@@ -639,6 +643,10 @@ dev_enroll (FpDevice *dev)
           fpi_device_enroll_complete (dev, g_object_ref (print), NULL);
           self->enroll_stages_passed = 0;
         }
+      else if (!should_wait_to_sleep (self, id, error))
+        {
+          self->sleep_timeout_id = g_idle_add (sleep_timeout_cb, self);
+        }
     }
   else
     {
@@ -649,6 +657,9 @@ dev_enroll (FpDevice *dev)
       if (error && error->domain == FP_DEVICE_RETRY)
         {
           fpi_device_enroll_progress (dev, self->enroll_stages_passed, NULL, g_steal_pointer (&error));
+
+          if (!should_wait_to_sleep (self, id, error))
+            self->sleep_timeout_id = g_idle_add (sleep_timeout_cb, self);
         }
       else
         {
