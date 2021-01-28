@@ -469,7 +469,11 @@ should_wait_to_sleep (FpDeviceVirtualDevice *self,
 
   if (g_str_has_prefix (cmd, SLEEP_CMD_PREFIX))
     {
-      g_free (process_cmds (self, FALSE, NULL));
+      g_autoptr(GError) local_error = NULL;
+      g_free (process_cmds (self, FALSE, &local_error));
+
+      if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        return FALSE;
 
       g_assert (!self->injected_synthetic_cmd);
       g_assert (self->sleep_timeout_id != 0);
