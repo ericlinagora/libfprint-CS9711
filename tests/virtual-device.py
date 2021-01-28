@@ -123,7 +123,7 @@ class VirtualDevice(unittest.TestCase):
     def send_command(self, command, *args):
         self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY',
             'FINGER', 'UNPLUG', 'SLEEP', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE',
-            'SET_CANCELLATION_ENABLED'])
+            'SET_CANCELLATION_ENABLED', 'IGNORED_COMMAND'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -332,6 +332,45 @@ class VirtualDevice(unittest.TestCase):
         self.assertFalse(self.dev.supports_identify())
         self.assertFalse(self.dev.supports_capture())
         self.assertFalse(self.dev.has_storage())
+
+    def test_open_error(self):
+        self._close_on_teardown = False
+        self.send_command('IGNORED_COMMAND') # This will be consumed by close
+        self.send_error(FPrint.DeviceError.PROTO) # This will be consumed by open
+
+        with GLibErrorMessage('libfprint-virtual_device',
+            GLib.LogLevelFlags.LEVEL_WARNING, 'Could not process command: *'):
+            self.dev.close_sync()
+
+        with self.assertRaises(GLib.Error) as error:
+            self.dev.open_sync()
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.PROTO))
+
+    def test_delayed_open(self):
+        self.send_command('IGNORED_COMMAND') # This will be consumed by close
+        self.send_sleep(500) # This will be consumed by open
+
+        with GLibErrorMessage('libfprint-virtual_device',
+            GLib.LogLevelFlags.LEVEL_WARNING, 'Could not process command: *'):
+            self.dev.close_sync()
+
+        opened = False
+        def on_opened(dev, res):
+            nonlocal opened
+            dev.open_finish(res)
+            opened = True
+
+        self.dev.open(callback=on_opened)
+
+        self.wait_timeout(10)
+        self.assertFalse(self.dev.is_open())
+
+        self.wait_timeout(10)
+        self.assertFalse(self.dev.is_open())
+
+        while not opened:
+            ctx.iteration(True)
 
     def test_enroll(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)

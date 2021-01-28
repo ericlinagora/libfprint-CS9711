@@ -78,6 +78,10 @@ maybe_continue_current_action (FpDeviceVirtualDevice *self)
       FP_DEVICE_GET_CLASS (self)->delete (dev);
       break;
 
+    case FPI_DEVICE_ACTION_OPEN:
+      FP_DEVICE_GET_CLASS (self)->open (dev);
+      break;
+
     case FPI_DEVICE_ACTION_CLOSE:
       FP_DEVICE_GET_CLASS (self)->close (dev);
       break;
@@ -326,6 +330,22 @@ dev_init (FpDevice *dev)
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
 
   G_DEBUG_HERE ();
+
+  process_cmds (self, FALSE, &error);
+  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+    {
+      fpi_device_open_complete (dev, g_steal_pointer (&error));
+      return;
+    }
+  else if (self->sleep_timeout_id)
+    {
+      return;
+    }
+  else if (self->listener)
+    {
+      fpi_device_open_complete (dev, NULL);
+      return;
+    }
 
   listener = fp_device_virtual_listener_new ();
   cancellable = g_cancellable_new ();
