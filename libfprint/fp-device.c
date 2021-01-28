@@ -979,7 +979,7 @@ fp_device_verify_finish (FpDevice     *device,
 
       data = g_task_get_task_data (G_TASK (result));
 
-      *print = data->print;
+      *print = data ? data->print : NULL;
       if (*print)
         g_object_ref (*print);
     }
@@ -1092,13 +1092,13 @@ fp_device_identify_finish (FpDevice     *device,
 
   if (print)
     {
-      *print = data->print;
+      *print = data ? data->print : NULL;
       if (*print)
         g_object_ref (*print);
     }
   if (match)
     {
-      *match = data->match;
+      *match = data ? data->match : NULL;
       if (*match)
         g_object_ref (*match);
     }
