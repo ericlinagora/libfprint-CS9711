@@ -185,7 +185,7 @@ fp_device_get_property (GObject    *object,
   switch (prop_id)
     {
     case PROP_NR_ENROLL_STAGES:
-      g_value_set_int (value, priv->nr_enroll_stages);
+      g_value_set_uint (value, priv->nr_enroll_stages);
       break;
 
     case PROP_SCAN_TYPE:
@@ -197,7 +197,7 @@ fp_device_get_property (GObject    *object,
       break;
 
     case PROP_DRIVER:
-      g_value_set_static_string (value, FP_DEVICE_GET_CLASS (priv)->id);
+      g_value_set_static_string (value, FP_DEVICE_GET_CLASS (self)->id);
       break;
 
     case PROP_DEVICE_ID:
