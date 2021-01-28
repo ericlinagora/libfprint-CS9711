@@ -44,6 +44,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define SET_ENROLL_STAGES_PREFIX "SET_ENROLL_STAGES "
 #define SET_SCAN_TYPE_PREFIX "SET_SCAN_TYPE "
 #define SET_CANCELLATION_PREFIX "SET_CANCELLATION_ENABLED "
+#define SET_KEEP_ALIVE_PREFIX "SET_KEEP_ALIVE "
 
 #define LIST_CMD "LIST"
 #define UNPLUG_CMD "UNPLUG"
@@ -288,6 +289,13 @@ recv_instruction_cb (GObject      *source_object,
 
           g_debug ("Cancellation support toggled: %d",
                    self->supports_cancellation);
+        }
+      else if (g_str_has_prefix (cmd, SET_KEEP_ALIVE_PREFIX))
+        {
+          self->keep_alive = g_ascii_strtoull (
+            cmd + strlen (SET_KEEP_ALIVE_PREFIX), NULL, 10) != 0;
+
+          g_debug ("Keep alive toggled: %d", self->keep_alive);
         }
       else
         {
@@ -693,6 +701,14 @@ dev_cancel (FpDevice *dev)
 }
 
 static void
+stop_listener (FpDeviceVirtualDevice *self)
+{
+  g_cancellable_cancel (self->cancellable);
+  g_clear_object (&self->cancellable);
+  g_clear_object (&self->listener);
+}
+
+static void
 dev_deinit (FpDevice *dev)
 {
   g_autoptr(GError) error = NULL;
@@ -711,10 +727,9 @@ dev_deinit (FpDevice *dev)
 
   g_clear_handle_id (&self->wait_command_id, g_source_remove);
   g_clear_handle_id (&self->sleep_timeout_id, g_source_remove);
-  g_cancellable_cancel (self->cancellable);
-  g_clear_object (&self->cancellable);
-  g_clear_object (&self->listener);
-  g_clear_object (&self->listener);
+
+  if (!self->keep_alive)
+    stop_listener (self);
 
   fpi_device_close_complete (dev, NULL);
 }
@@ -725,6 +740,7 @@ fpi_device_virtual_device_finalize (GObject *object)
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (object);
 
   G_DEBUG_HERE ();
+  stop_listener (self);
   g_clear_pointer (&self->pending_commands, g_ptr_array_unref);
   G_OBJECT_CLASS (fpi_device_virtual_device_parent_class)->finalize (object);
 }

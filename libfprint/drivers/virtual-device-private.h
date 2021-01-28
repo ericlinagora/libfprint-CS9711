@@ -84,6 +84,7 @@ struct _FpDeviceVirtualDevice
   gboolean                 supports_cancellation;
   gboolean                 injected_synthetic_cmd;
   gboolean                 ignore_wait;
+  gboolean                 keep_alive;
 };
 
 /* Not really final here, but we can do this to share the FpDeviceVirtualDevice
