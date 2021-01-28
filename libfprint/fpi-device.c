@@ -752,6 +752,21 @@ fp_device_task_return_in_idle_cb (gpointer user_data)
   priv->current_action = FPI_DEVICE_ACTION_NONE;
   priv->current_task_idle_return_source = NULL;
 
+  if (action == FPI_DEVICE_ACTION_OPEN &&
+      data->type != FP_DEVICE_TASK_RETURN_ERROR)
+    {
+      priv->is_open = TRUE;
+      g_object_notify (G_OBJECT (data->device), "open");
+    }
+  else if (action == FPI_DEVICE_ACTION_CLOSE)
+    {
+      /* Always consider the device closed. Drivers should try hard to close the
+       * device. Generally, e.g. cancellations should be ignored.
+       */
+      priv->is_open = FALSE;
+      g_object_notify (G_OBJECT (data->device), "open");
+    }
+
   /* Return FP_DEVICE_ERROR_REMOVED if the device is removed,
    * with the exception of a successful open, which is an odd corner case. */
   if (priv->is_removed &&
@@ -922,12 +937,6 @@ fpi_device_open_complete (FpDevice *device, GError *error)
   fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
 
   if (!error)
-    {
-      priv->is_open = TRUE;
-      g_object_notify (G_OBJECT (device), "open");
-    }
-
-  if (!error)
     fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
                                     GUINT_TO_POINTER (TRUE));
   else
@@ -976,12 +985,6 @@ fpi_device_close_complete (FpDevice *device, GError *error)
                                       fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
       return;
     }
-
-  /* Always consider the device closed. Drivers should try hard to close the
-   * device. Generally, e.g. cancellations should be ignored.
-   */
-  priv->is_open = FALSE;
-  g_object_notify (G_OBJECT (device), "open");
 
   if (!error)
     fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
