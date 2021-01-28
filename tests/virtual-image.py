@@ -223,6 +223,10 @@ class VirtualImage(unittest.TestCase):
             ctx.iteration(True)
 
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
+        self.assertEqual(self._enrolled.props.driver, self.dev.get_driver())
+        self.assertEqual(self._enrolled.props.device_id, self.dev.get_device_id())
+        self.assertEqual(self._enrolled.props.device_stored, self.dev.has_storage())
+        self.assertIsNone(self._enrolled.get_image())
 
         return self._enrolled
 
@@ -244,6 +248,7 @@ class VirtualImage(unittest.TestCase):
         while self._verify_match is None:
             ctx.iteration(True)
         assert(self._verify_match)
+        self.assertIsNotNone(self._verify_fp.props.image)
 
         self._verify_match = None
         self._verify_fp = None

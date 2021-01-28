@@ -238,6 +238,11 @@ class VirtualDevice(unittest.TestCase):
 
         self.assertEqual(self._enrolled.get_device_stored(),
             self.dev.has_storage())
+        self.assertEqual(self._enrolled.props.driver, self.dev.get_driver())
+        self.assertEqual(self._enrolled.props.device_id, self.dev.get_device_id())
+        self.assertEqual(self._enrolled.props.device_stored, self.dev.has_storage())
+        self.assertEqual(self._enrolled.props.fpi_data.unpack(), nick)
+        self.assertIsNone(self._enrolled.props.image)
 
         return self._enrolled
 
