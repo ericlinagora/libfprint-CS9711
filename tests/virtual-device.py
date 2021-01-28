@@ -159,6 +159,8 @@ class VirtualDeviceBase(unittest.TestCase):
             self.send_finger_report(obj & FPrint.FingerStatusFlags.PRESENT, iterate=False)
         elif isinstance(obj, FPrint.ScanType):
             self.send_command('SET_SCAN_TYPE', obj.value_nick)
+        elif isinstance(obj, FPrint.Print) and obj.props.fpi_data:
+            self.send_command('SCAN', obj.props.fpi_data.unpack())
         else:
             raise Exception('No known type found for {}'.format(obj))
 
@@ -545,6 +547,39 @@ class VirtualDevice(VirtualDeviceBase):
         enrolled = self.dev.enroll_sync(FPrint.Print.new(self.dev))
         self.assertEqual(enrolled.get_driver(), self.dev.get_driver())
         self.assertEqual(enrolled.props.fpi_data.unpack(), 'print-id')
+
+        return enrolled
+
+    def test_enroll_verify_script(self):
+        enrolled = self.test_enroll_script()
+        self.send_auto(FPrint.DeviceRetry.CENTER_FINGER)
+        with self.assertRaises(GLib.GError) as error:
+            self.dev.verify_sync(enrolled)
+        self.assertTrue(error.exception.matches(FPrint.DeviceRetry.quark(),
+                                                FPrint.DeviceRetry.CENTER_FINGER))
+
+        self.send_sleep(50)
+        self.send_auto(FPrint.DeviceRetry.TOO_SHORT)
+        with self.assertRaises(GLib.GError) as error:
+            self.dev.verify_sync(enrolled)
+        self.assertTrue(error.exception.matches(FPrint.DeviceRetry.quark(),
+                                                FPrint.DeviceRetry.TOO_SHORT))
+
+        self.send_command('SCAN', 'another-id')
+        if self.dev.has_storage():
+            with self.assertRaises(GLib.GError) as error:
+                self.dev.verify_sync(enrolled)
+            self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                    FPrint.DeviceError.DATA_NOT_FOUND))
+        else:
+            verify_match, verify_fp = self.dev.verify_sync(enrolled)
+            self.assertFalse(verify_match)
+            self.assertFalse(verify_fp.equal(enrolled))
+
+        self.send_auto(enrolled)
+        verify_match, verify_fp = self.dev.verify_sync(enrolled)
+        self.assertTrue(verify_match)
+        self.assertTrue(verify_fp.equal(enrolled))
 
     def test_finger_status(self):
         self.start_verify(FPrint.Print.new(self.dev),
