@@ -468,9 +468,9 @@ fp_verify_ssm_done (FpiSsm *ssm, FpDevice *dev, GError *error)
   if (error && error->domain == FP_DEVICE_RETRY)
     {
       if (fpi_device_get_current_action (dev) == FPI_DEVICE_ACTION_VERIFY)
-        fpi_device_verify_report (dev, FPI_MATCH_ERROR, NULL, error);
+        fpi_device_verify_report (dev, FPI_MATCH_ERROR, NULL, g_steal_pointer (&error));
       else
-        fpi_device_identify_report (dev, NULL, NULL, error);
+        fpi_device_identify_report (dev, NULL, NULL, g_steal_pointer (&error));
     }
 
   if (fpi_device_get_current_action (dev) == FPI_DEVICE_ACTION_VERIFY)
