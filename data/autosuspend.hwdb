@@ -132,6 +132,7 @@ usb:v27C6p6496*
 usb:v27C6p60A2*
 usb:v27C6p63AC*
 usb:v27C6p639C*
+usb:v27C6p6594*
  ID_AUTOSUSPEND=1
 
 # Supported by libfprint driver synaptics
