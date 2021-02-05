@@ -348,7 +348,7 @@ synaptics_sensor_cmd (FpiDeviceSynaptics *self,
    * may only be a cancellation currently). */
   if (seq_num <= 0)
     {
-      self->last_seq_num = MAX (1, self->last_seq_num + 1);
+      self->last_seq_num = MAX (1, (self->last_seq_num + 1) & 0xff);
       real_seq_num = self->last_seq_num;
       if (seq_num == 0)
         self->cmd_seq_num = self->last_seq_num;
