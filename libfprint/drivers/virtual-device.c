@@ -217,10 +217,10 @@ process_cmds (FpDeviceVirtualDevice * self,
 static void
 write_key_to_listener (void *key, void *val, void *user_data)
 {
-  FpDeviceVirtualListener *listener = FP_DEVICE_VIRTUAL_LISTENER (user_data);
+  FpiDeviceVirtualListener *listener = FPI_DEVICE_VIRTUAL_LISTENER (user_data);
 
-  if (!fp_device_virtual_listener_write_sync (listener, key, strlen (key), NULL) ||
-      !fp_device_virtual_listener_write_sync (listener, "\n", 1, NULL))
+  if (!fpi_device_virtual_listener_write_sync (listener, key, strlen (key), NULL) ||
+      !fpi_device_virtual_listener_write_sync (listener, "\n", 1, NULL))
     g_warning ("Error writing reply to LIST command");
 }
 
@@ -230,10 +230,10 @@ recv_instruction_cb (GObject      *source_object,
                      gpointer      user_data)
 {
   g_autoptr(GError) error = NULL;
-  FpDeviceVirtualListener *listener = FP_DEVICE_VIRTUAL_LISTENER (source_object);
+  FpiDeviceVirtualListener *listener = FPI_DEVICE_VIRTUAL_LISTENER (source_object);
   gsize bytes;
 
-  bytes = fp_device_virtual_listener_read_finish (listener, res, &error);
+  bytes = fpi_device_virtual_listener_read_finish (listener, res, &error);
   fp_dbg ("Got instructions of length %ld", bytes);
 
   if (error)
@@ -306,23 +306,23 @@ recv_instruction_cb (GObject      *source_object,
         }
     }
 
-  fp_device_virtual_listener_connection_close (listener);
+  fpi_device_virtual_listener_connection_close (listener);
 }
 
 static void
 recv_instruction (FpDeviceVirtualDevice *self)
 {
-  fp_device_virtual_listener_read (self->listener,
-                                   FALSE,
-                                   self->recv_buf,
-                                   sizeof (self->recv_buf),
-                                   recv_instruction_cb,
-                                   self);
+  fpi_device_virtual_listener_read (self->listener,
+                                    FALSE,
+                                    self->recv_buf,
+                                    sizeof (self->recv_buf),
+                                    recv_instruction_cb,
+                                    self);
 }
 
 static void
-on_listener_connected (FpDeviceVirtualListener *listener,
-                       gpointer                 user_data)
+on_listener_connected (FpiDeviceVirtualListener *listener,
+                       gpointer                  user_data)
 {
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (user_data);
 
@@ -334,7 +334,7 @@ dev_init (FpDevice *dev)
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(GCancellable) cancellable = NULL;
-  g_autoptr(FpDeviceVirtualListener) listener = NULL;
+  g_autoptr(FpiDeviceVirtualListener) listener = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
 
   G_DEBUG_HERE ();
@@ -355,15 +355,15 @@ dev_init (FpDevice *dev)
       return;
     }
 
-  listener = fp_device_virtual_listener_new ();
+  listener = fpi_device_virtual_listener_new ();
   cancellable = g_cancellable_new ();
 
-  if (!fp_device_virtual_listener_start (listener,
-                                         fpi_device_get_virtual_env (FP_DEVICE (self)),
-                                         cancellable,
-                                         on_listener_connected,
-                                         self,
-                                         &error))
+  if (!fpi_device_virtual_listener_start (listener,
+                                          fpi_device_get_virtual_env (FP_DEVICE (self)),
+                                          cancellable,
+                                          on_listener_connected,
+                                          self,
+                                          &error))
     {
       fpi_device_open_complete (dev, g_steal_pointer (&error));
       return;

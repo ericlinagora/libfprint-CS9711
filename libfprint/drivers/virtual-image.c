@@ -36,14 +36,14 @@
 
 struct _FpDeviceVirtualImage
 {
-  FpImageDevice            parent;
+  FpImageDevice             parent;
 
-  FpDeviceVirtualListener *listener;
-  GCancellable            *cancellable;
+  FpiDeviceVirtualListener *listener;
+  GCancellable             *cancellable;
 
-  gboolean                 automatic_finger;
-  FpImage                 *recv_img;
-  gint                     recv_img_hdr[2];
+  gboolean                  automatic_finger;
+  FpImage                  *recv_img;
+  gint                      recv_img_hdr[2];
 };
 
 G_DECLARE_FINAL_TYPE (FpDeviceVirtualImage, fpi_device_virtual_image, FPI, DEVICE_VIRTUAL_IMAGE, FpImageDevice)
@@ -57,12 +57,12 @@ recv_image_img_recv_cb (GObject      *source_object,
                         gpointer      user_data)
 {
   g_autoptr(GError) error = NULL;
-  FpDeviceVirtualListener *listener = FP_DEVICE_VIRTUAL_LISTENER (source_object);
+  FpiDeviceVirtualListener *listener = FPI_DEVICE_VIRTUAL_LISTENER (source_object);
   FpDeviceVirtualImage *self;
   FpImageDevice *device;
   gsize bytes;
 
-  bytes = fp_device_virtual_listener_read_finish (listener, res, &error);
+  bytes = fpi_device_virtual_listener_read_finish (listener, res, &error);
 
   if (!bytes || g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) ||
       g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
@@ -88,10 +88,10 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 {
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualImage *self;
-  FpDeviceVirtualListener *listener = FP_DEVICE_VIRTUAL_LISTENER (source_object);
+  FpiDeviceVirtualListener *listener = FPI_DEVICE_VIRTUAL_LISTENER (source_object);
   gsize bytes;
 
-  bytes = fp_device_virtual_listener_read_finish (listener, res, &error);
+  bytes = fpi_device_virtual_listener_read_finish (listener, res, &error);
 
   if (error)
     {
@@ -111,7 +111,7 @@ recv_image_hdr_recv_cb (GObject      *source_object,
   if (self->recv_img_hdr[0] > 5000 || self->recv_img_hdr[1] > 5000)
     {
       g_warning ("Image header suggests an unrealistically large image, disconnecting client.");
-      fp_device_virtual_listener_connection_close (listener);
+      fpi_device_virtual_listener_connection_close (listener);
     }
 
   if (self->recv_img_hdr[0] < 0 || self->recv_img_hdr[1] < 0)
@@ -147,7 +147,7 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 
         default:
           /* disconnect client, it didn't play fair */
-          fp_device_virtual_listener_connection_close (listener);
+          fpi_device_virtual_listener_connection_close (listener);
         }
 
       /* And, listen for more images from the same client. */
@@ -157,28 +157,28 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 
   self->recv_img = fp_image_new (self->recv_img_hdr[0], self->recv_img_hdr[1]);
   g_debug ("image data: %p", self->recv_img->data);
-  fp_device_virtual_listener_read (listener,
-                                   TRUE,
-                                   (guint8 *) self->recv_img->data,
-                                   self->recv_img->width * self->recv_img->height,
-                                   recv_image_img_recv_cb,
-                                   self);
+  fpi_device_virtual_listener_read (listener,
+                                    TRUE,
+                                    (guint8 *) self->recv_img->data,
+                                    self->recv_img->width * self->recv_img->height,
+                                    recv_image_img_recv_cb,
+                                    self);
 }
 
 static void
 recv_image (FpDeviceVirtualImage *self)
 {
-  fp_device_virtual_listener_read (self->listener,
-                                   TRUE,
-                                   self->recv_img_hdr,
-                                   sizeof (self->recv_img_hdr),
-                                   recv_image_hdr_recv_cb,
-                                   self);
+  fpi_device_virtual_listener_read (self->listener,
+                                    TRUE,
+                                    self->recv_img_hdr,
+                                    sizeof (self->recv_img_hdr),
+                                    recv_image_hdr_recv_cb,
+                                    self);
 }
 
 static void
-on_listener_connected (FpDeviceVirtualListener *listener,
-                       gpointer                 user_data)
+on_listener_connected (FpiDeviceVirtualListener *listener,
+                       gpointer                  user_data)
 {
   FpDeviceVirtualImage *self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
   FpiImageDeviceState state;
@@ -206,21 +206,21 @@ static void
 dev_init (FpImageDevice *dev)
 {
   g_autoptr(GError) error = NULL;
-  g_autoptr(FpDeviceVirtualListener) listener = NULL;
+  g_autoptr(FpiDeviceVirtualListener) listener = NULL;
   g_autoptr(GCancellable) cancellable = NULL;
   FpDeviceVirtualImage *self = FPI_DEVICE_VIRTUAL_IMAGE (dev);
 
   G_DEBUG_HERE ();
 
-  listener = fp_device_virtual_listener_new ();
+  listener = fpi_device_virtual_listener_new ();
   cancellable = g_cancellable_new ();
 
-  if (!fp_device_virtual_listener_start (listener,
-                                         fpi_device_get_virtual_env (FP_DEVICE (self)),
-                                         cancellable,
-                                         on_listener_connected,
-                                         self,
-                                         &error))
+  if (!fpi_device_virtual_listener_start (listener,
+                                          fpi_device_get_virtual_env (FP_DEVICE (self)),
+                                          cancellable,
+                                          on_listener_connected,
+                                          self,
+                                          &error))
     {
       fpi_image_device_open_complete (dev, g_steal_pointer (&error));
       return;

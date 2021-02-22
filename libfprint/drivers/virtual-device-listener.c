@@ -28,35 +28,35 @@
 
 #include "virtual-device-private.h"
 
-struct _FpDeviceVirtualListener
+struct _FpiDeviceVirtualListener
 {
-  GSocketListener                     parent_instance;
+  GSocketListener                      parent_instance;
 
-  GSocketConnection                  *connection;
-  GCancellable                       *cancellable;
-  guint                               cancellable_id;
+  GSocketConnection                   *connection;
+  GCancellable                        *cancellable;
+  guint                                cancellable_id;
 
-  FpDeviceVirtualListenerConnectionCb ready_cb;
-  gpointer                            ready_cb_data;
+  FpiDeviceVirtualListenerConnectionCb ready_cb;
+  gpointer                             ready_cb_data;
 
-  gint                                socket_fd;
-  gint                                client_fd;
+  gint                                 socket_fd;
+  gint                                 client_fd;
 };
 
-G_DEFINE_TYPE (FpDeviceVirtualListener, fp_device_virtual_listener, G_TYPE_SOCKET_LISTENER)
+G_DEFINE_TYPE (FpiDeviceVirtualListener, fpi_device_virtual_listener, G_TYPE_SOCKET_LISTENER)
 
-static void start_listen (FpDeviceVirtualListener *self);
+static void start_listen (FpiDeviceVirtualListener *self);
 
-FpDeviceVirtualListener *
-fp_device_virtual_listener_new (void)
+FpiDeviceVirtualListener *
+fpi_device_virtual_listener_new (void)
 {
-  return g_object_new (fp_device_virtual_listener_get_type (), NULL);
+  return g_object_new (fpi_device_virtual_listener_get_type (), NULL);
 }
 
 static void
-fp_device_virtual_listener_dispose (GObject *object)
+fpi_device_virtual_listener_dispose (GObject *object)
 {
-  FpDeviceVirtualListener *self = FP_DEVICE_VIRTUAL_LISTENER (object);
+  FpiDeviceVirtualListener *self = FPI_DEVICE_VIRTUAL_LISTENER (object);
 
   if (self->cancellable_id)
     {
@@ -70,19 +70,19 @@ fp_device_virtual_listener_dispose (GObject *object)
 
   self->ready_cb = NULL;
 
-  G_OBJECT_CLASS (fp_device_virtual_listener_parent_class)->dispose (object);
+  G_OBJECT_CLASS (fpi_device_virtual_listener_parent_class)->dispose (object);
 }
 
 static void
-fp_device_virtual_listener_class_init (FpDeviceVirtualListenerClass *klass)
+fpi_device_virtual_listener_class_init (FpiDeviceVirtualListenerClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  object_class->dispose = fp_device_virtual_listener_dispose;
+  object_class->dispose = fpi_device_virtual_listener_dispose;
 }
 
 static void
-fp_device_virtual_listener_init (FpDeviceVirtualListener *self)
+fpi_device_virtual_listener_init (FpiDeviceVirtualListener *self)
 {
 }
 
@@ -90,7 +90,7 @@ static void
 new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   g_autoptr(GError) error = NULL;
-  FpDeviceVirtualListener *self = user_data;
+  FpiDeviceVirtualListener *self = user_data;
   GSocketConnection *connection;
 
   connection = g_socket_listener_accept_finish (G_SOCKET_LISTENER (source_object),
@@ -123,7 +123,7 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
 }
 
 static void
-start_listen (FpDeviceVirtualListener *self)
+start_listen (FpiDeviceVirtualListener *self)
 {
   g_socket_listener_accept_async (G_SOCKET_LISTENER (self),
                                   self->cancellable,
@@ -132,27 +132,27 @@ start_listen (FpDeviceVirtualListener *self)
 }
 
 static void
-on_cancelled (GCancellable            *cancellable,
-              FpDeviceVirtualListener *self)
+on_cancelled (GCancellable             *cancellable,
+              FpiDeviceVirtualListener *self)
 {
-  fp_device_virtual_listener_connection_close (self);
+  fpi_device_virtual_listener_connection_close (self);
   g_socket_listener_close (G_SOCKET_LISTENER (self));
   g_clear_object (&self->cancellable);
   self->ready_cb = NULL;
 }
 
 gboolean
-fp_device_virtual_listener_start (FpDeviceVirtualListener            *self,
-                                  const char                         *address,
-                                  GCancellable                       *cancellable,
-                                  FpDeviceVirtualListenerConnectionCb cb,
-                                  gpointer                            user_data,
-                                  GError                            **error)
+fpi_device_virtual_listener_start (FpiDeviceVirtualListener            *self,
+                                   const char                          *address,
+                                   GCancellable                        *cancellable,
+                                   FpiDeviceVirtualListenerConnectionCb cb,
+                                   gpointer                             user_data,
+                                   GError                             **error)
 {
   g_autoptr(GSocketAddress) addr = NULL;
   G_DEBUG_HERE ();
 
-  g_return_val_if_fail (FP_IS_DEVICE_VIRTUAL_LISTENER (self), FALSE);
+  g_return_val_if_fail (FPI_IS_DEVICE_VIRTUAL_LISTENER (self), FALSE);
   g_return_val_if_fail (cb != NULL, FALSE);
   g_return_val_if_fail (self->ready_cb == NULL, FALSE);
 
@@ -191,9 +191,9 @@ fp_device_virtual_listener_start (FpDeviceVirtualListener            *self,
 }
 
 gboolean
-fp_device_virtual_listener_connection_close (FpDeviceVirtualListener *self)
+fpi_device_virtual_listener_connection_close (FpiDeviceVirtualListener *self)
 {
-  g_return_val_if_fail (FP_IS_DEVICE_VIRTUAL_LISTENER (self), FALSE);
+  g_return_val_if_fail (FPI_IS_DEVICE_VIRTUAL_LISTENER (self), FALSE);
 
   if (!self->connection)
     return FALSE;
@@ -211,7 +211,7 @@ on_stream_read_cb (GObject      *source_object,
 {
   g_autoptr(GError) error = NULL;
   g_autoptr(GTask) task = user_data;
-  FpDeviceVirtualListener *self = g_task_get_source_object (task);
+  FpiDeviceVirtualListener *self = g_task_get_source_object (task);
   gboolean all;
   gboolean success;
   gsize bytes;
@@ -282,17 +282,17 @@ on_stream_read_cb (GObject      *source_object,
 }
 
 void
-fp_device_virtual_listener_read (FpDeviceVirtualListener *self,
-                                 gboolean                 all,
-                                 void                    *buffer,
-                                 gsize                    count,
-                                 GAsyncReadyCallback      callback,
-                                 gpointer                 user_data)
+fpi_device_virtual_listener_read (FpiDeviceVirtualListener *self,
+                                  gboolean                  all,
+                                  void                     *buffer,
+                                  gsize                     count,
+                                  GAsyncReadyCallback       callback,
+                                  gpointer                  user_data)
 {
   g_autoptr(GTask) task = NULL;
   GInputStream *stream;
 
-  g_return_if_fail (FP_IS_DEVICE_VIRTUAL_LISTENER (self));
+  g_return_if_fail (FPI_IS_DEVICE_VIRTUAL_LISTENER (self));
 
   task = g_task_new (self, self->cancellable, callback, user_data);
   g_object_set_data (G_OBJECT (task), "all", GINT_TO_POINTER (all));
@@ -324,9 +324,9 @@ fp_device_virtual_listener_read (FpDeviceVirtualListener *self,
 }
 
 gsize
-fp_device_virtual_listener_read_finish (FpDeviceVirtualListener *self,
-                                        GAsyncResult            *result,
-                                        GError                 **error)
+fpi_device_virtual_listener_read_finish (FpiDeviceVirtualListener *self,
+                                         GAsyncResult             *result,
+                                         GError                  **error)
 {
   g_return_val_if_fail (g_task_is_valid (result, self), 0);
 
@@ -334,10 +334,10 @@ fp_device_virtual_listener_read_finish (FpDeviceVirtualListener *self,
 }
 
 gboolean
-fp_device_virtual_listener_write_sync (FpDeviceVirtualListener *self,
-                                       const char              *buffer,
-                                       gsize                    count,
-                                       GError                 **error)
+fpi_device_virtual_listener_write_sync (FpiDeviceVirtualListener *self,
+                                        const char               *buffer,
+                                        gsize                     count,
+                                        GError                  **error)
 {
   if (!self->connection || g_io_stream_is_closed (G_IO_STREAM (self->connection)))
     {

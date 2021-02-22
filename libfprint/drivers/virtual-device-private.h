@@ -32,59 +32,59 @@
 
 #define MAX_LINE_LEN 1024
 
-G_DECLARE_FINAL_TYPE (FpDeviceVirtualListener, fp_device_virtual_listener, FP, DEVICE_VIRTUAL_LISTENER, GSocketListener)
+G_DECLARE_FINAL_TYPE (FpiDeviceVirtualListener, fpi_device_virtual_listener, FPI, DEVICE_VIRTUAL_LISTENER, GSocketListener)
 
-typedef void (*FpDeviceVirtualListenerConnectionCb) (FpDeviceVirtualListener *listener,
-                                                     gpointer                 user_data);
+typedef void (*FpiDeviceVirtualListenerConnectionCb) (FpiDeviceVirtualListener *listener,
+                                                      gpointer                  user_data);
 
-FpDeviceVirtualListener * fp_device_virtual_listener_new (void);
+FpiDeviceVirtualListener * fpi_device_virtual_listener_new (void);
 
-gboolean fp_device_virtual_listener_start (FpDeviceVirtualListener            *listener,
-                                           const char                         *address,
-                                           GCancellable                       *cancellable,
-                                           FpDeviceVirtualListenerConnectionCb cb,
-                                           gpointer                            user_data,
-                                           GError                            **error);
+gboolean fpi_device_virtual_listener_start (FpiDeviceVirtualListener            *listener,
+                                            const char                          *address,
+                                            GCancellable                        *cancellable,
+                                            FpiDeviceVirtualListenerConnectionCb cb,
+                                            gpointer                             user_data,
+                                            GError                             **error);
 
-gboolean fp_device_virtual_listener_connection_close (FpDeviceVirtualListener *listener);
+gboolean fpi_device_virtual_listener_connection_close (FpiDeviceVirtualListener *listener);
 
-void fp_device_virtual_listener_read (FpDeviceVirtualListener *listener,
-                                      gboolean                 all,
-                                      void                    *buffer,
-                                      gsize                    count,
-                                      GAsyncReadyCallback      callback,
-                                      gpointer                 user_data);
-gsize fp_device_virtual_listener_read_finish (FpDeviceVirtualListener *listener,
-                                              GAsyncResult            *result,
-                                              GError                 **error);
+void fpi_device_virtual_listener_read (FpiDeviceVirtualListener *listener,
+                                       gboolean                  all,
+                                       void                     *buffer,
+                                       gsize                     count,
+                                       GAsyncReadyCallback       callback,
+                                       gpointer                  user_data);
+gsize fpi_device_virtual_listener_read_finish (FpiDeviceVirtualListener *listener,
+                                               GAsyncResult             *result,
+                                               GError                  **error);
 
-gboolean fp_device_virtual_listener_write_sync (FpDeviceVirtualListener *self,
-                                                const char              *buffer,
-                                                gsize                    count,
-                                                GError                 **error);
+gboolean fpi_device_virtual_listener_write_sync (FpiDeviceVirtualListener *self,
+                                                 const char               *buffer,
+                                                 gsize                     count,
+                                                 GError                  **error);
 
 
 struct _FpDeviceVirtualDevice
 {
-  FpDevice                 parent;
+  FpDevice                  parent;
 
-  FpDeviceVirtualListener *listener;
-  GCancellable            *cancellable;
+  FpiDeviceVirtualListener *listener;
+  GCancellable             *cancellable;
 
-  char                     recv_buf[MAX_LINE_LEN];
+  char                      recv_buf[MAX_LINE_LEN];
 
-  GPtrArray               *pending_commands;
+  GPtrArray                *pending_commands;
 
-  GHashTable              *prints_storage;
+  GHashTable               *prints_storage;
 
-  guint                    wait_command_id;
-  guint                    sleep_timeout_id;
-  guint                    enroll_stages_passed;
-  gboolean                 match_reported;
-  gboolean                 supports_cancellation;
-  gboolean                 injected_synthetic_cmd;
-  gboolean                 ignore_wait;
-  gboolean                 keep_alive;
+  guint                     wait_command_id;
+  guint                     sleep_timeout_id;
+  guint                     enroll_stages_passed;
+  gboolean                  match_reported;
+  gboolean                  supports_cancellation;
+  gboolean                  injected_synthetic_cmd;
+  gboolean                  ignore_wait;
+  gboolean                  keep_alive;
 };
 
 /* Not really final here, but we can do this to share the FpDeviceVirtualDevice
