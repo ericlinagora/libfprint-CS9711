@@ -188,11 +188,18 @@ on_listener_connected (FpDeviceVirtualListener *listener,
   g_object_get (self,
                 "fpi-image-device-state", &state,
                 NULL);
-  /* Only read if we are in AWAIT_FINGER_* or CAPTURE states */
-  if (state <= FPI_IMAGE_DEVICE_STATE_DEACTIVATING)
-    return;
 
-  recv_image (self);
+  switch (state)
+    {
+    case FPI_IMAGE_DEVICE_STATE_IDLE:
+    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_ON:
+    case FPI_IMAGE_DEVICE_STATE_CAPTURE:
+    case FPI_IMAGE_DEVICE_STATE_AWAIT_FINGER_OFF:
+      recv_image (self);
+
+    default:
+      break;
+    }
 }
 
 static void
