@@ -1158,7 +1158,8 @@ prob_msg_cb (FpiDeviceSynaptics *self,
                                                  g_usb_device_get_serial_number_index (usb_dev),
                                                  &error);
 
-  if (resp->result == BMKT_SUCCESS)
+  /* BMKT_OPERATION_DENIED is returned if the sensor is already initialized */
+  if (resp->result == BMKT_SUCCESS || resp->result == BMKT_OPERATION_DENIED)
     {
       g_usb_device_close (usb_dev, NULL);
       fpi_device_probe_complete (FP_DEVICE (self), serial, NULL, error);
@@ -1195,9 +1196,6 @@ dev_probe (FpDevice *device)
       fpi_device_probe_complete (device, NULL, NULL, error);
       return;
     }
-
-  if (!g_usb_device_reset (usb_dev, &error))
-    goto err_close;
 
   if (!g_usb_device_claim_interface (usb_dev, 0, 0, &error))
     goto err_close;
@@ -1341,9 +1339,6 @@ dev_init (FpDevice *device)
   G_DEBUG_HERE ();
 
   self->interrupt_cancellable = g_cancellable_new ();
-
-  if (!g_usb_device_reset (fpi_device_get_usb_device (device), &error))
-    goto error;
 
   /* Claim usb interface */
   if (!g_usb_device_claim_interface (fpi_device_get_usb_device (device), 0, 0, &error))
