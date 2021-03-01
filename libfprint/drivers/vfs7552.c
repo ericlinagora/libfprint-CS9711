@@ -841,6 +841,7 @@ activate_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
     {
       ssm = fpi_ssm_new (_dev, capture_run_state, CAPTURE_NUM_STATES);
       fpi_ssm_start (ssm, report_finger_on_complete);
+      return;
     }
 
   if (self->deactivating)

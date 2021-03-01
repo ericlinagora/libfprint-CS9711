@@ -28,6 +28,7 @@ drivers_tests = [
     'vfs0050',
     'vfs301',
     'vfs5011',
+    'vfs7552',
     'goodixmoc',
 ]
 
