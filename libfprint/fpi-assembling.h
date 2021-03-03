@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <fprint.h>
+#include "fp-image.h"
 
 /**
  * fpi_frame:
