@@ -202,6 +202,7 @@ usb:v04F3p0C4B*
 usb:v04F3p0C4C*
 usb:v04F3p0C4F*
 usb:v04F3p0C57*
+usb:v04F3p0C5E*
 usb:v04F3p2706*
 usb:v06CBp0081*
 usb:v06CBp0088*
@@ -212,13 +213,18 @@ usb:v06CBp00A2*
 usb:v06CBp00B7*
 usb:v06CBp00BB*
 usb:v06CBp00BE*
+usb:v06CBp00C4*
 usb:v06CBp00CB*
 usb:v06CBp00D8*
 usb:v06CBp00DA*
 usb:v0A5Cp5801*
 usb:v0A5Cp5805*
 usb:v0A5Cp5834*
+usb:v0A5Cp5840*
+usb:v0A5Cp5841*
+usb:v0A5Cp5842*
 usb:v0A5Cp5843*
+usb:v0A5Cp5845*
 usb:v10A5p0007*
 usb:v1188p9545*
 usb:v138Ap0007*
