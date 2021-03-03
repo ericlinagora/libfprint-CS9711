@@ -181,6 +181,22 @@ fpi_ssm_get_data (FpiSsm *machine)
   return machine->ssm_data;
 }
 
+/**
+ * fpi_ssm_get_device:
+ * @machine: an #FpiSsm state machine
+ *
+ * Retrieve the device that the SSM is for.
+ *
+ * Returns: #FpDevice
+ */
+FpDevice *
+fpi_ssm_get_device (FpiSsm *machine)
+{
+  g_return_val_if_fail (machine, NULL);
+
+  return machine->dev;
+}
+
 static void
 fpi_ssm_clear_delayed_action (FpiSsm *machine)
 {
