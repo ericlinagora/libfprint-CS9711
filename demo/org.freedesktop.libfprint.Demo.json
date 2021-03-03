@@ -50,7 +50,7 @@
         {
             "name": "libfprint",
             "buildsystem": "meson",
-            "config-opts": [ "-Dudev_rules=false", "-Dx11-examples=false", "-Dgtk-examples=true", "-Ddrivers=all" ],
+            "config-opts": [ "-Dudev_hwdb=disabled", "-Dx11-examples=false", "-Dgtk-examples=true", "-Ddrivers=all" ],
             "sources": [
                 {
                     "type": "git",
