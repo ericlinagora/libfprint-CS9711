@@ -424,6 +424,30 @@ class VirtualDevice(VirtualDeviceBase):
         while not opened:
             ctx.iteration(True)
 
+    def test_close_while_opening(self):
+        self.set_keep_alive(True)
+        self.dev.close_sync()
+
+        opened = False
+        def on_opened(dev, res):
+            nonlocal opened
+            dev.open_finish(res)
+            opened = True
+
+        self.send_sleep(500)
+        self.dev.open(callback=on_opened)
+
+        self.wait_timeout(10)
+        self.assertFalse(self.dev.is_open())
+
+        with self.assertRaises(GLib.Error) as error:
+            self.dev.close_sync()
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.NOT_OPEN))
+
+        while not opened:
+            ctx.iteration(True)
+
     def test_enroll(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)
         self.assertEqual(matching.get_username(), 'testuser')
