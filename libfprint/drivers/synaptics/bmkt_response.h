@@ -468,6 +468,7 @@ typedef union
   bmkt_del_all_users_resp_t    del_all_users_resp;
   bmkt_enroll_templates_resp_t enroll_templates_resp;
   bmkt_del_user_resp_t         del_user_resp;
+  bmkt_del_all_users_resp_t    del_all_user_resp;
   bmkt_enrolled_fingers_resp_t enrolled_fingers_resp;
 } bmkt_response_data_t;
 

@@ -486,100 +486,6 @@ create_print (FpiDeviceSynaptics *self,
 }
 
 static void
-list_msg_cb (FpiDeviceSynaptics *self,
-             bmkt_response_t    *resp,
-             GError             *error)
-{
-  bmkt_enroll_templates_resp_t *get_enroll_templates_resp;
-
-  if (error)
-    {
-      g_clear_pointer (&self->list_result, g_ptr_array_unref);
-      fpi_device_list_complete (FP_DEVICE (self), NULL, error);
-      return;
-    }
-
-  get_enroll_templates_resp = &resp->response.enroll_templates_resp;
-
-  switch (resp->response_id)
-    {
-    case BMKT_RSP_QUERY_FAIL:
-      if (resp->result == BMKT_FP_DATABASE_EMPTY)
-        {
-          fp_info ("Database is empty");
-
-          fpi_device_list_complete (FP_DEVICE (self),
-                                    g_steal_pointer (&self->list_result),
-                                    NULL);
-        }
-      else
-        {
-          fp_info ("Failed to query enrolled users: %d", resp->result);
-          g_clear_pointer (&self->list_result, g_ptr_array_unref);
-          fpi_device_list_complete (FP_DEVICE (self),
-                                    NULL,
-                                    fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                                              "Failed to query enrolled users: %d",
-                                                              resp->result));
-        }
-      break;
-
-    case BMKT_RSP_QUERY_RESPONSE_COMPLETE:
-      fp_info ("Query complete!");
-
-      fpi_device_list_complete (FP_DEVICE (self),
-                                g_steal_pointer (&self->list_result),
-                                NULL);
-
-      break;
-
-    case BMKT_RSP_TEMPLATE_RECORDS_REPORT:
-
-      for (int n = 0; n < BMKT_MAX_NUM_TEMPLATES_INTERNAL_FLASH; n++)
-        {
-          FpPrint *print;
-
-          if (get_enroll_templates_resp->templates[n].user_id_len == 0)
-            continue;
-
-          fp_info ("![query %d of %d] template %d: status=0x%x, userId=%s, fingerId=%d",
-                   get_enroll_templates_resp->query_sequence,
-                   get_enroll_templates_resp->total_query_messages,
-                   n,
-                   get_enroll_templates_resp->templates[n].template_status,
-                   get_enroll_templates_resp->templates[n].user_id,
-                   get_enroll_templates_resp->templates[n].finger_id);
-
-          print = create_print (self,
-                                get_enroll_templates_resp->templates[n].user_id,
-                                get_enroll_templates_resp->templates[n].finger_id);
-
-          g_ptr_array_add (self->list_result, g_object_ref_sink (print));
-        }
-
-      synaptics_sensor_cmd (self,
-                            self->cmd_seq_num,
-                            BMKT_CMD_GET_NEXT_QUERY_RESPONSE,
-                            NULL,
-                            0,
-                            NULL);
-
-      break;
-    }
-}
-
-static void
-list (FpDevice *device)
-{
-  FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
-
-  G_DEBUG_HERE ();
-
-  self->list_result = g_ptr_array_new_with_free_func (g_object_unref);
-  synaptics_sensor_cmd (self, 0, BMKT_CMD_GET_TEMPLATE_RECORDS, NULL, 0, list_msg_cb);
-}
-
-static void
 verify_complete_after_finger_removal (FpiDeviceSynaptics *self)
 {
   FpDevice *device = FP_DEVICE (self);
@@ -1134,6 +1040,54 @@ delete_print (FpDevice *device)
 }
 
 static void
+clear_storage_msg_cb (FpiDeviceSynaptics *self,
+                      bmkt_response_t    *resp,
+                      GError             *error)
+{
+  FpDevice *device = FP_DEVICE (self);
+  bmkt_del_all_users_resp_t *del_all_user_resp;
+
+  if (error)
+    {
+      fpi_device_clear_storage_complete (device, error);
+      return;
+    }
+  del_all_user_resp = &resp->response.del_all_user_resp;
+
+  switch (resp->response_id)
+    {
+    case BMKT_RSP_DELETE_PROGRESS:
+      fp_info ("Deleting All Enrolled Users is %d%% complete",
+               del_all_user_resp->progress);
+      break;
+
+    case BMKT_RSP_DEL_FULL_DB_FAIL:
+      if (resp->result == BMKT_FP_DATABASE_EMPTY)
+        fpi_device_clear_storage_complete (device, NULL);
+      else
+        fpi_device_clear_storage_complete (device,
+                                           fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
+      break;
+
+    case BMKT_RSP_DEL_FULL_DB_OK:
+      fp_info ("Successfully deleted all enrolled user");
+      fpi_device_clear_storage_complete (device, NULL);
+      break;
+    }
+}
+
+static void
+clear_storage (FpDevice *device)
+{
+  FpiDeviceSynaptics *self = FPI_DEVICE_SYNAPTICS (device);
+
+  g_debug ("clear all prints in database");
+  synaptics_sensor_cmd (self, 0, BMKT_CMD_DEL_FULL_DB, NULL, 0, clear_storage_msg_cb);
+  return;
+}
+
+
+static void
 prob_msg_cb (FpiDeviceSynaptics *self,
              bmkt_response_t    *resp,
              GError             *error)
@@ -1403,8 +1357,8 @@ fpi_device_synaptics_class_init (FpiDeviceSynapticsClass *klass)
   dev_class->identify = identify;
   dev_class->enroll = enroll;
   dev_class->delete = delete_print;
+  dev_class->clear_storage = clear_storage;
   dev_class->cancel = cancel;
-  dev_class->list = list;
 
   fpi_device_class_auto_initialize_features (dev_class);
 }
