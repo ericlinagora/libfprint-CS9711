@@ -30,6 +30,7 @@ gnome.gtkdoc(versioned_libname,
     content_files: content_files,
     expand_content_files: expand_content_files,
     ignore_headers: private_headers,
+    gobject_typesfile: 'libfprint-2.types',
     fixxref_args: [
         '--html-dir=@0@'.format(docpath),
         '--extra-dir=@0@'.format(join_paths(glib_docpath, 'glib')),

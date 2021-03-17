@@ -1,0 +1,7 @@
+#include <libfprint-2/fprint.h>
+
+fp_context_get_type
+fp_device_get_type
+fp_image_device_get_type
+fp_image_get_type
+fp_print_get_type
