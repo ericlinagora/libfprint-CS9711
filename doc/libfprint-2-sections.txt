@@ -32,9 +32,11 @@ fp_device_get_device_id
 fp_device_get_name
 fp_device_get_scan_type
 fp_device_get_nr_enroll_stages
+fp_device_get_finger_status
 fp_device_has_storage
 fp_device_supports_identify
 fp_device_supports_capture
+fp_device_is_open
 fp_device_open
 fp_device_close
 fp_device_enroll
@@ -148,6 +150,9 @@ fpi_device_action_is_cancelled
 fpi_device_add_timeout
 fpi_device_set_nr_enroll_stages
 fpi_device_set_scan_type
+fpi_device_remove
+fpi_device_report_finger_status
+fpi_device_report_finger_status_changes
 fpi_device_action_error
 fpi_device_probe_complete
 fpi_device_open_complete
@@ -160,6 +165,7 @@ fpi_device_delete_complete
 fpi_device_enroll_progress
 fpi_device_verify_report
 fpi_device_identify_report
+fpi_device_list_complete
 </SECTION>
 
 <SECTION>
@@ -184,6 +190,7 @@ fpi_image_device_deactivate_complete
 fpi_image_device_report_finger_status
 fpi_image_device_image_captured
 fpi_image_device_retry_scan
+fpi_image_device_set_bz3_threshold
 </SECTION>
 
 <SECTION>
