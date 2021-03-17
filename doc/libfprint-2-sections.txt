@@ -231,7 +231,6 @@ fpi_ssm_get_device
 fpi_ssm_get_error
 fpi_ssm_dup_error
 fpi_ssm_get_cur_state
-fpi_ssm_next_state_timeout_cb
 fpi_ssm_usb_transfer_cb
 FpiSsm
 </SECTION>
