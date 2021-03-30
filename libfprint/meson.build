@@ -157,6 +157,9 @@ foreach driver: drivers
     if driver == 'elan'
         drivers_sources += [ 'drivers/elan.c' ]
     endif
+	if driver == 'elanspi'
+		drivers_sources += [ 'drivers/elanspi.c' ]
+	endif
     if driver == 'virtual_image'
         drivers_sources += [ 'drivers/virtual-image.c' ]
     endif
