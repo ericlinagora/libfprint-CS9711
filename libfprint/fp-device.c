@@ -1038,6 +1038,14 @@ fp_device_identify (FpDevice           *device,
       return;
     }
 
+  if (!fp_device_supports_identify (device))
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
+                                                     "Device has not identification support"));
+      return;
+    }
+
   priv->current_action = FPI_DEVICE_ACTION_IDENTIFY;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);

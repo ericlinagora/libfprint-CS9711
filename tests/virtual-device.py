@@ -849,6 +849,15 @@ class VirtualDevice(VirtualDeviceBase):
 
         self.assertEqual(close_res.code, int(FPrint.DeviceError.BUSY))
 
+    def test_identify_unsupported(self):
+        if self.dev.supports_identify():
+            self.skipTest('Device supports identification')
+
+        with self.assertRaises(GLib.Error) as error:
+            self.dev.identify_sync([FPrint.Print.new(self.dev)])
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.NOT_SUPPORTED))
+
 
 class VirtualDeviceClosed(VirtualDeviceBase):
 
