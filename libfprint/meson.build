@@ -181,6 +181,11 @@ foreach driver: drivers
         'drivers/goodixmoc/goodix_proto.c',
     ]
     endif
+    if driver == 'nb1010'
+    drivers_sources += [
+        'drivers/nb1010.c',
+    ]
+    endif
 endforeach
 
 if aeslib
