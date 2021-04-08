@@ -224,6 +224,7 @@ deps = [
     glib_dep,
     gobject_dep,
     gusb_dep,
+    gudev_dep,
     imaging_dep,
     mathlib_dep,
     nss_dep,

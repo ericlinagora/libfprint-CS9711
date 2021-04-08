@@ -24,6 +24,18 @@
 #include "fp-image.h"
 #include "fpi-print.h"
 
+#include <config.h>
+
+/**
+ * FpiDeviceUdevSubtype:
+ * @FPI_DEVICE_UDEV_SUBTYPE_SPIDEV: The device requires an spidev node
+ * @FPI_DEVICE_UDEV_SUBTYPE_HIDRAW: The device requires a hidraw node
+ */
+typedef enum {
+  FPI_DEVICE_UDEV_SUBTYPE_SPIDEV = 1 << 0,
+  FPI_DEVICE_UDEV_SUBTYPE_HIDRAW = 1 << 1,
+} FpiDeviceUdevSubtypeFlags;
+
 /**
  * FpIdEntry:
  *
@@ -43,6 +55,16 @@ struct _FpIdEntry
       guint vid;
     };
     const gchar *virtual_envvar;
+    struct
+    {
+      FpiDeviceUdevSubtypeFlags udev_types;
+      const gchar              *spi_acpi_id;
+      struct
+      {
+        guint pid;
+        guint vid;
+      } hid_id;
+    };
   };
   guint64 driver_data;
 };
@@ -171,6 +193,8 @@ typedef enum {
 
 GUsbDevice  *fpi_device_get_usb_device (FpDevice *device);
 const gchar *fpi_device_get_virtual_env (FpDevice *device);
+gpointer     fpi_device_get_udev_data (FpDevice                 *device,
+                                       FpiDeviceUdevSubtypeFlags subtype);
 //const gchar *fpi_device_get_spi_dev (FpDevice *device);
 
 

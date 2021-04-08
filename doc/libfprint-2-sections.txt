@@ -132,7 +132,9 @@ FpDeviceClass
 FpTimeoutFunc
 FpiDeviceAction
 FpIdEntry
+FpiDeviceUdevSubtypeFlags
 fpi_device_get_usb_device
+fpi_device_get_udev_data
 fpi_device_get_virtual_env
 fpi_device_get_current_action
 fpi_device_retry_new

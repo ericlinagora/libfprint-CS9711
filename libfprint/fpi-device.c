@@ -336,6 +336,38 @@ fpi_device_get_usb_device (FpDevice *device)
 }
 
 /**
+ * fpi_device_get_udev_data:
+ * @device: The #FpDevice
+ * @subtype: Which subtype to get information about
+ *
+ * Get a subtype-specific hardware resource for this #FpDevice. Only permissible to call if the
+ * #FpDevice is of type %FP_DEVICE_TYPE_UDEV.
+ *
+ * Returns: Depends on @subtype; for SPIDEV/HIDRAW returns a path to the relevant device.
+ */
+gpointer
+fpi_device_get_udev_data (FpDevice *device, FpiDeviceUdevSubtypeFlags subtype)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_return_val_if_fail (FP_IS_DEVICE (device), NULL);
+  g_return_val_if_fail (priv->type == FP_DEVICE_TYPE_UDEV, NULL);
+
+  switch (subtype)
+    {
+    case FPI_DEVICE_UDEV_SUBTYPE_HIDRAW:
+      return priv->udev_data.hidraw_path;
+
+    case FPI_DEVICE_UDEV_SUBTYPE_SPIDEV:
+      return priv->udev_data.spidev_path;
+
+    default:
+      g_return_val_if_reached (NULL);
+      return NULL;
+    }
+}
+
+/**
  * fpi_device_get_virtual_env:
  * @device: The #FpDevice
  *
@@ -977,6 +1009,7 @@ fpi_device_close_complete (FpDevice *device, GError *error)
       break;
 
     case FP_DEVICE_TYPE_VIRTUAL:
+    case FP_DEVICE_TYPE_UDEV:
       break;
 
     default:

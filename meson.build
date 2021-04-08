@@ -94,6 +94,9 @@ virtual_drivers = [
     'virtual_device_storage',
 ]
 
+udev_drivers = [
+]
+
 default_drivers = [
     'upektc_img',
     'vfs5011',
@@ -126,7 +129,7 @@ endian_independent_drivers = virtual_drivers + [
     'synaptics',
 ]
 
-all_drivers = default_drivers + virtual_drivers
+all_drivers = default_drivers + virtual_drivers + udev_drivers
 
 if drivers == [ 'all' ]
     drivers = all_drivers
@@ -154,6 +157,7 @@ endif
 
 nss_dep = dependency('', required: false)
 imaging_dep = dependency('', required: false)
+gudev_dep = dependency('', required: false)
 libfprint_conf.set10('HAVE_PIXMAN', false)
 foreach driver: drivers
     if driver == 'uru4000'
@@ -170,6 +174,14 @@ foreach driver: drivers
 
         libfprint_conf.set10('HAVE_PIXMAN', true)
     endif
+	if udev_drivers.contains(driver)
+		gudev_dep = dependency('gudev-1.0', required: false)
+		if not gudev_dep.found()
+			error('udev is required for SPI support')
+		endif
+
+		libfprint_conf.set10('HAVE_UDEV', true)
+	endif
     if not all_drivers.contains(driver)
         error('Invalid driver \'' + driver + '\'')
     endif

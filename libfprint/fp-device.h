@@ -38,10 +38,12 @@ G_DECLARE_DERIVABLE_TYPE (FpDevice, fp_device, FP, DEVICE, GObject)
 /**
  * FpDeviceType:
  * @FP_DEVICE_TYPE_VIRTUAL: The device is a virtual device
+ * @FP_DEVICE_TYPE_UDEV: The device is a udev device
  * @FP_DEVICE_TYPE_USB: The device is a USB device
  */
 typedef enum {
   FP_DEVICE_TYPE_VIRTUAL,
+  FP_DEVICE_TYPE_UDEV,
   FP_DEVICE_TYPE_USB,
 } FpDeviceType;
 

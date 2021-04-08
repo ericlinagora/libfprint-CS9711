@@ -28,18 +28,23 @@ typedef struct
 
   GUsbDevice  *usb_device;
   const gchar *virtual_env;
+  struct
+  {
+    gchar *spidev_path;
+    gchar *hidraw_path;
+  } udev_data;
 
-  gboolean     is_removed;
-  gboolean     is_open;
+  gboolean   is_removed;
+  gboolean   is_open;
 
-  gchar       *device_id;
-  gchar       *device_name;
-  FpScanType   scan_type;
+  gchar     *device_id;
+  gchar     *device_name;
+  FpScanType scan_type;
 
-  guint64      driver_data;
+  guint64    driver_data;
 
-  gint         nr_enroll_stages;
-  GSList      *sources;
+  gint       nr_enroll_stages;
+  GSList    *sources;
 
   /* We always make sure that only one task is run at a time. */
   FpiDeviceAction     current_action;

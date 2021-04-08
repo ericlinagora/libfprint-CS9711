@@ -50,6 +50,8 @@ enum {
   PROP_FINGER_STATUS,
   PROP_FPI_ENVIRON,
   PROP_FPI_USB_DEVICE,
+  PROP_FPI_UDEV_DATA_SPIDEV,
+  PROP_FPI_UDEV_DATA_HIDRAW,
   PROP_FPI_DRIVER_DATA,
   N_PROPS
 };
@@ -169,6 +171,8 @@ fp_device_finalize (GObject *object)
 
   g_clear_object (&priv->usb_device);
   g_clear_pointer (&priv->virtual_env, g_free);
+  g_clear_pointer (&priv->udev_data.spidev_path, g_free);
+  g_clear_pointer (&priv->udev_data.hidraw_path, g_free);
 
   G_OBJECT_CLASS (fp_device_parent_class)->finalize (object);
 }
@@ -246,6 +250,20 @@ fp_device_set_property (GObject      *object,
         priv->usb_device = g_value_dup_object (value);
       else
         g_assert (g_value_get_object (value) == NULL);
+      break;
+
+    case PROP_FPI_UDEV_DATA_SPIDEV:
+      if (cls->type == FP_DEVICE_TYPE_UDEV)
+        priv->udev_data.spidev_path = g_value_dup_string (value);
+      else
+        g_assert (g_value_get_string (value) == NULL);
+      break;
+
+    case PROP_FPI_UDEV_DATA_HIDRAW:
+      if (cls->type == FP_DEVICE_TYPE_UDEV)
+        priv->udev_data.hidraw_path = g_value_dup_string (value);
+      else
+        g_assert (g_value_get_string (value) == NULL);
       break;
 
     case PROP_FPI_DRIVER_DATA:
@@ -424,6 +442,32 @@ fp_device_class_init (FpDeviceClass *klass)
                          "USB Device",
                          "Private: The USB device for the device",
                          G_USB_TYPE_DEVICE,
+                         G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  /**
+   * FpDevice::fpi-udev-data-spidev: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
+  properties[PROP_FPI_UDEV_DATA_SPIDEV] =
+    g_param_spec_string ("fpi-udev-data-spidev",
+                         "Udev data: spidev path",
+                         "Private: The path to /dev/spidevN.M",
+                         NULL,
+                         G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  /**
+   * FpDevice::fpi-udev-data-hidraw: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
+  properties[PROP_FPI_UDEV_DATA_HIDRAW] =
+    g_param_spec_string ("fpi-udev-data-hidraw",
+                         "Udev data: hidraw path",
+                         "Private: The path to /dev/hidrawN",
+                         NULL,
                          G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
 
   /**
@@ -673,6 +717,7 @@ fp_device_open (FpDevice           *device,
       break;
 
     case FP_DEVICE_TYPE_VIRTUAL:
+    case FP_DEVICE_TYPE_UDEV:
       break;
 
     default:
