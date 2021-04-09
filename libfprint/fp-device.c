@@ -140,7 +140,7 @@ fp_device_constructed (GObject *object)
   FpDeviceClass *cls = FP_DEVICE_GET_CLASS (self);
   FpDevicePrivate *priv = fp_device_get_instance_private (self);
 
-  g_assert (cls->features != FPI_DEVICE_FEATURE_NONE);
+  g_assert (cls->features != FP_DEVICE_FEATURE_NONE);
 
   priv->type = cls->type;
   if (cls->nr_enroll_stages)
@@ -629,7 +629,7 @@ fp_device_supports_identify (FpDevice *device)
 
   g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
 
-  return cls->identify && !!(cls->features & FPI_DEVICE_FEATURE_IDENTIFY);
+  return cls->identify && !!(cls->features & FP_DEVICE_FEATURE_IDENTIFY);
 }
 
 /**
@@ -647,7 +647,7 @@ fp_device_supports_capture (FpDevice *device)
 
   g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
 
-  return cls->capture && !!(cls->features & FPI_DEVICE_FEATURE_CAPTURE);
+  return cls->capture && !!(cls->features & FP_DEVICE_FEATURE_CAPTURE);
 }
 
 /**
@@ -666,7 +666,7 @@ fp_device_has_storage (FpDevice *device)
 
   g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
 
-  return !!(cls->features & FPI_DEVICE_FEATURE_STORAGE);
+  return !!(cls->features & FP_DEVICE_FEATURE_STORAGE);
 }
 
 /**
@@ -976,7 +976,7 @@ fp_device_verify (FpDevice           *device,
       return;
     }
 
-  if (!cls->verify || !(cls->features & FPI_DEVICE_FEATURE_VERIFY))
+  if (!cls->verify || !(cls->features & FP_DEVICE_FEATURE_VERIFY))
     {
       g_task_return_error (task,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
@@ -1211,7 +1211,7 @@ fp_device_capture (FpDevice           *device,
       return;
     }
 
-  if (!cls->capture || !(cls->features & FPI_DEVICE_FEATURE_CAPTURE))
+  if (!cls->capture || !(cls->features & FP_DEVICE_FEATURE_CAPTURE))
     {
       g_task_return_error (task,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
@@ -1295,7 +1295,7 @@ fp_device_delete_print (FpDevice           *device,
     }
 
   /* Succeed immediately if delete is not implemented. */
-  if (!cls->delete || !(cls->features & FPI_DEVICE_FEATURE_STORAGE_DELETE))
+  if (!cls->delete || !(cls->features & FP_DEVICE_FEATURE_STORAGE_DELETE))
     {
       g_task_return_boolean (task, TRUE);
       return;
@@ -1671,4 +1671,42 @@ fp_device_list_prints_sync (FpDevice     *device,
     g_main_context_iteration (NULL, TRUE);
 
   return fp_device_list_prints_finish (device, task, error);
+}
+
+/**
+ * fp_device_get_features:
+ * @device: a #FpDevice
+ *
+ * Gets the #FpDeviceFeature's supported by the @device.
+ *
+ * Returns: #FpDeviceFeature flags of supported features
+ */
+FpDeviceFeature
+fp_device_get_features (FpDevice *device)
+{
+  g_return_val_if_fail (FP_IS_DEVICE (device), FP_DEVICE_FEATURE_NONE);
+
+  return FP_DEVICE_GET_CLASS (device)->features;
+}
+
+/**
+ * fp_device_has_feature:
+ * @device: a #FpDevice
+ * @feature: #FpDeviceFeature flags to check against device supported features
+ *
+ * Checks if @device supports the requested #FpDeviceFeature's.
+ * See fp_device_get_features()
+ *
+ * Returns: %TRUE if supported, %FALSE otherwise
+ */
+gboolean
+fp_device_has_feature (FpDevice       *device,
+                       FpDeviceFeature feature)
+{
+  g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
+
+  if (feature == FP_DEVICE_FEATURE_NONE)
+    return fp_device_get_features (device) == feature;
+
+  return (fp_device_get_features (device) & feature) == feature;
 }

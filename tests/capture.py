@@ -17,6 +17,14 @@ c.enumerate()
 devices = c.get_devices()
 
 d = devices[0]
+assert d.has_feature(FPrint.DeviceFeature.CAPTURE)
+assert d.has_feature(FPrint.DeviceFeature.IDENTIFY)
+assert d.has_feature(FPrint.DeviceFeature.VERIFY)
+assert not d.has_feature(FPrint.DeviceFeature.DUPLICATES_CHECK)
+assert not d.has_feature(FPrint.DeviceFeature.STORAGE)
+assert not d.has_feature(FPrint.DeviceFeature.STORAGE_LIST)
+assert not d.has_feature(FPrint.DeviceFeature.STORAGE_DELETE)
+assert not d.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR)
 del devices
 
 d.open_sync()

@@ -1581,5 +1581,5 @@ fpi_device_goodixmoc_class_init (FpiDeviceGoodixMocClass *klass)
   dev_class->identify = gx_fp_verify_identify;
 
   fpi_device_class_auto_initialize_features (dev_class);
-  dev_class->features |= FPI_DEVICE_FEATURE_DUPLICATES_CHECK;
+  dev_class->features |= FP_DEVICE_FEATURE_DUPLICATES_CHECK;
 }

@@ -202,6 +202,7 @@ test_device_supports_identify (void)
   g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
+  g_assert_true (fp_device_has_feature (tctx->device, FP_DEVICE_FEATURE_IDENTIFY));
   g_assert_true (fp_device_supports_identify (tctx->device));
 }
 
@@ -211,6 +212,7 @@ test_device_supports_capture (void)
   g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
+  g_assert_true (fp_device_has_feature (tctx->device, FP_DEVICE_FEATURE_CAPTURE));
   g_assert_true (fp_device_supports_capture (tctx->device));
 }
 
@@ -220,6 +222,7 @@ test_device_has_storage (void)
   g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
 
   fp_device_open_sync (tctx->device, NULL, NULL);
+  g_assert_false (fp_device_has_feature (tctx->device, FP_DEVICE_FEATURE_STORAGE));
   g_assert_false (fp_device_has_storage (tctx->device));
 }
 

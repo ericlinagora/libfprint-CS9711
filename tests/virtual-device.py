@@ -352,6 +352,16 @@ class VirtualDevice(VirtualDeviceBase):
         self.assertEqual(self.dev.props.nr_enroll_stages, self.dev.get_nr_enroll_stages())
         self.assertEqual(self.dev.props.open, self.dev.is_open())
 
+    def test_device_features(self):
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.CAPTURE))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.IDENTIFY))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.VERIFY))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.DUPLICATES_CHECK))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_LIST))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_DELETE))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR))
+
     def test_open_error(self):
         self._close_on_teardown = False
         self.send_command('IGNORED_COMMAND') # This will be consumed by close
@@ -1018,6 +1028,16 @@ class VirtualDeviceStorage(VirtualDevice):
         self.assertTrue(self.dev.supports_identify())
         self.assertFalse(self.dev.supports_capture())
         self.assertTrue(self.dev.has_storage())
+
+    def test_device_features(self):
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.CAPTURE))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.IDENTIFY))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.VERIFY))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.DUPLICATES_CHECK))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.STORAGE))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_LIST))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_DELETE))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR))
 
     def test_duplicate_enroll(self):
         self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)

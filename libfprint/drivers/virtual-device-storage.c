@@ -246,5 +246,5 @@ fpi_device_virtual_device_storage_class_init (FpDeviceVirtualDeviceStorageClass 
   dev_class->delete = dev_delete;
 
   fpi_device_class_auto_initialize_features (dev_class);
-  dev_class->features |= FPI_DEVICE_FEATURE_DUPLICATES_CHECK;
+  dev_class->features |= FP_DEVICE_FEATURE_DUPLICATES_CHECK;
 }

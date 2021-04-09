@@ -20,6 +20,7 @@ FP_TYPE_DEVICE
 FP_DEVICE_RETRY
 FP_DEVICE_ERROR
 FpDeviceType
+FpDeviceFeature
 FpScanType
 FpDeviceRetry
 FpDeviceError
@@ -33,6 +34,8 @@ fp_device_get_name
 fp_device_get_scan_type
 fp_device_get_nr_enroll_stages
 fp_device_get_finger_status
+fp_device_get_features
+fp_device_has_feature
 fp_device_has_storage
 fp_device_supports_identify
 fp_device_supports_capture
@@ -131,7 +134,6 @@ fpi_get_driver_types
 FpDeviceClass
 FpTimeoutFunc
 FpiDeviceAction
-FpiDeviceFeature
 FpIdEntry
 FpiDeviceUdevSubtypeFlags
 fpi_device_get_usb_device

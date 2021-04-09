@@ -70,30 +70,6 @@ struct _FpIdEntry
 };
 
 /**
- * FpiDeviceFeature:
- * @FPI_DEVICE_FEATURE_NONE: Device does not support any feature
- * @FPI_DEVICE_FEATURE_CAPTURE: Supports image capture
- * @FPI_DEVICE_FEATURE_IDENTIFY: Supports finger identification
- * @FPI_DEVICE_FEATURE_VERIFY: Supports finger verification
- * @FPI_DEVICE_FEATURE_STORAGE: Device has a persistent storage
- * @FPI_DEVICE_FEATURE_STORAGE_LIST: Supports listing the storage templates
- * @FPI_DEVICE_FEATURE_STORAGE_DELETE: Supports deleting stored templates
- * @FPI_DEVICE_FEATURE_STORAGE_CLEAR: Supports clearing the whole storage
- * @FPI_DEVICE_FEATURE_DUPLICATES_CHECK: Natively supports duplicates detection
- */
-typedef enum /*< flags >*/ {
-  FPI_DEVICE_FEATURE_NONE = 0,
-  FPI_DEVICE_FEATURE_CAPTURE = 1 << 0,
-  FPI_DEVICE_FEATURE_IDENTIFY = 1 << 1,
-  FPI_DEVICE_FEATURE_VERIFY = 1 << 2,
-  FPI_DEVICE_FEATURE_STORAGE = 1 << 3,
-  FPI_DEVICE_FEATURE_STORAGE_LIST = 1 << 4,
-  FPI_DEVICE_FEATURE_STORAGE_DELETE = 1 << 5,
-  FPI_DEVICE_FEATURE_STORAGE_CLEAR = 1 << 6,
-  FPI_DEVICE_FEATURE_DUPLICATES_CHECK = 1 << 7,
-} FpiDeviceFeature;
-
-/**
  * FpDeviceClass:
  * @id: ID string for the driver. Should be a valid C identifier and should
  *   match the drivers file name.
@@ -159,7 +135,7 @@ struct _FpDeviceClass
   const gchar     *full_name;
   FpDeviceType     type;
   const FpIdEntry *id_table;
-  FpiDeviceFeature features;
+  FpDeviceFeature  features;
 
   /* Defaults for device properties */
   gint       nr_enroll_stages;

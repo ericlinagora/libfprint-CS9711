@@ -140,6 +140,20 @@ class VirtualImage(unittest.TestCase):
         while iterate and ctx.pending():
             ctx.iteration(False)
 
+    def test_features(self):
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.CAPTURE))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.IDENTIFY))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.VERIFY))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.DUPLICATES_CHECK))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_LIST))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_DELETE))
+        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR))
+        self.assertEqual(self.dev.get_features(),
+                         FPrint.DeviceFeature.CAPTURE |
+                         FPrint.DeviceFeature.IDENTIFY |
+                         FPrint.DeviceFeature.VERIFY)
+
     def test_capture_prevents_close(self):
         cancel = Gio.Cancellable()
         def cancelled_cb(dev, res, obj):

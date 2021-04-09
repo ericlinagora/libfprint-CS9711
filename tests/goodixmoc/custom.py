@@ -14,6 +14,14 @@ d = devices[0]
 del devices
 
 assert d.get_driver() == "goodixmoc"
+assert not d.has_feature(FPrint.DeviceFeature.CAPTURE)
+assert d.has_feature(FPrint.DeviceFeature.IDENTIFY)
+assert d.has_feature(FPrint.DeviceFeature.VERIFY)
+assert d.has_feature(FPrint.DeviceFeature.DUPLICATES_CHECK)
+assert d.has_feature(FPrint.DeviceFeature.STORAGE)
+assert d.has_feature(FPrint.DeviceFeature.STORAGE_LIST)
+assert d.has_feature(FPrint.DeviceFeature.STORAGE_DELETE)
+assert not d.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR)
 
 d.open_sync()
 

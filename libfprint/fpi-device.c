@@ -59,24 +59,24 @@ fpi_device_class_auto_initialize_features (FpDeviceClass *device_class)
   g_return_if_fail (FP_IS_DEVICE_CLASS (device_class));
 
   if (device_class->capture)
-    device_class->features |= FPI_DEVICE_FEATURE_CAPTURE;
+    device_class->features |= FP_DEVICE_FEATURE_CAPTURE;
 
   if (device_class->verify)
-    device_class->features |= FPI_DEVICE_FEATURE_VERIFY;
+    device_class->features |= FP_DEVICE_FEATURE_VERIFY;
 
   if (device_class->identify)
-    device_class->features |= FPI_DEVICE_FEATURE_IDENTIFY;
+    device_class->features |= FP_DEVICE_FEATURE_IDENTIFY;
 
   if (device_class->list)
     {
-      device_class->features |= FPI_DEVICE_FEATURE_STORAGE;
-      device_class->features |= FPI_DEVICE_FEATURE_STORAGE_LIST;
+      device_class->features |= FP_DEVICE_FEATURE_STORAGE;
+      device_class->features |= FP_DEVICE_FEATURE_STORAGE_LIST;
     }
 
   if (device_class->delete)
     {
-      device_class->features |= FPI_DEVICE_FEATURE_STORAGE;
-      device_class->features |= FPI_DEVICE_FEATURE_STORAGE_DELETE;
+      device_class->features |= FP_DEVICE_FEATURE_STORAGE;
+      device_class->features |= FP_DEVICE_FEATURE_STORAGE_DELETE;
     }
 }
 
