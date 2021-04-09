@@ -212,7 +212,7 @@ on_list_completed (FpDevice *dev, GAsyncResult *res, gpointer user_data)
 static void
 start_identification (FpDevice *dev, IdentifyData *identify_data)
 {
-  if (fp_device_has_storage (dev))
+  if (fp_device_has_feature (dev, FP_DEVICE_FEATURE_STORAGE))
     {
       g_print ("Creating finger template, using device storage...\n");
       fp_device_list_prints (dev, NULL,
@@ -293,7 +293,7 @@ main (void)
       return EXIT_FAILURE;
     }
 
-  if (!fp_device_supports_identify (dev))
+  if (!fp_device_has_feature (dev, FP_DEVICE_FEATURE_IDENTIFY))
     {
       g_warning ("Device %s does not support identification.",
                  fp_device_get_name (dev));

@@ -621,6 +621,7 @@ fp_device_get_nr_enroll_stages (FpDevice *device)
  * Check whether the device supports identification.
  *
  * Returns: Whether the device supports identification
+ * Deprecated: 1.92.0: Use fp_device_has_feature() instead.
  */
 gboolean
 fp_device_supports_identify (FpDevice *device)
@@ -639,6 +640,7 @@ fp_device_supports_identify (FpDevice *device)
  * Check whether the device supports capturing images.
  *
  * Returns: Whether the device supports image capture
+ * Deprecated: 1.92.0: Use fp_device_has_feature() instead.
  */
 gboolean
 fp_device_supports_capture (FpDevice *device)
@@ -658,6 +660,7 @@ fp_device_supports_capture (FpDevice *device)
  * prints stored on the with fp_device_list_prints() and you should
  * always delete prints from the device again using
  * fp_device_delete_print().
+ * Deprecated: 1.92.0: Use fp_device_has_feature() instead.
  */
 gboolean
 fp_device_has_storage (FpDevice *device)
@@ -1073,6 +1076,7 @@ fp_device_identify (FpDevice           *device,
 {
   g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (device);
   FpMatchData *data;
   int i;
 
@@ -1094,7 +1098,7 @@ fp_device_identify (FpDevice           *device,
       return;
     }
 
-  if (!fp_device_supports_identify (device))
+  if (!cls->identify || !(cls->features & FP_DEVICE_FEATURE_IDENTIFY))
     {
       g_task_return_error (task,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
@@ -1121,7 +1125,7 @@ fp_device_identify (FpDevice           *device,
   // Attach the match data as task data so that it is destroyed
   g_task_set_task_data (priv->current_task, data, (GDestroyNotify) match_data_free);
 
-  FP_DEVICE_GET_CLASS (device)->identify (device);
+  cls->identify (device);
 }
 
 /**
@@ -1352,6 +1356,7 @@ fp_device_list_prints (FpDevice           *device,
 {
   g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (device);
 
   task = g_task_new (device, cancellable, callback, user_data);
   if (g_task_return_error_if_cancelled (task))
@@ -1371,7 +1376,7 @@ fp_device_list_prints (FpDevice           *device,
       return;
     }
 
-  if (!fp_device_has_storage (device))
+  if (!cls->list || !(cls->features & FP_DEVICE_FEATURE_STORAGE))
     {
       g_task_return_error (task,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
@@ -1383,7 +1388,7 @@ fp_device_list_prints (FpDevice           *device,
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
-  FP_DEVICE_GET_CLASS (device)->list (device);
+  cls->list (device);
 }
 
 /**

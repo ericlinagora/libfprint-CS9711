@@ -1588,7 +1588,9 @@ test_driver_supports_identify (void)
   dev_class->identify = fake_device_stub_identify;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
-  g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_IDENTIFY));
 }
 
@@ -1601,7 +1603,9 @@ test_driver_do_not_support_identify (void)
   dev_class->features &= ~FP_DEVICE_FEATURE_IDENTIFY;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
-  g_assert_false (fp_device_supports_identify (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_false (fp_device_supports_identify (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_false (fp_device_has_feature (device, FP_DEVICE_FEATURE_IDENTIFY));
 }
 
@@ -1621,7 +1625,9 @@ test_driver_identify (void)
   expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
   fp_print_set_description (expected_matched, "fake-verified");
 
-  g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_IDENTIFY));
 
   match_data->gallery = prints;
@@ -1655,7 +1661,9 @@ test_driver_identify_fail (void)
   FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
   FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
 
-  g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_IDENTIFY));
 
   fake_dev->ret_print = make_fake_print (device, NULL);
@@ -1692,7 +1700,9 @@ test_driver_identify_retry (void)
   expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
   fp_print_set_description (expected_matched, "fake-verified");
 
-  g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_IDENTIFY));
 
   fake_dev->ret_error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
@@ -1727,7 +1737,9 @@ test_driver_identify_error (void)
   expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
   fp_print_set_description (expected_matched, "fake-verified");
 
-  g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_identify (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_IDENTIFY));
 
   fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
@@ -1935,7 +1947,9 @@ test_driver_supports_capture (void)
   dev_class->capture = fake_device_stub_capture;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
-  g_assert_true (fp_device_supports_capture (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_capture (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_CAPTURE));
 }
 
@@ -1949,7 +1963,9 @@ test_driver_do_not_support_capture (void)
   dev_class->capture = NULL;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
-  g_assert_false (fp_device_supports_capture (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_false (fp_device_supports_capture (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_false (fp_device_has_feature (device, FP_DEVICE_FEATURE_CAPTURE));
 }
 
@@ -2023,7 +2039,9 @@ test_driver_has_storage (void)
   dev_class->features |= FP_DEVICE_FEATURE_STORAGE;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
-  g_assert_true (fp_device_has_storage (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_has_storage (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE));
 }
 
@@ -2036,7 +2054,9 @@ test_driver_has_not_storage (void)
   dev_class->features &= ~FP_DEVICE_FEATURE_STORAGE;
 
   device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
-  g_assert_false (fp_device_has_storage (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_false (fp_device_has_storage (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_false (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE));
 }
 
@@ -2089,7 +2109,9 @@ test_driver_list_no_storage (void)
   dev_class->features &= ~FP_DEVICE_FEATURE_STORAGE;
 
   device = auto_close_fake_device_new ();
-  g_assert_false (fp_device_has_storage (device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_false (fp_device_has_storage (device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
   g_assert_false (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE));
 
   prints = fp_device_list_prints_sync (device, NULL, &error);

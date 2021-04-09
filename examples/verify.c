@@ -260,7 +260,7 @@ start_verification (FpDevice *dev, VerifyData *verify_data)
       return;
     }
 
-  if (fp_device_has_storage (dev))
+  if (fp_device_has_feature (dev, FP_DEVICE_FEATURE_STORAGE))
     {
       g_print ("Creating finger template, using device storage...\n");
       fp_device_list_prints (dev, NULL,

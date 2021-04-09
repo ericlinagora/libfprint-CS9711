@@ -76,7 +76,7 @@ on_enroll_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
     {
       enroll_data->ret_value = EXIT_SUCCESS;
 
-      if (fp_device_has_storage (dev))
+      if (fp_device_has_feature (dev, FP_DEVICE_FEATURE_STORAGE))
         g_debug ("Device has storage, saving a print reference locally");
       else
         g_debug ("Device has not storage, saving print only locally");

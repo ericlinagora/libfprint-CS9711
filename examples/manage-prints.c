@@ -231,7 +231,7 @@ on_device_opened (FpDevice     *dev,
       return;
     }
 
-  if (!fp_device_has_storage (dev))
+  if (!fp_device_has_feature (dev, FP_DEVICE_FEATURE_STORAGE))
     {
       g_warning ("Device %s doesn't support storage", fp_device_get_name (dev));
       g_main_loop_quit (list_data->loop);

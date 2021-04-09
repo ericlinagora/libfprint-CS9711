@@ -203,7 +203,9 @@ test_device_supports_identify (void)
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_true (fp_device_has_feature (tctx->device, FP_DEVICE_FEATURE_IDENTIFY));
-  g_assert_true (fp_device_supports_identify (tctx->device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_identify (tctx->device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 static void
@@ -213,7 +215,9 @@ test_device_supports_capture (void)
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_true (fp_device_has_feature (tctx->device, FP_DEVICE_FEATURE_CAPTURE));
-  g_assert_true (fp_device_supports_capture (tctx->device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_true (fp_device_supports_capture (tctx->device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 static void
@@ -223,7 +227,9 @@ test_device_has_storage (void)
 
   fp_device_open_sync (tctx->device, NULL, NULL);
   g_assert_false (fp_device_has_feature (tctx->device, FP_DEVICE_FEATURE_STORAGE));
-  g_assert_false (fp_device_has_storage (tctx->device));
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+    g_assert_false (fp_device_has_storage (tctx->device));
+  G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 int

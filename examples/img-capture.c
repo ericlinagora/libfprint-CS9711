@@ -162,7 +162,7 @@ main (int argc, const char *argv[])
       return EXIT_FAILURE;
     }
 
-  if (!fp_device_supports_capture (dev))
+  if (!fp_device_has_feature (dev, FP_DEVICE_FEATURE_CAPTURE))
     {
       g_warning ("Device %s doesn't support capture",
                  fp_device_get_name (dev));

@@ -206,10 +206,6 @@ FpDeviceFeature     fp_device_get_features (FpDevice *device);
 gboolean            fp_device_has_feature (FpDevice       *device,
                                            FpDeviceFeature feature);
 
-gboolean     fp_device_supports_identify (FpDevice *device);
-gboolean     fp_device_supports_capture (FpDevice *device);
-gboolean     fp_device_has_storage (FpDevice *device);
-
 /* Opening the device */
 void fp_device_open (FpDevice           *device,
                      GCancellable       *cancellable,
@@ -335,5 +331,12 @@ GPtrArray * fp_device_list_prints_sync (FpDevice     *device,
                                         GCancellable *cancellable,
                                         GError      **error);
 
+/* Deprecated functions */
+G_DEPRECATED_FOR (fp_device_get_features)
+gboolean     fp_device_supports_identify (FpDevice *device);
+G_DEPRECATED_FOR (fp_device_get_features)
+gboolean     fp_device_supports_capture (FpDevice *device);
+G_DEPRECATED_FOR (fp_device_get_features)
+gboolean     fp_device_has_storage (FpDevice *device);
 
 G_END_DECLS
