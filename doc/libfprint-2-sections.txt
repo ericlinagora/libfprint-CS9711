@@ -24,6 +24,7 @@ FpDeviceFeature
 FpScanType
 FpDeviceRetry
 FpDeviceError
+FpFingerStatusFlags
 fp_device_retry_quark
 fp_device_error_quark
 FpEnrollProgress
