@@ -52,7 +52,8 @@ build:
   artifacts:
     expose_as: "HTML Documentation"
     paths:
-    - _build/doc/html/
+    - _build/doc/html
+    - _build/doc/html/index.html
     expire_in: 1 week
 
 test:
@@ -67,8 +68,10 @@ test:
     - ninja -C _build coverage
     - cat _build/meson-logs/coverage.txt
   artifacts:
+    expose_as: 'Coverage Report'
     paths:
       - _build/meson-logs
+      - _build/meson-logs/coveragereport/index.html
     expire_in: 1 week
   coverage: '/^TOTAL.*\s+(\d+\%)$/'
 
