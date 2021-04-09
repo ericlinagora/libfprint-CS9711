@@ -161,6 +161,26 @@ dev_list (FpDevice *dev)
 }
 
 static void
+dev_clear_storage (FpDevice *dev)
+{
+  g_autoptr(GPtrArray) prints_list = NULL;
+  g_autoptr(GError) error = NULL;
+  FpDeviceVirtualDevice *vdev = FP_DEVICE_VIRTUAL_DEVICE (dev);
+
+  process_cmds (vdev, FALSE, &error);
+  if (should_wait_for_command (vdev, error))
+    return;
+
+  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+    {
+      fpi_device_clear_storage_complete (dev, g_steal_pointer (&error));
+      return;
+    }
+
+  fpi_device_clear_storage_complete (dev, NULL);
+}
+
+static void
 dev_delete (FpDevice *dev)
 {
   g_autoptr(GVariant) data = NULL;
@@ -244,6 +264,7 @@ fpi_device_virtual_device_storage_class_init (FpDeviceVirtualDeviceStorageClass 
   dev_class->identify = dev_identify;
   dev_class->list = dev_list;
   dev_class->delete = dev_delete;
+  dev_class->clear_storage = dev_clear_storage;
 
   fpi_device_class_auto_initialize_features (dev_class);
   dev_class->features |= FP_DEVICE_FEATURE_DUPLICATES_CHECK;

@@ -261,6 +261,11 @@ void fp_device_list_prints (FpDevice           *device,
                             GAsyncReadyCallback callback,
                             gpointer            user_data);
 
+void fp_device_clear_storage (FpDevice           *device,
+                              GCancellable       *cancellable,
+                              GAsyncReadyCallback callback,
+                              gpointer            user_data);
+
 gboolean fp_device_open_finish (FpDevice     *device,
                                 GAsyncResult *result,
                                 GError      **error);
@@ -289,7 +294,9 @@ gboolean fp_device_delete_print_finish (FpDevice     *device,
 GPtrArray * fp_device_list_prints_finish (FpDevice     *device,
                                           GAsyncResult *result,
                                           GError      **error);
-
+gboolean fp_device_clear_storage_finish (FpDevice     *device,
+                                         GAsyncResult *result,
+                                         GError      **error);
 
 gboolean fp_device_open_sync (FpDevice     *device,
                               GCancellable *cancellable,
@@ -330,7 +337,9 @@ gboolean fp_device_delete_print_sync (FpDevice     *device,
 GPtrArray * fp_device_list_prints_sync (FpDevice     *device,
                                         GCancellable *cancellable,
                                         GError      **error);
-
+gboolean fp_device_clear_storage_sync (FpDevice     *device,
+                                       GCancellable *cancellable,
+                                       GError      **error);
 /* Deprecated functions */
 G_DEPRECATED_FOR (fp_device_get_features)
 gboolean     fp_device_supports_identify (FpDevice *device);

@@ -101,6 +101,7 @@ struct _FpIdEntry
  * @capture: Start a capture operation
  * @list: List prints stored on the device
  * @delete: Delete a print from the device
+ * @clear_storage: Delete all prints from the device
  * @cancel: Called on cancellation, this is a convenience to not need to handle
  *   the #GCancellable directly by using fpi_device_get_cancellable().
  *
@@ -152,6 +153,7 @@ struct _FpDeviceClass
   void (*capture)  (FpDevice *device);
   void (*list)     (FpDevice *device);
   void (*delete)   (FpDevice * device);
+  void (*clear_storage)  (FpDevice * device);
 
   void (*cancel)   (FpDevice *device);
 };
@@ -180,6 +182,7 @@ typedef void (*FpTimeoutFunc) (FpDevice *device,
  * @FPI_DEVICE_ACTION_CAPTURE: Device is currently capturing an image.
  * @FPI_DEVICE_ACTION_LIST: Device stored prints are being queried.
  * @FPI_DEVICE_ACTION_DELETE: Device stored print is being deleted.
+ * @FPI_DEVICE_ACTION_CLEAR_STORAGE: Device stored prints are being deleted.
  *
  * Current active action of the device. A driver can retrieve the action.
  */
@@ -194,6 +197,7 @@ typedef enum {
   FPI_DEVICE_ACTION_CAPTURE,
   FPI_DEVICE_ACTION_LIST,
   FPI_DEVICE_ACTION_DELETE,
+  FPI_DEVICE_ACTION_CLEAR_STORAGE,
 } FpiDeviceAction;
 
 GUsbDevice  *fpi_device_get_usb_device (FpDevice *device);
@@ -271,6 +275,8 @@ void fpi_device_delete_complete (FpDevice *device,
 void fpi_device_list_complete (FpDevice  *device,
                                GPtrArray *prints,
                                GError    *error);
+void fpi_device_clear_storage_complete (FpDevice *device,
+                                        GError   *error);
 
 void fpi_device_enroll_progress (FpDevice *device,
                                  gint      completed_stages,

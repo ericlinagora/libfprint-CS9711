@@ -586,7 +586,7 @@ test_driver_initial_features (void)
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
 
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_CAPTURE));
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_IDENTIFY));
@@ -595,7 +595,7 @@ test_driver_initial_features (void)
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE));
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE_LIST));
   g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE_DELETE));
-  g_assert_false (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE_CLEAR));
+  g_assert_true (fp_device_has_feature (device, FP_DEVICE_FEATURE_STORAGE_CLEAR));
 
   g_assert_cmpuint (fp_device_get_features (device),
                     ==,
@@ -604,7 +604,8 @@ test_driver_initial_features (void)
                     FP_DEVICE_FEATURE_VERIFY |
                     FP_DEVICE_FEATURE_STORAGE |
                     FP_DEVICE_FEATURE_STORAGE_LIST |
-                    FP_DEVICE_FEATURE_STORAGE_DELETE);
+                    FP_DEVICE_FEATURE_STORAGE_DELETE |
+                    FP_DEVICE_FEATURE_STORAGE_CLEAR);
 }
 
 static void
@@ -617,6 +618,7 @@ test_driver_initial_features_none (void)
   dev_class->verify = NULL;
   dev_class->identify = NULL;
   dev_class->delete = NULL;
+  dev_class->clear_storage = NULL;
   dev_class->features = FP_DEVICE_FEATURE_NONE;
 
   fpi_device_class_auto_initialize_features (dev_class);
@@ -650,7 +652,7 @@ test_driver_initial_features_no_capture (void)
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
 }
 
 static void
@@ -671,7 +673,7 @@ test_driver_initial_features_no_verify (void)
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
 }
 
 static void
@@ -692,7 +694,7 @@ test_driver_initial_features_no_identify (void)
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
 }
 
 static void
@@ -700,7 +702,6 @@ test_driver_initial_features_no_storage (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
 
-  dev_class->list = NULL;
   dev_class->delete = NULL;
   dev_class->features = FP_DEVICE_FEATURE_NONE;
 
@@ -712,9 +713,9 @@ test_driver_initial_features_no_storage (void)
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_VERIFY);
   g_assert_false (dev_class->features & FP_DEVICE_FEATURE_DUPLICATES_CHECK);
   g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
   g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
 }
 
 static void
@@ -735,7 +736,7 @@ test_driver_initial_features_no_list (void)
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
   g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
 }
 
 static void
@@ -743,7 +744,28 @@ test_driver_initial_features_no_delete (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
 
-  dev_class->list = NULL;
+  dev_class->delete = NULL;
+  dev_class->features = FP_DEVICE_FEATURE_NONE;
+
+  fpi_device_class_auto_initialize_features (dev_class);
+
+  g_assert_cmpuint (dev_class->features, !=, FP_DEVICE_FEATURE_NONE);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_CAPTURE);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_IDENTIFY);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_VERIFY);
+  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_DUPLICATES_CHECK);
+  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
+}
+
+static void
+test_driver_initial_features_no_clear (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+
+  dev_class->clear_storage = NULL;
   dev_class->features = FP_DEVICE_FEATURE_NONE;
 
   fpi_device_class_auto_initialize_features (dev_class);
@@ -754,7 +776,7 @@ test_driver_initial_features_no_delete (void)
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_VERIFY);
   g_assert_false (dev_class->features & FP_DEVICE_FEATURE_DUPLICATES_CHECK);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE);
-  g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
+  g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_LIST);
   g_assert_true (dev_class->features & FP_DEVICE_FEATURE_STORAGE_DELETE);
   g_assert_false (dev_class->features & FP_DEVICE_FEATURE_STORAGE_CLEAR);
 }
@@ -2787,6 +2809,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/initial_features/no_storage", test_driver_initial_features_no_storage);
   g_test_add_func ("/driver/initial_features/no_list", test_driver_initial_features_no_list);
   g_test_add_func ("/driver/initial_features/no_delete", test_driver_initial_features_no_delete);
+  g_test_add_func ("/driver/initial_features/no_clear", test_driver_initial_features_no_clear);
+
 
   g_test_add_func ("/driver/probe", test_driver_probe);
   g_test_add_func ("/driver/probe/error", test_driver_probe_error);

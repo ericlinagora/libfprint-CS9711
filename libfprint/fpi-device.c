@@ -68,16 +68,16 @@ fpi_device_class_auto_initialize_features (FpDeviceClass *device_class)
     device_class->features |= FP_DEVICE_FEATURE_IDENTIFY;
 
   if (device_class->list)
-    {
-      device_class->features |= FP_DEVICE_FEATURE_STORAGE;
-      device_class->features |= FP_DEVICE_FEATURE_STORAGE_LIST;
-    }
+    device_class->features |= FP_DEVICE_FEATURE_STORAGE_LIST;
 
   if (device_class->delete)
-    {
-      device_class->features |= FP_DEVICE_FEATURE_STORAGE;
-      device_class->features |= FP_DEVICE_FEATURE_STORAGE_DELETE;
-    }
+    device_class->features |= FP_DEVICE_FEATURE_STORAGE_DELETE;
+
+  if (device_class->clear_storage)
+    device_class->features |= FP_DEVICE_FEATURE_STORAGE_CLEAR;
+
+  if (device_class->delete && (device_class->list || device_class->clear_storage))
+    device_class->features |= FP_DEVICE_FEATURE_STORAGE;
 }
 
 /**
@@ -1378,6 +1378,35 @@ fpi_device_list_complete (FpDevice  *device,
 }
 
 /**
+ * fpi_device_clear_storage_complete:
+ * @device: The #FpDevice
+ * @error: The #GError or %NULL on success
+ *
+ * Finish an ongoing clear_storage operation.
+ */
+void
+fpi_device_clear_storage_complete (FpDevice *device,
+                                   GError   *error)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_return_if_fail (FP_IS_DEVICE (device));
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_CLEAR_STORAGE);
+
+  g_debug ("Device reported deletion completion");
+
+  clear_device_cancel_action (device);
+  fpi_device_report_finger_status (device, FP_FINGER_STATUS_NONE);
+
+  if (!error)
+    fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_BOOL,
+                                    GUINT_TO_POINTER (TRUE));
+  else
+    fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
+}
+
+/**
+
  * fpi_device_enroll_progress:
  * @device: The #FpDevice
  * @completed_stages: The number of stages that are completed at this point

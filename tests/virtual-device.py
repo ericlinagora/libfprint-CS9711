@@ -1029,7 +1029,7 @@ class VirtualDeviceStorage(VirtualDevice):
         self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.STORAGE))
         self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_LIST))
         self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_DELETE))
-        self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR))
 
     def test_duplicate_enroll(self):
         self.enroll_print('testprint', FPrint.Finger.LEFT_LITTLE)

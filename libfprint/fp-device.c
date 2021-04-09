@@ -1412,6 +1412,93 @@ fp_device_list_prints_finish (FpDevice     *device,
   return g_task_propagate_pointer (G_TASK (result), error);
 }
 
+/**
+ * fp_device_clear_storage:
+ * @device: a #FpDevice
+ * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @callback: the function to call on completion
+ * @user_data: the data to pass to @callback
+ *
+ * Start an asynchronous operation to delete all prints from the device.
+ * The callback will be called once the operation has finished. Retrieve
+ * the result with fp_device_clear_storage_finish().
+ *
+ * This only makes sense on devices that store prints on-chip, but is safe
+ * to always call.
+ */
+void
+fp_device_clear_storage (FpDevice           *device,
+                         GCancellable       *cancellable,
+                         GAsyncReadyCallback callback,
+                         gpointer            user_data)
+{
+  g_autoptr(GTask) task = NULL;
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (device);
+
+  task = g_task_new (device, cancellable, callback, user_data);
+  if (g_task_return_error_if_cancelled (task))
+    return;
+
+  if (!priv->is_open)
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new (FP_DEVICE_ERROR_NOT_OPEN));
+      return;
+    }
+
+  if (priv->current_task)
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
+      return;
+    }
+
+  if (!(cls->features & FP_DEVICE_FEATURE_STORAGE))
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
+                                                     "Device has no storage."));
+      return;
+    }
+
+  if (!(cls->features & FP_DEVICE_FEATURE_STORAGE_CLEAR))
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
+                                                     "Device doesn't support clearing storage."));
+      return;
+    }
+
+  priv->current_action = FPI_DEVICE_ACTION_CLEAR_STORAGE;
+  priv->current_task = g_steal_pointer (&task);
+  maybe_cancel_on_cancelled (device, cancellable);
+
+  cls->clear_storage (device);
+
+  return;
+}
+
+/**
+ * fp_device_clear_storage_finish:
+ * @device: A #FpDevice
+ * @result: A #GAsyncResult
+ * @error: Return location for errors, or %NULL to ignore
+ *
+ * Finish an asynchronous operation to delete all enrolled prints.
+ *
+ * See fp_device_clear_storage().
+ *
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
+ */
+gboolean
+fp_device_clear_storage_finish (FpDevice     *device,
+                                GAsyncResult *result,
+                                GError      **error)
+{
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
 static void
 async_result_ready (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
@@ -1715,4 +1802,32 @@ fp_device_has_feature (FpDevice       *device,
     return fp_device_get_features (device) == feature;
 
   return (fp_device_get_features (device) & feature) == feature;
+}
+
+/**
+ * fp_device_clear_storage_sync:
+ * @device: a #FpDevice
+ * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @error: Return location for errors, or %NULL to ignore
+ *
+ * Clear sensor storage.
+ *
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
+ */
+gboolean
+fp_device_clear_storage_sync (FpDevice     *device,
+                              GCancellable *cancellable,
+                              GError      **error)
+{
+  g_autoptr(GAsyncResult) task = NULL;
+
+  g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
+
+  fp_device_clear_storage (device,
+                           cancellable,
+                           async_result_ready, &task);
+  while (!task)
+    g_main_context_iteration (NULL, TRUE);
+
+  return fp_device_clear_storage_finish (device, task, error);
 }
