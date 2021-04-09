@@ -858,6 +858,12 @@ class VirtualDevice(VirtualDeviceBase):
         self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
                                                 FPrint.DeviceError.NOT_SUPPORTED))
 
+    def test_capture_unsupported(self):
+        with self.assertRaises(GLib.Error) as error:
+            self.dev.capture_sync(wait_for_finger=False)
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.NOT_SUPPORTED))
+
 
 class VirtualDeviceClosed(VirtualDeviceBase):
 

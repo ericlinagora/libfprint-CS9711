@@ -1881,6 +1881,29 @@ test_driver_capture (void)
 }
 
 static void
+test_driver_capture_not_supported (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpImage) image = NULL;
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  gboolean wait_for_finger = TRUE;
+  FpiDeviceFake *fake_dev;
+
+  dev_class->features &= ~FPI_DEVICE_FEATURE_CAPTURE;
+
+  device = auto_close_fake_device_new ();
+  fake_dev = FPI_DEVICE_FAKE (device);
+  fake_dev->last_called_function = NULL;
+
+  image = fp_device_capture_sync (device, wait_for_finger, NULL, &error);
+  g_assert_null (fake_dev->last_called_function);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_NOT_SUPPORTED);
+
+  g_assert_null (image);
+}
+
+static void
 test_driver_capture_error (void)
 {
   g_autoptr(GError) error = NULL;
@@ -2674,6 +2697,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/identify/complete_retry", test_driver_identify_complete_retry);
   g_test_add_func ("/driver/identify/report_no_cb", test_driver_identify_report_no_callback);
   g_test_add_func ("/driver/capture", test_driver_capture);
+  g_test_add_func ("/driver/capture/not_supported", test_driver_capture_not_supported);
   g_test_add_func ("/driver/capture/error", test_driver_capture_error);
   g_test_add_func ("/driver/list", test_driver_list);
   g_test_add_func ("/driver/list/error", test_driver_list_error);

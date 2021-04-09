@@ -1191,6 +1191,7 @@ fp_device_capture (FpDevice           *device,
 {
   g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (device);
 
   task = g_task_new (device, cancellable, callback, user_data);
   if (g_task_return_error_if_cancelled (task))
@@ -1210,13 +1211,21 @@ fp_device_capture (FpDevice           *device,
       return;
     }
 
+  if (!cls->capture || !(cls->features & FPI_DEVICE_FEATURE_CAPTURE))
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
+                                                     "Device has no verification support"));
+      return;
+    }
+
   priv->current_action = FPI_DEVICE_ACTION_CAPTURE;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
 
   priv->wait_for_finger = wait_for_finger;
 
-  FP_DEVICE_GET_CLASS (device)->capture (device);
+  cls->capture (device);
 }
 
 /**
