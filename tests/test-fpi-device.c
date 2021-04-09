@@ -1162,6 +1162,39 @@ test_driver_verify (void)
 }
 
 static void
+test_driver_verify_not_supported (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpPrint) enrolled_print = NULL;
+  g_autoptr(FpPrint) out_print = NULL;
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  FpiDeviceFake *fake_dev;
+  gboolean match;
+
+  dev_class->features &= ~FPI_DEVICE_FEATURE_VERIFY;
+
+  device = auto_close_fake_device_new ();
+  fake_dev = FPI_DEVICE_FAKE (device);
+  fake_dev->last_called_function = NULL;
+
+  enrolled_print = make_fake_print_reffed (device, g_variant_new_uint64 (3));
+  g_assert_false (fp_device_verify_sync (device, enrolled_print, NULL,
+                                         test_driver_match_cb, match_data,
+                                         &match, &out_print, &error));
+
+  g_assert_null (fake_dev->last_called_function);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_NOT_SUPPORTED);
+
+  g_assert_false (match_data->called);
+  g_assert_no_error (match_data->error);
+
+  g_assert_null (out_print);
+  g_assert_false (match);
+}
+
+static void
 test_driver_verify_fail (void)
 {
   g_autoptr(GError) error = NULL;
@@ -2629,6 +2662,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/verify/fail", test_driver_verify_fail);
   g_test_add_func ("/driver/verify/retry", test_driver_verify_retry);
   g_test_add_func ("/driver/verify/error", test_driver_verify_error);
+  g_test_add_func ("/driver/verify/not_supported", test_driver_verify_not_supported);
   g_test_add_func ("/driver/verify/report_no_cb", test_driver_verify_report_no_callback);
   g_test_add_func ("/driver/verify/not_reported", test_driver_verify_not_reported);
   g_test_add_func ("/driver/verify/complete_retry", test_driver_verify_complete_retry);

@@ -955,6 +955,7 @@ fp_device_verify (FpDevice           *device,
 {
   g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (device);
   FpMatchData *data;
 
   task = g_task_new (device, cancellable, callback, user_data);
@@ -975,6 +976,14 @@ fp_device_verify (FpDevice           *device,
       return;
     }
 
+  if (!cls->verify || !(cls->features & FPI_DEVICE_FEATURE_VERIFY))
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
+                                                     "Device has no verification support"));
+      return;
+    }
+
   priv->current_action = FPI_DEVICE_ACTION_VERIFY;
   priv->current_task = g_steal_pointer (&task);
   maybe_cancel_on_cancelled (device, cancellable);
@@ -988,7 +997,7 @@ fp_device_verify (FpDevice           *device,
   // Attach the match data as task data so that it is destroyed
   g_task_set_task_data (priv->current_task, data, (GDestroyNotify) match_data_free);
 
-  FP_DEVICE_GET_CLASS (device)->verify (device);
+  cls->verify (device);
 }
 
 /**
