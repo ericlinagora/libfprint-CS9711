@@ -693,8 +693,6 @@ sm_read_reg_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fp_dbg ("read reg result = %02x", self->read_reg_result);
       fpi_ssm_next_state (transfer->ssm);
     }
-
-  g_free (transfer->buffer);
 }
 
 static void
@@ -731,7 +729,6 @@ sm_await_intr_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
   if (error)
     {
-      g_free (transfer->buffer);
       fpi_ssm_mark_failed (transfer->ssm, error);
       return;
     }
@@ -739,7 +736,6 @@ sm_await_intr_cb (FpiUsbTransfer *transfer, FpDevice *device,
   fp_dbg ("interrupt received: %02x %02x %02x %02x",
           transfer->buffer[0], transfer->buffer[1],
           transfer->buffer[2], transfer->buffer[3]);
-  g_free (transfer->buffer);
 
   self->finger_state = FINGER_DETECTED;
   fpi_image_device_report_finger_status (dev, TRUE);
