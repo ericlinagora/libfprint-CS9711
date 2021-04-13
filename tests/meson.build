@@ -177,9 +177,8 @@ foreach test_name: unit_tests
         link_with: test_utils,
     )
     test(test_name,
-        find_program('test-runner.sh'),
+        test_exe,
         suite: ['unit-tests'],
-        args: [test_exe],
         env: envs,
     )
 endforeach
@@ -193,11 +192,17 @@ test('udev-hwdb',
 
 gdb = find_program('gdb', required: false)
 if gdb.found()
+    libfprint_wrapper = [
+        gdb.path(),
+        '-batch',
+        '-ex', 'run',
+        '--args',
+    ]
     add_test_setup('gdb',
         timeout_multiplier: 1000,
+        exe_wrapper: libfprint_wrapper,
         env: [
-            'LIBFPRINT_TEST_WRAPPER=@0@ --args'.format(
-                gdb.path())
+            'LIBFPRINT_TEST_WRAPPER=' + ' '.join(libfprint_wrapper),
         ])
 endif
 
@@ -207,13 +212,19 @@ if valgrind.found()
     glib_suppressions = glib_share + '/valgrind/glib.supp'
     python_suppressions = '@0@/@1@'.format(meson.source_root(),
         files('valgrind-python.supp')[0])
+    libfprint_wrapper = [
+        valgrind.path(),
+        '--tool=memcheck',
+        '--leak-check=full',
+        '--suppressions=' + glib_suppressions,
+        '--suppressions=' + python_suppressions,
+    ]
     add_test_setup('valgrind',
         timeout_multiplier: 10,
+        exe_wrapper: libfprint_wrapper,
         env: [
             'G_SLICE=always-malloc',
             'UNDER_VALGRIND=1',
-            ('LIBFPRINT_TEST_WRAPPER=@0@ --tool=memcheck --leak-check=full ' +
-             '--suppressions=@1@ --suppressions=@2@').format(
-                valgrind.path(), glib_suppressions, python_suppressions)
+            'LIBFPRINT_TEST_WRAPPER=' + ' '.join(libfprint_wrapper),
         ])
 endif
