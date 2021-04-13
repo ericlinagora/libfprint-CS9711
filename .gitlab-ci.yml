@@ -84,6 +84,13 @@ test_valgrind:
     - meson -Ddrivers=all . _build
     - ninja -C _build
     - meson test -C _build --print-errorlogs --no-stdsplit --setup=valgrind
+  artifacts:
+    expose_as: 'Valgrind test logs'
+    paths:
+      - _build/meson-logs
+      - _build/meson-logs/testlog-valgrind.txt
+    expire_in: 1 week
+
 
 test_scan_build:
   stage: test
