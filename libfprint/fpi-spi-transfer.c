@@ -22,6 +22,11 @@
 #include <linux/spi/spidev.h>
 #include <errno.h>
 
+/* spidev can only handle the specified block size, which defaults to 4096. */
+#define SPIDEV_BLOCK_SIZE_PARAM "/sys/module/spidev/parameters/bufsiz"
+#define SPIDEV_BLOCK_SIZE_FALLBACK 4096
+static gsize block_size = 0;
+
 /**
  * SECTION:fpi-spi-transfer
  * @title: SPI transfer helpers
@@ -113,6 +118,28 @@ fpi_spi_transfer_new (FpDevice * device, int spidev_fd)
   FpiSpiTransfer *self;
 
   g_assert (FP_IS_DEVICE (device));
+
+  if (G_UNLIKELY (block_size == 0))
+    {
+      g_autoptr(GError) error = NULL;
+      g_autofree char *contents = NULL;
+
+      block_size = SPIDEV_BLOCK_SIZE_FALLBACK;
+
+      if (g_file_get_contents (SPIDEV_BLOCK_SIZE_PARAM, &contents, NULL, &error))
+        {
+          block_size = MIN (g_ascii_strtoull (contents, NULL, 0), G_MAXUINT16);
+          if (block_size == 0)
+            {
+              block_size = SPIDEV_BLOCK_SIZE_FALLBACK;
+              g_warning ("spidev blocksize could not be decoded, using %" G_GSIZE_FORMAT, block_size);
+            }
+        }
+      else
+        {
+          g_message ("Failed to read spidev block size, using %" G_GSIZE_FORMAT, block_size);
+        }
+    }
 
   self = g_slice_new0 (FpiSpiTransfer);
   self->ref_count = 1;
@@ -283,6 +310,78 @@ transfer_finish_cb (GObject *source_object, GAsyncResult *res, gpointer user_dat
   callback (transfer, transfer->device, transfer->user_data, error);
 }
 
+static int
+transfer_chunk (FpiSpiTransfer *transfer, gsize full_length, gsize *transferred)
+{
+  struct spi_ioc_transfer xfer[2] = { 0 };
+  gsize skip = *transferred;
+  gsize len = 0;
+  int transfers = 0;
+  int status;
+
+  if (transfer->buffer_wr)
+    {
+      if (skip < transfer->length_wr && len < block_size)
+        {
+          xfer[transfers].tx_buf = (guint64) transfer->buffer_wr + skip;
+          xfer[transfers].len = MIN (block_size, transfer->length_wr - skip);
+
+          len += xfer[transfers].len;
+          skip += xfer[transfers].len;
+
+          transfers += 1;
+        }
+
+      /* How much we need to skip in the next transfer. */
+      skip -= transfer->length_wr;
+    }
+
+  if (transfer->buffer_rd)
+    {
+      if (skip < transfer->length_rd && len < block_size)
+        {
+          xfer[transfers].rx_buf = (guint64) transfer->buffer_rd + skip;
+          xfer[transfers].len = MIN (block_size, transfer->length_rd - skip);
+
+          len += xfer[transfers].len;
+          /* skip += xfer[transfers].len; */
+
+          transfers += 1;
+        }
+
+      /* How much we need to skip in the next transfer. */
+      /* skip -= transfer->length_rd; */
+    }
+
+  g_assert (transfers > 0);
+
+  /* We have not transferred everything; ask driver to not deselect the chip.
+   * Unfortunately, this is inherently racy in case there are further devices
+   * on the same bus. In practice, it is hopefully unlikely to be an issue,
+   * but print a message once to help with debugging.
+   */
+  if (full_length < *transferred + len)
+    {
+      static gboolean warned = FALSE;
+
+      if (!warned)
+        {
+          g_message ("Split SPI transfer. In case of issues, try increasing the spidev buffer size.");
+          warned = TRUE;
+        }
+
+      xfer[transfers - 1].cs_change = TRUE;
+    }
+
+  /* This ioctl cannot be interrupted. */
+  status = ioctl (transfer->spidev_fd, SPI_IOC_MESSAGE (transfers), xfer);
+
+  if (status >= 0)
+    *transferred += len;
+
+  return status;
+}
+
 static void
 transfer_thread_func (GTask        *task,
                       gpointer      source_object,
@@ -290,9 +389,9 @@ transfer_thread_func (GTask        *task,
                       GCancellable *cancellable)
 {
   FpiSpiTransfer *transfer = (FpiSpiTransfer *) task_data;
-  struct spi_ioc_transfer xfer[2];
-  int transfers = 0;
-  int status;
+  gsize full_length;
+  gsize transferred = 0;
+  int status = 0;
 
   if (transfer->buffer_wr == NULL && transfer->buffer_rd == NULL)
     {
@@ -303,26 +402,14 @@ transfer_thread_func (GTask        *task,
       return;
     }
 
-  memset (xfer, 0, sizeof (xfer));
-
+  full_length = 0;
   if (transfer->buffer_wr)
-    {
-      xfer[transfers].tx_buf = (guint64) transfer->buffer_wr;
-      xfer[transfers].len = transfer->length_wr;
-
-      transfers += 1;
-    }
-
+    full_length += transfer->length_wr;
   if (transfer->buffer_rd)
-    {
-      xfer[transfers].rx_buf = (guint64) transfer->buffer_rd;
-      xfer[transfers].len = transfer->length_rd;
+    full_length += transfer->length_rd;
 
-      transfers += 1;
-    }
-
-  /* This ioctl cannot be interrupted. */
-  status = ioctl (transfer->spidev_fd, SPI_IOC_MESSAGE (transfers), xfer);
+  while (transferred < full_length && status >= 0)
+    status = transfer_chunk (transfer, full_length, &transferred);
 
   if (status < 0)
     {
