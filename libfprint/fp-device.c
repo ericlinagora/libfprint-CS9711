@@ -986,6 +986,12 @@ fp_device_enroll (FpDevice           *device,
   setup_task_cancellable (device);
 
   fpi_device_update_temp (device, TRUE);
+  if (priv->temp_current == FP_TEMPERATURE_HOT)
+    {
+      g_task_return_error (task, fpi_device_error_new (FP_DEVICE_ERROR_TOO_HOT));
+      fpi_device_update_temp (device, FALSE);
+      return;
+    }
 
   data = g_new0 (FpEnrollData, 1);
   data->print = g_object_ref_sink (template_print);
@@ -1081,6 +1087,12 @@ fp_device_verify (FpDevice           *device,
   setup_task_cancellable (device);
 
   fpi_device_update_temp (device, TRUE);
+  if (priv->temp_current == FP_TEMPERATURE_HOT)
+    {
+      g_task_return_error (task, fpi_device_error_new (FP_DEVICE_ERROR_TOO_HOT));
+      fpi_device_update_temp (device, FALSE);
+      return;
+    }
 
   data = g_new0 (FpMatchData, 1);
   data->enrolled_print = g_object_ref (enrolled_print);
@@ -1202,6 +1214,12 @@ fp_device_identify (FpDevice           *device,
   setup_task_cancellable (device);
 
   fpi_device_update_temp (device, TRUE);
+  if (priv->temp_current == FP_TEMPERATURE_HOT)
+    {
+      g_task_return_error (task, fpi_device_error_new (FP_DEVICE_ERROR_TOO_HOT));
+      fpi_device_update_temp (device, FALSE);
+      return;
+    }
 
   data = g_new0 (FpMatchData, 1);
   /* We cannot store the gallery directly, because the ptr array may not own
@@ -1321,6 +1339,12 @@ fp_device_capture (FpDevice           *device,
   setup_task_cancellable (device);
 
   fpi_device_update_temp (device, TRUE);
+  if (priv->temp_current == FP_TEMPERATURE_HOT)
+    {
+      g_task_return_error (task, fpi_device_error_new (FP_DEVICE_ERROR_TOO_HOT));
+      fpi_device_update_temp (device, FALSE);
+      return;
+    }
 
   priv->wait_for_finger = wait_for_finger;
 
