@@ -53,6 +53,8 @@ typedef struct
   GUsbContext  *usb_ctx;
   GCancellable *cancellable;
 
+  GSList       *sources;
+
   gint          pending_devices;
   gboolean      enumerated;
 
@@ -102,6 +104,7 @@ typedef struct
 {
   FpContext *context;
   FpDevice  *device;
+  GSource   *source;
 } RemoveDeviceData;
 
 static gboolean
@@ -115,21 +118,36 @@ remove_device_idle_cb (RemoveDeviceData *data)
   g_signal_emit (data->context, signals[DEVICE_REMOVED_SIGNAL], 0, data->device);
   g_ptr_array_remove_index_fast (priv->devices, idx);
 
-  g_free (data);
-
   return G_SOURCE_REMOVE;
+}
+
+static void
+remove_device_data_free (RemoveDeviceData *data)
+{
+  FpContextPrivate *priv = fp_context_get_instance_private (data->context);
+
+  priv->sources = g_slist_remove (priv->sources, data->source);
+  g_free (data);
 }
 
 static void
 remove_device (FpContext *context, FpDevice *device)
 {
+  g_autoptr(GSource) source = NULL;
+  FpContextPrivate *priv = fp_context_get_instance_private (context);
   RemoveDeviceData *data;
 
   data = g_new (RemoveDeviceData, 1);
   data->context = context;
   data->device = device;
 
-  g_idle_add ((GSourceFunc) remove_device_idle_cb, data);
+  source = data->source = g_idle_source_new ();
+  g_source_set_callback (source,
+                         G_SOURCE_FUNC (remove_device_idle_cb), data,
+                         (GDestroyNotify) remove_device_data_free);
+  g_source_attach (source, g_main_context_get_thread_default ());
+
+  priv->sources = g_slist_prepend (priv->sources, source);
 }
 
 static void
@@ -283,6 +301,8 @@ fp_context_finalize (GObject *object)
   g_cancellable_cancel (priv->cancellable);
   g_clear_object (&priv->cancellable);
   g_clear_pointer (&priv->drivers, g_array_unref);
+
+  g_slist_free_full (g_steal_pointer (&priv->sources), (GDestroyNotify) g_source_destroy);
 
   if (priv->usb_ctx)
     g_object_run_dispose (G_OBJECT (priv->usb_ctx));
