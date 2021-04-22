@@ -785,7 +785,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_LOOP_0_SLEEP:
       /* Wait fingerprint scanning */
-      fpi_ssm_next_state_delayed (ssm, 50, NULL);
+      fpi_ssm_next_state_delayed (ssm, 50);
       break;
 
     case M_LOOP_0_GET_STATE:
@@ -828,7 +828,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
       img_extract (ssm, dev);
 
       /* Wait handling image */
-      fpi_ssm_next_state_delayed (ssm, 10, NULL);
+      fpi_ssm_next_state_delayed (ssm, 10);
       break;
 
     case M_LOOP_0_CHECK_ACTION:
@@ -851,7 +851,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
       if (vfs_finger_state (self) == VFS_FINGER_PRESENT)
         {
           fpi_image_device_report_finger_status (dev, TRUE);
-          fpi_ssm_next_state_delayed (ssm, 250, NULL);
+          fpi_ssm_next_state_delayed (ssm, 250);
         }
       else
         {
@@ -881,7 +881,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_LOOP_1_SLEEP:
       /* Wait fingerprint scanning */
-      fpi_ssm_next_state_delayed (ssm, 10, NULL);
+      fpi_ssm_next_state_delayed (ssm, 10);
       break;
 
     case M_LOOP_2_ABORT_PRINT:
@@ -917,7 +917,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
         {
           /* Wait aborting */
           self->counter++;
-          fpi_ssm_next_state_delayed (ssm, 100, NULL);
+          fpi_ssm_next_state_delayed (ssm, 100);
         }
       else
         {
@@ -1055,7 +1055,7 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev)
         {
           /* Wait aborting */
           self->counter++;
-          fpi_ssm_next_state_delayed (ssm, 100, NULL);
+          fpi_ssm_next_state_delayed (ssm, 100);
         }
       else
         {
@@ -1084,7 +1084,7 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev)
             {
               /* Wait removing finger */
               self->counter++;
-              fpi_ssm_next_state_delayed (ssm, 250, NULL);
+              fpi_ssm_next_state_delayed (ssm, 250);
             }
           else
             {

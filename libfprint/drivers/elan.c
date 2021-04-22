@@ -760,7 +760,7 @@ calibrate_run_state (FpiSsm *ssm, FpDevice *dev)
           if (self->calib_status == 0x00 &&
               self->last_read[0] == 0x01)
             self->calib_status = 0x01;
-          fpi_ssm_next_state_delayed (ssm, 50, NULL);
+          fpi_ssm_next_state_delayed (ssm, 50);
         }
       break;
 

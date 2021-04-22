@@ -158,14 +158,6 @@ test_ssm_cancel_delayed_action_delayed (gpointer data)
   return G_SOURCE_REMOVE;
 }
 
-static gboolean
-test_ssm_cancel_cancellable_delayed (gpointer data)
-{
-  g_cancellable_cancel (G_CANCELLABLE (data));
-
-  return G_SOURCE_REMOVE;
-}
-
 /* Tests */
 
 static void
@@ -339,7 +331,7 @@ test_ssm_next_with_delayed (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
   fpi_ssm_next_state (ssm);
@@ -447,7 +439,7 @@ test_ssm_jump_to_state_with_delayed (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
   fpi_ssm_jump_to_state (ssm, FPI_TEST_SSM_STATE_2);
@@ -564,7 +556,7 @@ test_ssm_mark_completed_with_delayed (void)
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
   data->expected_last_state = FPI_TEST_SSM_STATE_0;
-  fpi_ssm_mark_completed_delayed (ssm, 10, NULL);
+  fpi_ssm_mark_completed_delayed (ssm, 10);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
   fpi_ssm_mark_completed (g_steal_pointer (&ssm));
@@ -626,7 +618,7 @@ test_ssm_mark_failed_with_delayed (void)
   fpi_ssm_start (ssm, test_ssm_completed_callback);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_mark_completed_delayed (ssm, 10, NULL);
+  fpi_ssm_mark_completed_delayed (ssm, 10);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
   data->expected_last_state = FPI_TEST_SSM_STATE_0;
@@ -657,7 +649,7 @@ test_ssm_delayed_next (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
@@ -685,7 +677,7 @@ test_ssm_delayed_next_cancel (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
@@ -705,47 +697,13 @@ test_ssm_delayed_next_cancel (void)
 }
 
 static void
-test_ssm_delayed_next_cancellable (void)
-{
-  g_autoptr(FpiSsm) ssm = ssm_test_new ();
-  g_autoptr(GCancellable) cancellable = g_cancellable_new ();
-  FpiSsmTestData *data = fpi_ssm_get_data (ssm);
-
-  fpi_ssm_start (ssm, test_ssm_completed_callback);
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  fpi_ssm_next_state_delayed (ssm, 10, cancellable);
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  g_idle_add_full (G_PRIORITY_HIGH, test_ssm_cancel_cancellable_delayed, cancellable, NULL);
-
-  while (!g_cancellable_is_cancelled (cancellable))
-    g_main_context_iteration (NULL, TRUE);
-
-  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
-  fpi_ssm_cancel_delayed_state_change (ssm);
-  g_test_assert_expected_messages ();
-
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  g_assert_false (data->completed);
-  g_assert_no_error (data->error);
-}
-
-static void
 test_ssm_delayed_next_not_started (void)
 {
   g_autoptr(FpiSsm) ssm = ssm_test_new ();
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*completed*");
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
   g_test_assert_expected_messages ();
 
   g_assert_cmpint (data->handler_state, ==, -1);
@@ -776,7 +734,7 @@ test_ssm_delayed_next_complete (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
@@ -788,7 +746,7 @@ test_ssm_delayed_next_complete (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_1);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 2);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_1);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_1);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 2);
@@ -800,7 +758,7 @@ test_ssm_delayed_next_complete (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_2);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 3);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_2);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_2);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 3);
@@ -812,7 +770,7 @@ test_ssm_delayed_next_complete (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_3);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 4);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_3);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_3);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 4);
@@ -838,7 +796,7 @@ test_ssm_delayed_jump_to_state (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10);
 
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
@@ -851,7 +809,7 @@ test_ssm_delayed_jump_to_state (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_2);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 2);
 
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_1, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_1, 10);
 
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_2);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_2);
@@ -880,7 +838,7 @@ test_ssm_delayed_jump_to_state_cancel (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
@@ -900,47 +858,13 @@ test_ssm_delayed_jump_to_state_cancel (void)
 }
 
 static void
-test_ssm_delayed_jump_to_state_cancellable (void)
-{
-  g_autoptr(FpiSsm) ssm = ssm_test_new ();
-  g_autoptr(GCancellable) cancellable = g_cancellable_new ();
-  FpiSsmTestData *data = fpi_ssm_get_data (ssm);
-
-  fpi_ssm_start (ssm, test_ssm_completed_callback);
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10, cancellable);
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  g_idle_add_full (G_PRIORITY_HIGH, test_ssm_cancel_cancellable_delayed, cancellable, NULL);
-
-  while (!g_cancellable_is_cancelled (cancellable))
-    g_main_context_iteration (NULL, TRUE);
-
-  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
-  fpi_ssm_cancel_delayed_state_change (ssm);
-  g_test_assert_expected_messages ();
-
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  g_assert_false (data->completed);
-  g_assert_no_error (data->error);
-}
-
-static void
 test_ssm_delayed_jump_to_state_not_started (void)
 {
   g_autoptr(FpiSsm) ssm = ssm_test_new ();
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*completed*");
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_2, 10);
   g_test_assert_expected_messages ();
 
   g_assert_cmpint (data->handler_state, ==, -1);
@@ -970,7 +894,7 @@ test_ssm_delayed_jump_to_state_last (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_3, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_3, 10);
 
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
@@ -999,7 +923,7 @@ test_ssm_delayed_jump_to_state_wrong (void)
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*nr_states*");
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_NUM + 10, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_NUM + 10, 10);
   g_test_assert_expected_messages ();
 
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
@@ -1016,7 +940,7 @@ test_ssm_delayed_jump_to_state_wrong (void)
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 2);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*state*");
-  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_0 - 10, 10, NULL);
+  fpi_ssm_jump_to_state_delayed (ssm, FPI_TEST_SSM_STATE_0 - 10, 10);
   g_test_assert_expected_messages ();
 
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_NUM + 10);
@@ -1046,7 +970,7 @@ test_ssm_delayed_mark_completed (void)
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
   data->expected_last_state = FPI_TEST_SSM_STATE_0;
-  fpi_ssm_mark_completed_delayed (g_steal_pointer (&ssm), 10, NULL);
+  fpi_ssm_mark_completed_delayed (g_steal_pointer (&ssm), 10);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
   while (g_slist_length (data->handlers_chain) == 1)
@@ -1066,7 +990,7 @@ test_ssm_delayed_mark_completed_not_started (void)
   g_autoptr(FpiSsmTestData) data = fpi_ssm_test_data_ref (fpi_ssm_get_data (ssm));
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*completed*");
-  fpi_ssm_mark_completed_delayed (ssm, 10, NULL);
+  fpi_ssm_mark_completed_delayed (ssm, 10);
   g_test_assert_expected_messages ();
 
   g_timeout_add (100, G_SOURCE_FUNC (fpi_ssm_test_nullify_pointer), &ssm);
@@ -1093,7 +1017,7 @@ test_ssm_delayed_mark_completed_cancel (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_mark_completed_delayed (ssm, 10, NULL);
+  fpi_ssm_mark_completed_delayed (ssm, 10);
   g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
@@ -1111,40 +1035,6 @@ test_ssm_delayed_mark_completed_cancel (void)
   g_assert_false (data->completed);
   g_assert_no_error (data->error);
   g_assert_false (data->ssm_destroyed);
-}
-
-static void
-test_ssm_delayed_mark_completed_cancellable (void)
-{
-  g_autoptr(FpiSsm) ssm = ssm_test_new ();
-  g_autoptr(GCancellable) cancellable = g_cancellable_new ();
-  FpiSsmTestData *data = fpi_ssm_get_data (ssm);
-
-  fpi_ssm_start (ssm, test_ssm_completed_callback);
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  fpi_ssm_mark_completed_delayed (ssm, 10, cancellable);
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  g_idle_add_full (G_PRIORITY_HIGH, test_ssm_cancel_cancellable_delayed, cancellable, NULL);
-
-  while (!g_cancellable_is_cancelled (cancellable))
-    g_main_context_iteration (NULL, TRUE);
-
-  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
-  fpi_ssm_cancel_delayed_state_change (ssm);
-  g_test_assert_expected_messages ();
-
-  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
-  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
-
-  g_assert_false (data->completed);
-  g_assert_no_error (data->error);
 }
 
 static void
@@ -1320,7 +1210,7 @@ test_ssm_subssm_start_with_delayed (void)
   g_assert_cmpint (fpi_ssm_get_cur_state (ssm), ==, FPI_TEST_SSM_STATE_0);
   g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
 
-  fpi_ssm_next_state_delayed (ssm, 10, NULL);
+  fpi_ssm_next_state_delayed (ssm, 10);
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, "*BUG:*timeout*");
   fpi_ssm_start_subsm (ssm, subssm);
@@ -1457,18 +1347,15 @@ main (int argc, char *argv[])
   g_test_add_func ("/ssm/mark_failed/with_delayed", test_ssm_mark_failed_with_delayed);
   g_test_add_func ("/ssm/delayed/next", test_ssm_delayed_next);
   g_test_add_func ("/ssm/delayed/next/cancel", test_ssm_delayed_next_cancel);
-  g_test_add_func ("/ssm/delayed/next/cancellable", test_ssm_delayed_next_cancellable);
   g_test_add_func ("/ssm/delayed/next/not_started", test_ssm_delayed_next_not_started);
   g_test_add_func ("/ssm/delayed/next/complete", test_ssm_delayed_next_complete);
   g_test_add_func ("/ssm/delayed/jump_to_state", test_ssm_delayed_jump_to_state);
   g_test_add_func ("/ssm/delayed/jump_to_state/cancel", test_ssm_delayed_jump_to_state_cancel);
-  g_test_add_func ("/ssm/delayed/jump_to_state/cancellable", test_ssm_delayed_jump_to_state_cancellable);
   g_test_add_func ("/ssm/delayed/jump_to_state/not_started", test_ssm_delayed_jump_to_state_not_started);
   g_test_add_func ("/ssm/delayed/jump_to_state/last", test_ssm_delayed_jump_to_state_last);
   g_test_add_func ("/ssm/delayed/jump_to_state/wrong", test_ssm_delayed_jump_to_state_wrong);
   g_test_add_func ("/ssm/delayed/mark_completed", test_ssm_delayed_mark_completed);
   g_test_add_func ("/ssm/delayed/mark_completed/cancel", test_ssm_delayed_mark_completed_cancel);
-  g_test_add_func ("/ssm/delayed/mark_completed/cancellable", test_ssm_delayed_mark_completed_cancellable);
   g_test_add_func ("/ssm/delayed/mark_completed/not_started", test_ssm_delayed_mark_completed_not_started);
   g_test_add_func ("/ssm/delayed/cancel/error", test_ssm_delayed_cancel_error);
   g_test_add_func ("/ssm/subssm/start", test_ssm_subssm_start);

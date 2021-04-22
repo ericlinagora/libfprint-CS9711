@@ -97,7 +97,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_WAIT_PRINT:
       /* Wait fingerprint scanning */
-      fpi_ssm_next_state_delayed (ssm, 200, NULL);
+      fpi_ssm_next_state_delayed (ssm, 200);
       break;
 
     case M_CHECK_PRINT:
@@ -115,7 +115,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_READ_PRINT_WAIT:
       /* Wait fingerprint scanning */
-      fpi_ssm_next_state_delayed (ssm, 200, NULL);
+      fpi_ssm_next_state_delayed (ssm, 200);
       break;
 
     case M_READ_PRINT_POLL:

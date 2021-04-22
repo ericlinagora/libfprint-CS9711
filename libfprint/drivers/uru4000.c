@@ -865,7 +865,7 @@ rebootpwr_run_state (FpiSsm *ssm, FpDevice *_dev)
         }
       else
         {
-          fpi_ssm_jump_to_state_delayed (ssm, 10, REBOOTPWR_GET_HWSTAT, NULL);
+          fpi_ssm_jump_to_state_delayed (ssm, 10, REBOOTPWR_GET_HWSTAT);
         }
       break;
     }
@@ -947,11 +947,11 @@ powerup_run_state (FpiSsm *ssm, FpDevice *_dev)
         }
       else if (!self->profile->auth_cr)
         {
-          fpi_ssm_jump_to_state_delayed (ssm, POWERUP_SET_HWSTAT, 10, NULL);
+          fpi_ssm_jump_to_state_delayed (ssm, POWERUP_SET_HWSTAT, 10);
         }
       else
         {
-          fpi_ssm_next_state_delayed (ssm, 10, NULL);
+          fpi_ssm_next_state_delayed (ssm, 10);
         }
       break;
 

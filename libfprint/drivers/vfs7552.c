@@ -487,7 +487,7 @@ deactivate_run_state (FpiSsm *ssm, FpDevice *_dev)
   switch (fpi_ssm_get_cur_state (ssm))
     {
     case DEACTIVATE_ENTER:
-      fpi_ssm_next_state_delayed (ssm, 10, NULL);
+      fpi_ssm_next_state_delayed (ssm, 10);
       break;
 
     case DEACTIVATE_DISABLE_SENSOR:

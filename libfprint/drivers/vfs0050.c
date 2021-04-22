@@ -613,7 +613,7 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
       clear_data (self);
 
       /* Wait for probable vdev->active changing */
-      fpi_ssm_next_state_delayed (ssm, VFS_SSM_TIMEOUT, NULL);
+      fpi_ssm_next_state_delayed (ssm, VFS_SSM_TIMEOUT);
       break;
 
     case SSM_NEXT_RECEIVE:
@@ -632,8 +632,7 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
 
     case SSM_WAIT_ANOTHER_SCAN:
       /* Orange light is on now */
-      fpi_ssm_jump_to_state_delayed (ssm, SSM_TURN_ON, VFS_SSM_ORANGE_TIMEOUT,
-                                     NULL);
+      fpi_ssm_jump_to_state_delayed (ssm, SSM_TURN_ON, VFS_SSM_ORANGE_TIMEOUT);
       break;
 
     default:
