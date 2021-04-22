@@ -147,9 +147,16 @@ device_removed_cb (FpContext *context, FpDevice *device)
 
   /* Wait for device close if the device is currently still open. */
   if (open)
-    g_signal_connect_swapped (device, "notify::open", (GCallback) device_remove_on_notify_open_cb, context);
+    {
+      g_signal_connect_object (device, "notify::open",
+                               (GCallback) device_remove_on_notify_open_cb,
+                               context,
+                               G_CONNECT_SWAPPED);
+    }
   else
-    remove_device (context, device);
+    {
+      remove_device (context, device);
+    }
 }
 
 static void
@@ -177,7 +184,10 @@ async_device_init_done_cb (GObject *source_object, GAsyncResult *res, gpointer u
 
   g_ptr_array_add (priv->devices, device);
 
-  g_signal_connect_swapped (device, "removed", (GCallback) device_removed_cb, context);
+  g_signal_connect_object (device, "removed",
+                           (GCallback) device_removed_cb,
+                           context,
+                           G_CONNECT_SWAPPED);
 
   g_signal_emit (context, signals[DEVICE_ADDED_SIGNAL], 0, device);
 }
