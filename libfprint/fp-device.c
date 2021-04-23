@@ -340,6 +340,24 @@ fp_device_set_property (GObject      *object,
 }
 
 static void
+device_idle_probe_cb (FpDevice *self, gpointer user_data)
+{
+  /* This should not be an idle handler, see comment where it is registered.
+   *
+   * This effectively disables USB "persist" for us, and possibly turns off
+   * USB wakeup if it was enabled for some reason.
+   */
+  fpi_device_configure_wakeup (self, FALSE);
+
+  if (!FP_DEVICE_GET_CLASS (self)->probe)
+    fpi_device_probe_complete (self, NULL, NULL, NULL);
+  else
+    FP_DEVICE_GET_CLASS (self)->probe (self);
+
+  return;
+}
+
+static void
 fp_device_async_initable_init_async (GAsyncInitable     *initable,
                                      int                 io_priority,
                                      GCancellable       *cancellable,
@@ -358,17 +376,16 @@ fp_device_async_initable_init_async (GAsyncInitable     *initable,
   if (g_task_return_error_if_cancelled (task))
     return;
 
-  if (!FP_DEVICE_GET_CLASS (self)->probe)
-    {
-      g_task_return_boolean (task, TRUE);
-      return;
-    }
-
   priv->current_action = FPI_DEVICE_ACTION_PROBE;
   priv->current_task = g_steal_pointer (&task);
   setup_task_cancellable (self);
 
-  FP_DEVICE_GET_CLASS (self)->probe (self);
+  /* We push this into an idle handler for compatibility with libgusb
+   * 0.3.7 and before.
+   * See https://github.com/hughsie/libgusb/pull/50
+   */
+  g_source_set_name (fpi_device_add_timeout (self, 0, device_idle_probe_cb, NULL, NULL),
+                     "libusb probe in idle");
 }
 
 static gboolean
@@ -794,7 +811,7 @@ fp_device_open (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -879,7 +896,7 @@ fp_device_close (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -908,6 +925,230 @@ gboolean
 fp_device_close_finish (FpDevice     *device,
                         GAsyncResult *result,
                         GError      **error)
+{
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+static void
+complete_suspend_resume_task (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_assert (priv->suspend_resume_task);
+
+  g_task_return_boolean (g_steal_pointer (&priv->suspend_resume_task), TRUE);
+}
+
+/**
+ * fp_device_suspend:
+ * @device: a #FpDevice
+ * @cancellable: (nullable): a #GCancellable, or %NULL, currently not used
+ * @callback: the function to call on completion
+ * @user_data: the data to pass to @callback
+ *
+ * Prepare the device for system suspend. Retrieve the result with
+ * fp_device_suspend_finish().
+ *
+ * The suspend method can be called at any time (even if the device is not
+ * opened) and must be paired with a corresponding resume call. It is undefined
+ * when or how any ongoing operation is finished. This call might wait for an
+ * ongoing operation to finish, might cancel the ongoing operation or may
+ * prepare the device so that the host is resumed when the operation can be
+ * finished.
+ *
+ * If an ongoing operation must be cancelled then it will complete with an error
+ * code of #FP_DEVICE_ERROR_BUSY before the suspend async routine finishes.
+ *
+ * Any operation started while the device is suspended will fail with
+ * #FP_DEVICE_ERROR_BUSY, this includes calls to open or close the device.
+ */
+void
+fp_device_suspend (FpDevice           *device,
+                   GCancellable       *cancellable,
+                   GAsyncReadyCallback callback,
+                   gpointer            user_data)
+{
+  g_autoptr(GTask) task = NULL;
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  task = g_task_new (device, cancellable, callback, user_data);
+
+  if (priv->suspend_resume_task || priv->is_suspended)
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
+      return;
+    }
+
+  if (priv->is_removed)
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new (FP_DEVICE_ERROR_REMOVED));
+      return;
+    }
+
+  priv->suspend_resume_task = g_steal_pointer (&task);
+
+  /* If the device is currently idle, just complete immediately.
+   * For long running tasks, call the driver handler right away, for short
+   * tasks, wait for completion and then return the task.
+   */
+  switch (priv->current_action)
+    {
+    case FPI_DEVICE_ACTION_NONE:
+      fpi_device_suspend_complete (device, NULL);
+      break;
+
+    case FPI_DEVICE_ACTION_ENROLL:
+    case FPI_DEVICE_ACTION_VERIFY:
+    case FPI_DEVICE_ACTION_IDENTIFY:
+    case FPI_DEVICE_ACTION_CAPTURE:
+      if (FP_DEVICE_GET_CLASS (device)->suspend)
+        {
+          if (priv->critical_section)
+            priv->suspend_queued = TRUE;
+          else
+            FP_DEVICE_GET_CLASS (device)->suspend (device);
+        }
+      else
+        {
+          fpi_device_suspend_complete (device, fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED));
+        }
+      break;
+
+    default:
+    case FPI_DEVICE_ACTION_PROBE:
+    case FPI_DEVICE_ACTION_OPEN:
+    case FPI_DEVICE_ACTION_CLOSE:
+    case FPI_DEVICE_ACTION_DELETE:
+    case FPI_DEVICE_ACTION_LIST:
+    case FPI_DEVICE_ACTION_CLEAR_STORAGE:
+      g_signal_connect_object (priv->current_task,
+                               "notify::completed",
+                               G_CALLBACK (complete_suspend_resume_task),
+                               device,
+                               G_CONNECT_SWAPPED);
+
+      break;
+    }
+}
+
+/**
+ * fp_device_suspend_finish:
+ * @device: A #FpDevice
+ * @result: A #GAsyncResult
+ * @error: Return location for errors, or %NULL to ignore
+ *
+ * Finish an asynchronous operation to prepare the device for suspend.
+ * See fp_device_suspend().
+ *
+ * The API user should accept an error of #FP_DEVICE_ERROR_NOT_SUPPORTED.
+ *
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
+ */
+gboolean
+fp_device_suspend_finish (FpDevice     *device,
+                          GAsyncResult *result,
+                          GError      **error)
+{
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+/**
+ * fp_device_resume:
+ * @device: a #FpDevice
+ * @cancellable: (nullable): a #GCancellable, or %NULL, currently not used
+ * @callback: the function to call on completion
+ * @user_data: the data to pass to @callback
+ *
+ * Resume device after system suspend. Retrieve the result with
+ * fp_device_suspend_finish().
+ *
+ * Note that it is not defined when any ongoing operation may return (success or
+ * error). You must be ready to handle this before, during or after the
+ * resume operation.
+ */
+void
+fp_device_resume (FpDevice           *device,
+                  GCancellable       *cancellable,
+                  GAsyncReadyCallback callback,
+                  gpointer            user_data)
+{
+  g_autoptr(GTask) task = NULL;
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  task = g_task_new (device, cancellable, callback, user_data);
+
+  if (priv->suspend_resume_task || !priv->is_suspended)
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
+      return;
+    }
+
+  if (priv->is_removed)
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new (FP_DEVICE_ERROR_REMOVED));
+      return;
+    }
+
+  priv->suspend_resume_task = g_steal_pointer (&task);
+
+  switch (priv->current_action)
+    {
+    case FPI_DEVICE_ACTION_NONE:
+      fpi_device_resume_complete (device, NULL);
+      break;
+
+    case FPI_DEVICE_ACTION_ENROLL:
+    case FPI_DEVICE_ACTION_VERIFY:
+    case FPI_DEVICE_ACTION_IDENTIFY:
+    case FPI_DEVICE_ACTION_CAPTURE:
+      if (FP_DEVICE_GET_CLASS (device)->resume)
+        {
+          if (priv->critical_section)
+            priv->resume_queued = TRUE;
+          else
+            FP_DEVICE_GET_CLASS (device)->resume (device);
+        }
+      else
+        {
+          fpi_device_resume_complete (device, fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED));
+        }
+      break;
+
+    default:
+    case FPI_DEVICE_ACTION_PROBE:
+    case FPI_DEVICE_ACTION_OPEN:
+    case FPI_DEVICE_ACTION_CLOSE:
+    case FPI_DEVICE_ACTION_DELETE:
+    case FPI_DEVICE_ACTION_LIST:
+    case FPI_DEVICE_ACTION_CLEAR_STORAGE:
+      /* cannot happen as we make sure these tasks complete before suspend */
+      g_assert_not_reached();
+      complete_suspend_resume_task (device);
+      break;
+    }
+}
+
+/**
+ * fp_device_resume_finish:
+ * @device: A #FpDevice
+ * @result: A #GAsyncResult
+ * @error: Return location for errors, or %NULL to ignore
+ *
+ * Finish an asynchronous operation to resume the device after suspend.
+ * See fp_device_resume().
+ *
+ * The API user should accept an error of #FP_DEVICE_ERROR_NOT_SUPPORTED.
+ *
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
+ */
+gboolean
+fp_device_resume_finish (FpDevice     *device,
+                         GAsyncResult *result,
+                         GError      **error)
 {
   return g_task_propagate_boolean (G_TASK (result), error);
 }
@@ -960,7 +1201,7 @@ fp_device_enroll (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -1070,7 +1311,7 @@ fp_device_verify (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -1197,7 +1438,7 @@ fp_device_identify (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -1322,7 +1563,7 @@ fp_device_capture (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -1413,7 +1654,7 @@ fp_device_delete_print (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -1491,7 +1732,7 @@ fp_device_list_prints (FpDevice           *device,
       return;
     }
 
-  if (priv->current_task)
+  if (priv->current_task || priv->is_suspended)
     {
       g_task_return_error (task,
                            fpi_device_error_new (FP_DEVICE_ERROR_BUSY));
@@ -1887,6 +2128,7 @@ fp_device_list_prints_sync (FpDevice     *device,
   return fp_device_list_prints_finish (device, task, error);
 }
 
+
 /**
  * fp_device_clear_storage_sync:
  * @device: a #FpDevice
@@ -1913,6 +2155,58 @@ fp_device_clear_storage_sync (FpDevice     *device,
     g_main_context_iteration (NULL, TRUE);
 
   return fp_device_clear_storage_finish (device, task, error);
+}
+
+/**
+ * fp_device_suspend_sync:
+ * @device: a #FpDevice
+ * @cancellable: (nullable): a #GCancellable, or %NULL, currently not used
+ * @error: Return location for errors, or %NULL to ignore
+ *
+ * Prepare device for suspend.
+ *
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
+ */
+gboolean
+fp_device_suspend_sync (FpDevice     *device,
+                        GCancellable *cancellable,
+                        GError      **error)
+{
+  g_autoptr(GAsyncResult) task = NULL;
+
+  g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
+
+  fp_device_suspend (device, cancellable, async_result_ready, &task);
+  while (!task)
+    g_main_context_iteration (NULL, TRUE);
+
+  return fp_device_suspend_finish (device, task, error);
+}
+
+/**
+ * fp_device_resume_sync:
+ * @device: a #FpDevice
+ * @cancellable: (nullable): a #GCancellable, or %NULL, currently not used
+ * @error: Return location for errors, or %NULL to ignore
+ *
+ * Resume device after suspend.
+ *
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
+ */
+gboolean
+fp_device_resume_sync (FpDevice     *device,
+                       GCancellable *cancellable,
+                       GError      **error)
+{
+  g_autoptr(GAsyncResult) task = NULL;
+
+  g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
+
+  fp_device_resume (device, cancellable, async_result_ready, &task);
+  while (!task)
+    g_main_context_iteration (NULL, TRUE);
+
+  return fp_device_resume_finish (device, task, error);
 }
 
 /**
