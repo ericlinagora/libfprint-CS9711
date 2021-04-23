@@ -113,7 +113,8 @@ fp_device_cancelled_cb (GCancellable *cancellable, FpDevice *self)
                          fp_device_cancel_in_idle_cb,
                          self,
                          NULL);
-  g_source_attach (priv->current_idle_cancel_source, NULL);
+  g_source_attach (priv->current_idle_cancel_source,
+                   g_task_get_context (priv->current_task));
   g_source_unref (priv->current_idle_cancel_source);
 }
 

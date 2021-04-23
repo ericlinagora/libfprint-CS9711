@@ -334,12 +334,18 @@ fpi_device_add_timeout (FpDevice      *device,
 {
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
   FpDeviceTimeoutSource *source;
+  GMainContext *context;
 
   source = (FpDeviceTimeoutSource *) g_source_new (&timeout_funcs,
                                                    sizeof (FpDeviceTimeoutSource));
   source->device = device;
 
-  g_source_attach (&source->source, NULL);
+  if (priv->current_task)
+    context = g_task_get_context (priv->current_task);
+  else
+    context = g_main_context_get_thread_default ();
+
+  g_source_attach (&source->source, context);
   g_source_set_callback (&source->source, (GSourceFunc) func, user_data, destroy_notify);
   g_source_set_ready_time (&source->source,
                            g_source_get_time (&source->source) + interval * (guint64) 1000);
@@ -930,7 +936,8 @@ fpi_device_return_task_in_idle (FpDevice              *device,
                          data,
                          (GDestroyNotify) fpi_device_task_return_data_free);
 
-  g_source_attach (priv->current_task_idle_return_source, NULL);
+  g_source_attach (priv->current_task_idle_return_source,
+                   g_task_get_context (priv->current_task));
   g_source_unref (priv->current_task_idle_return_source);
 }
 
