@@ -1443,8 +1443,10 @@ gx_fp_verify_identify (FpDevice *device)
 {
   FpiDeviceGoodixMoc *self = FPI_DEVICE_GOODIXMOC (device);
 
-  self->task_ssm = fpi_ssm_new (device, fp_verify_sm_run_state,
-                                FP_VERIFY_NUM_STATES);
+  self->task_ssm = fpi_ssm_new_full (device, fp_verify_sm_run_state,
+                                     FP_VERIFY_NUM_STATES,
+                                     FP_VERIFY_PWR_BTN_SHIELD_OFF,
+                                     "verify");
 
   fpi_ssm_start (self->task_ssm, fp_verify_ssm_done);
 
@@ -1459,8 +1461,10 @@ gx_fp_enroll (FpDevice *device)
   self->enroll_stage = 0;
   self->is_enroll_identify = true;
 
-  self->task_ssm = fpi_ssm_new (device, fp_enroll_sm_run_state,
-                                FP_ENROLL_NUM_STATES);
+  self->task_ssm = fpi_ssm_new_full (device, fp_enroll_sm_run_state,
+                                     FP_ENROLL_NUM_STATES,
+                                     FP_ENROLL_PWR_BTN_SHIELD_OFF,
+                                     "enroll");
 
   fpi_ssm_start (self->task_ssm, fp_enroll_ssm_done);
 
