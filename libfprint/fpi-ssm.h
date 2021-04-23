@@ -60,10 +60,11 @@ typedef void (*FpiSsmHandlerCallback)(FpiSsm   *ssm,
 
 /* for library and drivers */
 #define fpi_ssm_new(dev, handler, nr_states) \
-  fpi_ssm_new_full (dev, handler, nr_states, #nr_states)
+  fpi_ssm_new_full (dev, handler, nr_states, nr_states, #nr_states)
 FpiSsm *fpi_ssm_new_full (FpDevice             *dev,
                           FpiSsmHandlerCallback handler,
                           int                   nr_states,
+                          int                   start_cleanup,
                           const char           *machine_name);
 void fpi_ssm_free (FpiSsm *machine);
 void fpi_ssm_start (FpiSsm                 *ssm,

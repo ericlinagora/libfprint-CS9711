@@ -196,6 +196,7 @@ usb_exchange_async (FpiSsm                  *ssm,
   FpiSsm *subsm = fpi_ssm_new_full (FP_DEVICE (data->device),
                                     usbexchange_loop,
                                     data->stepcount,
+                                    data->stepcount,
                                     exchange_name);
 
   fpi_ssm_set_data (subsm, data, NULL);

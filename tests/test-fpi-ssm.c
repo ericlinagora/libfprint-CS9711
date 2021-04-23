@@ -129,12 +129,12 @@ test_ssm_completed_callback (FpiSsm   *ssm,
 }
 
 static FpiSsm *
-ssm_test_new_full (int nr_states, const char *name)
+ssm_test_new_full (int nr_states, int cleanup_state, const char *name)
 {
   FpiSsm *ssm;
   FpiSsmTestData *data;
 
-  ssm = fpi_ssm_new_full (fake_device, test_ssm_handler, nr_states, name);
+  ssm = fpi_ssm_new_full (fake_device, test_ssm_handler, nr_states, cleanup_state, name);
   data = fpi_ssm_test_data_new ();
   data->expected_last_state = nr_states;
   fpi_ssm_set_data (ssm, data, (GDestroyNotify) fpi_ssm_test_data_unref_by_ssm);
@@ -145,7 +145,7 @@ ssm_test_new_full (int nr_states, const char *name)
 static FpiSsm *
 ssm_test_new (void)
 {
-  return ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SSM");
+  return ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SSM");
 }
 
 static gboolean
@@ -188,7 +188,8 @@ test_ssm_new_full (void)
   FpiSsm *ssm;
 
   ssm = fpi_ssm_new_full (fake_device, test_ssm_handler,
-                          FPI_TEST_SSM_STATE_NUM, "Test SSM Name");
+                          FPI_TEST_SSM_STATE_NUM, FPI_TEST_SSM_STATE_NUM,
+                          "Test SSM Name");
 
   g_assert_null (fpi_ssm_get_data (ssm));
   g_assert_no_error (fpi_ssm_get_error (ssm));
@@ -215,6 +216,8 @@ test_ssm_new_wrong_states (void)
 
   g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
                          "*BUG:*nr_states*");
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
+                         "*BUG:*start_cleanup*");
   ssm = fpi_ssm_new (fake_device, test_ssm_handler, -1);
   g_test_assert_expected_messages ();
 }
@@ -271,7 +274,7 @@ test_ssm_start_single (void)
   g_autoptr(FpiSsmTestData) data = NULL;
   FpiSsm *ssm;
 
-  ssm = ssm_test_new_full (1, "FPI_TEST_SSM_SINGLE_STATE");
+  ssm = ssm_test_new_full (1, 1, "FPI_TEST_SSM_SINGLE_STATE");
   data = fpi_ssm_test_data_ref (fpi_ssm_get_data (ssm));
 
   fpi_ssm_start (ssm, test_ssm_completed_callback);
@@ -1170,7 +1173,7 @@ test_ssm_subssm_start (void)
 {
   g_autoptr(FpiSsm) ssm = ssm_test_new ();
   g_autoptr(FpiSsm) subssm =
-    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
+    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
 
   g_autoptr(FpiSsmTestData) subdata =
@@ -1222,7 +1225,7 @@ test_ssm_subssm_mark_failed (void)
 {
   g_autoptr(FpiSsm) ssm = ssm_test_new ();
   g_autoptr(FpiSsm) subssm =
-    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
+    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
   g_autoptr(FpiSsmTestData) data =
     fpi_ssm_test_data_ref (fpi_ssm_get_data (ssm));
   g_autoptr(FpiSsmTestData) subdata =
@@ -1261,7 +1264,7 @@ test_ssm_subssm_start_with_started (void)
 {
   g_autoptr(FpiSsm) ssm = ssm_test_new ();
   g_autoptr(FpiSsm) subssm =
-    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
+    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
 
   g_autoptr(FpiSsmTestData) subdata =
@@ -1305,7 +1308,7 @@ test_ssm_subssm_start_with_delayed (void)
 {
   g_autoptr(FpiSsm) ssm = ssm_test_new ();
   g_autoptr(FpiSsm) subssm =
-    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
+    ssm_test_new_full (FPI_TEST_SSM_STATE_NUM, FPI_TEST_SSM_STATE_NUM, "FPI_TEST_SUB_SSM");
   FpiSsmTestData *data = fpi_ssm_get_data (ssm);
 
   g_autoptr(FpiSsmTestData) subdata =
@@ -1346,6 +1349,76 @@ test_ssm_subssm_start_with_delayed (void)
   g_assert_false (data->completed);
   g_assert_false (data->ssm_destroyed);
   g_assert_no_error (data->error);
+}
+
+static void
+test_ssm_cleanup_complete (void)
+{
+  FpiSsm *ssm = ssm_test_new_full (4, FPI_TEST_SSM_STATE_2, "FPI_TEST_SSM");
+
+  g_autoptr(FpiSsmTestData) data = fpi_ssm_test_data_ref (fpi_ssm_get_data (ssm));
+
+  fpi_ssm_start (ssm, test_ssm_completed_callback);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
+
+  data->expected_last_state = FPI_TEST_SSM_STATE_3;
+
+  /* Completing jumps to the cleanup state */
+  fpi_ssm_mark_completed (ssm);
+  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_2);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 2);
+  g_assert_false (data->completed);
+  g_assert_false (data->ssm_destroyed);
+
+  /* Completing again jumps to the next cleanup state */
+  fpi_ssm_mark_completed (ssm);
+  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_3);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 3);
+  g_assert_false (data->completed);
+  g_assert_false (data->ssm_destroyed);
+
+  /* Completing again finalizes everything */
+  fpi_ssm_mark_completed (ssm);
+  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_3);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 4);
+  g_assert_true (data->completed);
+  g_assert_no_error (data->error);
+  g_assert_true (data->ssm_destroyed);
+}
+
+static void
+test_ssm_cleanup_fail (void)
+{
+  FpiSsm *ssm = ssm_test_new_full (4, FPI_TEST_SSM_STATE_2, "FPI_TEST_SSM");
+
+  g_autoptr(FpiSsmTestData) data = fpi_ssm_test_data_ref (fpi_ssm_get_data (ssm));
+
+  fpi_ssm_start (ssm, test_ssm_completed_callback);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 1);
+
+  data->expected_last_state = FPI_TEST_SSM_STATE_3;
+
+  /* Failing jumps to the cleanup state */
+  fpi_ssm_mark_failed (ssm, g_error_new (G_IO_ERROR, G_IO_ERROR_CANCELLED, "non-cleanup"));
+  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_2);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 2);
+  g_assert_false (data->completed);
+  g_assert_false (data->ssm_destroyed);
+
+  /* Failing again jumps to the next cleanup state */
+  fpi_ssm_mark_failed (ssm, g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED, "cleanup 1"));
+  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_3);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 3);
+  g_assert_false (data->completed);
+  g_assert_false (data->ssm_destroyed);
+
+  /* Failing again finalizes everything */
+  fpi_ssm_mark_failed (ssm, g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED, "cleanup 2"));
+  g_assert_cmpint (data->handler_state, ==, FPI_TEST_SSM_STATE_3);
+  g_assert_cmpuint (g_slist_length (data->handlers_chain), ==, 4);
+  g_assert_true (data->completed);
+  g_assert_error (data->error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_assert_true (data->ssm_destroyed);
 }
 
 int
@@ -1402,6 +1475,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/ssm/subssm/start/with_started", test_ssm_subssm_start_with_started);
   g_test_add_func ("/ssm/subssm/start/with_delayed", test_ssm_subssm_start_with_delayed);
   g_test_add_func ("/ssm/subssm/mark_failed", test_ssm_subssm_mark_failed);
+  g_test_add_func ("/ssm/cleanup/complete", test_ssm_cleanup_complete);
+  g_test_add_func ("/ssm/cleanup/fail", test_ssm_cleanup_fail);
 
   return g_test_run ();
 }

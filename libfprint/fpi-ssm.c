@@ -35,9 +35,11 @@
  * is often entirely linear. You can however also jump to a specific state
  * or do an early return from the SSM by completing it.
  *
- * e.g. `S1` ↦ `S2` ↦ `S3` ↦ `S4`
+ * e.g. `S1` ↦ `S2` ↦ `S3` ↦ `S4` ↦ `C1` ↦ `C2` ↦ `final`
  *
- * Where `S1` is the start state.
+ * Where `S1` is the start state. The `C1` and later states are cleanup states
+ * that may be defined. The difference is that these states will never be
+ * skipped when marking the SSM as completed.
  *
  * Use fpi_ssm_new() to create a new state machine with a defined number of
  * states. Note that the state numbers start at zero, making them match the
@@ -76,6 +78,7 @@ struct _FpiSsm
   gpointer                ssm_data;
   GDestroyNotify          ssm_data_destroy;
   int                     nr_states;
+  int                     start_cleanup;
   int                     cur_state;
   gboolean                completed;
   GSource                *timeout;
@@ -94,8 +97,9 @@ struct _FpiSsm
  *
  * Allocate a new ssm, with @nr_states states. The @handler callback
  * will be called after each state transition.
- * This is a macro that calls fpi_ssm_new_full() using the stringified
- * version of @nr_states, so will work better with named parameters.
+ * This is a macro that calls fpi_ssm_new_full() using @nr_states as the
+ * cleanup states and using the stringified version of @nr_states. It should
+ * be used with an enum value.
  *
  * Returns: a new #FpiSsm state machine
  */
@@ -105,6 +109,7 @@ struct _FpiSsm
  * @dev: a #fp_dev fingerprint device
  * @handler: the callback function
  * @nr_states: the number of states
+ * @start_cleanup: the first cleanup state
  * @machine_name: the name of the state machine (for debug purposes)
  *
  * Allocate a new ssm, with @nr_states states. The @handler callback
@@ -116,17 +121,21 @@ FpiSsm *
 fpi_ssm_new_full (FpDevice             *dev,
                   FpiSsmHandlerCallback handler,
                   int                   nr_states,
+                  int                   start_cleanup,
                   const char           *machine_name)
 {
   FpiSsm *machine;
 
   BUG_ON (dev == NULL);
   BUG_ON (nr_states < 1);
+  BUG_ON (start_cleanup < 1);
+  BUG_ON (start_cleanup > nr_states);
   BUG_ON (handler == NULL);
 
   machine = g_new0 (FpiSsm, 1);
   machine->handler = handler;
   machine->nr_states = nr_states;
+  machine->start_cleanup = start_cleanup;
   machine->dev = dev;
   machine->name = g_strdup (machine_name);
   machine->completed = TRUE;
@@ -370,17 +379,34 @@ fpi_ssm_start_subsm (FpiSsm *parent, FpiSsm *child)
  * @machine: an #FpiSsm state machine
  *
  * Mark a ssm as completed successfully. The callback set when creating
- * the state machine with fpi_ssm_new () will be called synchronously.
+ * the state machine with fpi_ssm_new() will be called synchronously.
+ *
+ * Note that any later cleanup state will still be executed.
  */
 void
 fpi_ssm_mark_completed (FpiSsm *machine)
 {
+  int next_state;
+
   g_return_if_fail (machine != NULL);
 
   BUG_ON (machine->completed);
   BUG_ON (machine->timeout != NULL);
 
   fpi_ssm_clear_delayed_action (machine);
+
+  /* complete in a cleanup state just moves forward one step */
+  if (machine->cur_state < machine->start_cleanup)
+    next_state = machine->start_cleanup;
+  else
+    next_state = machine->cur_state + 1;
+
+  if (next_state < machine->nr_states)
+    {
+      machine->cur_state = next_state;
+      __ssm_call_handler (machine);
+      return;
+    }
 
   machine->completed = TRUE;
 
@@ -451,7 +477,9 @@ fpi_ssm_mark_failed (FpiSsm *machine, GError *error)
 {
   g_return_if_fail (machine != NULL);
   g_assert (error);
-  if (machine->error)
+
+  /* During cleanup it is OK to call fpi_ssm_mark_failed a second time */
+  if (machine->error && machine->cur_state < machine->start_cleanup)
     {
       fp_warn ("[%s] SSM %s already has an error set, ignoring new error %s",
                fp_device_get_driver (machine->dev), machine->name, error->message);
@@ -459,10 +487,15 @@ fpi_ssm_mark_failed (FpiSsm *machine, GError *error)
       return;
     }
 
-  fp_dbg ("[%s] SSM %s failed in state %d with error: %s",
+  fp_dbg ("[%s] SSM %s failed in state %d%s with error: %s",
           fp_device_get_driver (machine->dev), machine->name,
-          machine->cur_state, error->message);
-  machine->error = g_steal_pointer (&error);
+          machine->cur_state,
+          machine->cur_state >= machine->start_cleanup ? " (cleanup)" : "",
+          error->message);
+  if (!machine->error)
+    machine->error = g_steal_pointer (&error);
+  else
+    g_error_free (error);
   fpi_ssm_mark_completed (machine);
 }
 
@@ -560,13 +593,16 @@ fpi_ssm_jump_to_state (FpiSsm *machine, int state)
   g_return_if_fail (machine != NULL);
 
   BUG_ON (machine->completed);
-  BUG_ON (state < 0 || state >= machine->nr_states);
+  BUG_ON (state < 0 || state > machine->nr_states);
   BUG_ON (machine->timeout != NULL);
 
   fpi_ssm_clear_delayed_action (machine);
 
   machine->cur_state = state;
-  __ssm_call_handler (machine);
+  if (machine->cur_state == machine->nr_states)
+    fpi_ssm_mark_completed (machine);
+  else
+    __ssm_call_handler (machine);
 }
 
 typedef struct
@@ -607,7 +643,7 @@ fpi_ssm_jump_to_state_delayed (FpiSsm       *machine,
   g_autofree char *source_name = NULL;
 
   g_return_if_fail (machine != NULL);
-  BUG_ON (state < 0 || state >= machine->nr_states);
+  BUG_ON (state < 0 || state > machine->nr_states);
 
   data = g_new0 (FpiSsmJumpToStateDelayedData, 1);
   data->machine = machine;
