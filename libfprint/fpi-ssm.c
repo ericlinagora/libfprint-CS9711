@@ -31,27 +31,22 @@
  * @short_description: State machine helpers
  *
  * Asynchronous driver design encourages some kind of state machine behind it.
- * In most cases, the state machine is entirely linear - you only go to the
- * next state, you never jump or go backwards. The #FpiSsm functions help you
- * implement such a machine.
+ * #FpiSsm provides a simple mechanism to implement a state machine, which
+ * is often entirely linear. You can however also jump to a specific state
+ * or do an early return from the SSM by completing it.
  *
  * e.g. `S1` ↦ `S2` ↦ `S3` ↦ `S4`
  *
- * `S1` is the start state
- * There is also an implicit error state and an implicit accepting state
- * (both with implicit edges from every state).
+ * Where `S1` is the start state.
  *
- * You can also jump to any arbitrary state (while marking completion of the
- * current state) while the machine is running. In other words there are
- * implicit edges linking one state to every other state.
- *
- * To create an #fpi_ssm, you pass a state handler function and the total number of
- * states (4 in the above example) to fpi_ssm_new (). Note that the state numbers
- * start at zero, making them match the first value in a C enumeration.
+ * Use fpi_ssm_new() to create a new state machine with a defined number of
+ * states. Note that the state numbers start at zero, making them match the
+ * first value in a C enumeration.
  *
  * To start a ssm, you pass in a completion callback function to fpi_ssm_start()
- * which gets called when the ssm completes (both on error and on failure).
- * Starting a ssm also takes ownership of it.
+ * which gets called when the ssm completes (both on failure and on success).
+ * Starting a ssm also takes ownership of it and it will be automatically
+ * free'ed after the callback function has been called.
  *
  * To iterate to the next state, call fpi_ssm_next_state(). It is legal to
  * attempt to iterate beyond the final state - this is equivalent to marking
@@ -59,7 +54,6 @@
  *
  * To mark successful completion of a SSM, either iterate beyond the final
  * state or call fpi_ssm_mark_completed() from any state.
- * This will also invalidate the machine, freeing it.
  *
  * To mark failed completion of a SSM, call fpi_ssm_mark_failed() from any
  * state. You must pass a non-zero error code.
@@ -69,13 +63,9 @@
  * which operations to perform (a switch statement is appropriate).
  *
  * Typically, the state handling function fires off an asynchronous
- * communication with the device (such as a libsub transfer), and the
+ * communication with the device (such as a USB transfer), and the
  * callback function iterates the machine to the next state
  * upon success (or fails).
- *
- * Your completion callback should examine the return value of
- * fpi_ssm_get_error() in order to determine whether the #FpiSsm completed or
- * failed. An error code of zero indicates successful completion.
  */
 
 struct _FpiSsm
