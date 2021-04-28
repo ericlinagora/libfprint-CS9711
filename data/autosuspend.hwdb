@@ -118,6 +118,7 @@ usb:v04F3p0C30*
 usb:v04F3p0C31*
 usb:v04F3p0C32*
 usb:v04F3p0C33*
+usb:v04F3p0C3D*
 usb:v04F3p0C42*
 usb:v04F3p0C4D*
  ID_AUTOSUSPEND=1
