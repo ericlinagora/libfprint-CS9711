@@ -122,6 +122,7 @@ usb:v04F3p0C3D*
 usb:v04F3p0C42*
 usb:v04F3p0C4D*
 usb:v04F3p0C4F*
+usb:v04F3p0C63*
  ID_AUTOSUSPEND=1
 
 # Supported by libfprint driver etes603
