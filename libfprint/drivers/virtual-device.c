@@ -37,6 +37,7 @@ G_DEFINE_TYPE (FpDeviceVirtualDevice, fpi_device_virtual_device, FP_TYPE_DEVICE)
 #define INSERT_CMD_PREFIX "INSERT "
 #define REMOVE_CMD_PREFIX "REMOVE "
 #define SCAN_CMD_PREFIX "SCAN "
+#define CONT_CMD_PREFIX "CONT "
 #define ERROR_CMD_PREFIX "ERROR "
 #define RETRY_CMD_PREFIX "RETRY "
 #define FINGER_CMD_PREFIX "FINGER "
@@ -56,6 +57,8 @@ maybe_continue_current_action (FpDeviceVirtualDevice *self)
 
   if (self->sleep_timeout_id)
     return;
+
+  g_assert (self->wait_command_id == 0);
 
   switch (fpi_device_get_current_action (dev))
     {
@@ -116,9 +119,35 @@ sleep_timeout_cb (gpointer data)
   return FALSE;
 }
 
-char *
+static gboolean
+wait_for_command_timeout (gpointer data)
+{
+  FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (data);
+  FpiDeviceAction action;
+  GError *error = NULL;
+
+  self->wait_command_id = 0;
+
+  action = fpi_device_get_current_action (FP_DEVICE (self));
+  if (action == FPI_DEVICE_ACTION_LIST || action == FPI_DEVICE_ACTION_DELETE)
+    {
+      self->ignore_wait = TRUE;
+      maybe_continue_current_action (self);
+      self->ignore_wait = FALSE;
+
+      return FALSE;
+    }
+
+  error = g_error_new (G_IO_ERROR, G_IO_ERROR_TIMED_OUT, "No commands arrived in time to run!");
+  fpi_device_action_error (FP_DEVICE (self), error);
+
+  return FALSE;
+}
+
+gboolean
 process_cmds (FpDeviceVirtualDevice * self,
               gboolean                scan,
+              char                  **scan_id,
               GError                **error)
 {
   if (g_cancellable_is_cancelled (self->cancellable) ||
@@ -127,12 +156,17 @@ process_cmds (FpDeviceVirtualDevice * self,
     {
       g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_CANCELLED,
                            "Operation was cancelled");
-      return NULL;
+      return TRUE;
     }
 
   while (self->pending_commands->len > 0)
     {
-      gchar *cmd = g_ptr_array_index (self->pending_commands, 0);
+      g_autofree gchar *cmd = NULL;
+
+      /* TODO: g_ptr_array_steal_index requires GLib 2.58, we depend on 2.56 */
+      cmd = g_ptr_array_index (self->pending_commands, 0);
+      g_ptr_array_index (self->pending_commands, 0) = NULL;
+      g_ptr_array_remove_index (self->pending_commands, 0);
 
       g_debug ("Processing command %s", cmd);
 
@@ -143,7 +177,6 @@ process_cmds (FpDeviceVirtualDevice * self,
           g_hash_table_add (self->prints_storage,
                             g_strdup (cmd + strlen (INSERT_CMD_PREFIX)));
 
-          g_ptr_array_remove_index (self->pending_commands, 0);
           continue;
         }
       else if (g_str_has_prefix (cmd, REMOVE_CMD_PREFIX))
@@ -153,7 +186,6 @@ process_cmds (FpDeviceVirtualDevice * self,
                                     cmd + strlen (REMOVE_CMD_PREFIX)))
             g_warning ("ID %s was not found in storage", cmd + strlen (REMOVE_CMD_PREFIX));
 
-          g_ptr_array_remove_index (self->pending_commands, 0);
           continue;
         }
       else if (g_str_has_prefix (cmd, SLEEP_CMD_PREFIX))
@@ -162,41 +194,41 @@ process_cmds (FpDeviceVirtualDevice * self,
 
           g_debug ("Sleeping %lums", sleep_ms);
           self->sleep_timeout_id = g_timeout_add (sleep_ms, sleep_timeout_cb, self);
-          g_ptr_array_remove_index (self->pending_commands, 0);
 
-          return NULL;
+          return FALSE;
         }
       else if (g_str_has_prefix (cmd, ERROR_CMD_PREFIX))
         {
           g_propagate_error (error,
                              fpi_device_error_new (g_ascii_strtoull (cmd + strlen (ERROR_CMD_PREFIX), NULL, 10)));
 
-          g_ptr_array_remove_index (self->pending_commands, 0);
-          return NULL;
+          return TRUE;
+        }
+      else if (!scan && g_str_has_prefix (cmd, CONT_CMD_PREFIX))
+        {
+          return TRUE;
         }
 
       /* If we are not scanning, then we have to stop here. */
       if (!scan)
         {
           g_warning ("Could not process command: %s", cmd);
-          g_ptr_array_remove_index (self->pending_commands, 0);
           break;
         }
 
       if (g_str_has_prefix (cmd, SCAN_CMD_PREFIX))
         {
-          char *res = g_strdup (cmd + strlen (SCAN_CMD_PREFIX));
+          if (scan_id)
+            *scan_id = g_strdup (cmd + strlen (SCAN_CMD_PREFIX));
 
-          g_ptr_array_remove_index (self->pending_commands, 0);
-          return res;
+          return TRUE;
         }
       else if (g_str_has_prefix (cmd, RETRY_CMD_PREFIX))
         {
           g_propagate_error (error,
                              fpi_device_retry_new (g_ascii_strtoull (cmd + strlen (RETRY_CMD_PREFIX), NULL, 10)));
 
-          g_ptr_array_remove_index (self->pending_commands, 0);
-          return NULL;
+          return TRUE;
         }
       else if (g_str_has_prefix (cmd, FINGER_CMD_PREFIX))
         {
@@ -207,19 +239,20 @@ process_cmds (FpDeviceVirtualDevice * self,
                                                    finger_present ? FP_FINGER_STATUS_PRESENT : FP_FINGER_STATUS_NONE,
                                                    finger_present ? FP_FINGER_STATUS_NONE : FP_FINGER_STATUS_PRESENT);
 
-          g_ptr_array_remove_index (self->pending_commands, 0);
           continue;
         }
       else
         {
           g_warning ("Could not process command: %s", cmd);
-          g_ptr_array_remove_index (self->pending_commands, 0);
         }
     }
 
-  /* No commands left, throw a timeout error. */
-  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "No commands left that can be run!");
-  return NULL;
+  if (self->ignore_wait)
+    return TRUE;
+
+  g_assert (self->wait_command_id == 0);
+  self->wait_command_id = g_timeout_add (500, wait_for_command_timeout, self);
+  return FALSE;
 }
 
 static void
@@ -347,14 +380,17 @@ dev_init (FpDevice *dev)
 
   G_DEBUG_HERE ();
 
-  process_cmds (self, FALSE, &error);
-  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+  self->ignore_wait = TRUE;
+  if (!process_cmds (self, FALSE, NULL, &error))
     {
-      fpi_device_open_complete (dev, g_steal_pointer (&error));
+      self->ignore_wait = FALSE;
       return;
     }
-  else if (self->sleep_timeout_id)
+  self->ignore_wait = FALSE;
+
+  if (error)
     {
+      fpi_device_open_complete (dev, g_steal_pointer (&error));
       return;
     }
   else if (self->listener)
@@ -383,63 +419,21 @@ dev_init (FpDevice *dev)
   fpi_device_open_complete (dev, NULL);
 }
 
-static gboolean
-wait_for_command_timeout (gpointer data)
-{
-  FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (data);
-  FpiDeviceAction action;
-  GError *error = NULL;
-
-  self->wait_command_id = 0;
-
-  action = fpi_device_get_current_action (FP_DEVICE (self));
-  if (action == FPI_DEVICE_ACTION_LIST || action == FPI_DEVICE_ACTION_DELETE)
-    {
-      self->ignore_wait = TRUE;
-      maybe_continue_current_action (self);
-      self->ignore_wait = FALSE;
-
-      return FALSE;
-    }
-
-  error = g_error_new (G_IO_ERROR, G_IO_ERROR_TIMED_OUT, "No commands arrived in time to run!");
-  fpi_device_action_error (FP_DEVICE (self), error);
-
-  return FALSE;
-}
-
 gboolean
-should_wait_for_command (FpDeviceVirtualDevice *self,
-                         GError                *error)
-{
-  if (!error && self->sleep_timeout_id)
-    return TRUE;
-
-  if (self->ignore_wait)
-    return FALSE;
-
-  if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
-    return FALSE;
-
-  if (self->wait_command_id)
-    return FALSE;
-
-  self->wait_command_id = g_timeout_add (500, wait_for_command_timeout, self);
-  return TRUE;
-}
-
-char *
 start_scan_command (FpDeviceVirtualDevice *self,
+                    char                 **scan_id,
                     GError               **error)
 {
   g_autoptr(GError) local_error = NULL;
-  g_autofree char *scan_id = NULL;
+  gboolean cont;
 
   if (fp_device_get_finger_status (FP_DEVICE (self)) == FP_FINGER_STATUS_NONE)
     self->injected_synthetic_cmd = FALSE;
 
-  scan_id = process_cmds (self, TRUE, &local_error);
-
+  cont = process_cmds (self, TRUE, scan_id, &local_error);
+  /* We report finger needed if we are waiting for instructions
+   * (i.e. we did not get an explicit SLEEP command).
+   */
   if (!self->sleep_timeout_id)
     {
       fpi_device_report_finger_status_changes (FP_DEVICE (self),
@@ -447,14 +441,13 @@ start_scan_command (FpDeviceVirtualDevice *self,
                                                FP_FINGER_STATUS_NONE);
     }
 
-  if (should_wait_for_command (self, local_error))
-    {
-      g_assert (!scan_id);
+  if (!cont)
+    return FALSE;
 
-      g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PENDING,
-                           "Still waiting for command");
-      return NULL;
-    }
+  /* Scan or error*/
+  fpi_device_report_finger_status_changes (FP_DEVICE (self),
+                                           FP_FINGER_STATUS_NEEDED,
+                                           FP_FINGER_STATUS_NONE);
 
   if (local_error)
     g_propagate_error (error, g_steal_pointer (&local_error));
@@ -463,7 +456,7 @@ start_scan_command (FpDeviceVirtualDevice *self,
                                              FP_FINGER_STATUS_PRESENT,
                                              FP_FINGER_STATUS_NONE);
 
-  return g_steal_pointer (&scan_id);
+  return TRUE;
 }
 
 gboolean
@@ -484,7 +477,7 @@ should_wait_to_sleep (FpDeviceVirtualDevice *self,
   if (g_str_has_prefix (cmd, SLEEP_CMD_PREFIX))
     {
       g_autoptr(GError) local_error = NULL;
-      g_free (process_cmds (self, FALSE, &local_error));
+      process_cmds (self, FALSE, NULL, &local_error);
 
       if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         return FALSE;
@@ -522,8 +515,7 @@ dev_verify (FpDevice *dev)
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
   g_autofree char *scan_id = NULL;
 
-  scan_id = start_scan_command (self, &error);
-  if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_PENDING))
+  if (!start_scan_command (self, &scan_id, &error))
     return;
 
   if (scan_id)
@@ -589,8 +581,7 @@ dev_enroll (FpDevice *dev)
   FpPrint *print = NULL;
   g_autofree char *id = NULL;
 
-  id = start_scan_command (self, &error);
-  if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_PENDING))
+  if (!start_scan_command (self, &id, &error))
     return;
 
   fpi_device_get_enroll_data (dev, &print);
@@ -702,6 +693,7 @@ dev_cancel (FpDevice *dev)
 
   g_debug ("Got cancellation!");
   g_clear_handle_id (&self->sleep_timeout_id, g_source_remove);
+  g_clear_handle_id (&self->wait_command_id, g_source_remove);
 
   maybe_continue_current_action (self);
 }
@@ -720,19 +712,19 @@ dev_deinit (FpDevice *dev)
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (dev);
 
-  process_cmds (self, FALSE, &error);
-  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+  self->ignore_wait = TRUE;
+  if (!process_cmds (self, FALSE, NULL, &error))
+    {
+      self->ignore_wait = FALSE;
+      return;
+    }
+  self->ignore_wait = FALSE;
+
+  if (error)
     {
       fpi_device_close_complete (dev, g_steal_pointer (&error));
       return;
     }
-  else if (self->sleep_timeout_id)
-    {
-      return;
-    }
-
-  g_clear_handle_id (&self->wait_command_id, g_source_remove);
-  g_clear_handle_id (&self->sleep_timeout_id, g_source_remove);
 
   if (!self->keep_alive)
     stop_listener (self);
