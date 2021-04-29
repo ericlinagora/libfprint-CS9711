@@ -176,6 +176,7 @@ last_transfer_killed (FpImageDevice *dev)
       fpi_image_device_session_error (dev, g_steal_pointer (&self->kill_error));
       return;
 
+    case NOT_KILLING:
     default:
       return;
     }
