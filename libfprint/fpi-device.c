@@ -768,6 +768,10 @@ fpi_device_action_error (FpDevice *device,
       fpi_device_list_complete (device, NULL, error);
       break;
 
+    case FPI_DEVICE_ACTION_CLEAR_STORAGE:
+      fpi_device_clear_storage_complete (device, error);
+      break;
+
     default:
     case FPI_DEVICE_ACTION_NONE:
       g_return_if_reached ();
