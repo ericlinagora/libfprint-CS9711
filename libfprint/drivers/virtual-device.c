@@ -87,6 +87,14 @@ maybe_continue_current_action (FpDeviceVirtualDevice *self)
       FP_DEVICE_GET_CLASS (self)->close (dev);
       break;
 
+    case FPI_DEVICE_ACTION_CLEAR_STORAGE:
+      FP_DEVICE_GET_CLASS (self)->clear_storage (dev);
+      break;
+
+    /* Not implemented/nothing to do. */
+    case FPI_DEVICE_ACTION_NONE:
+    case FPI_DEVICE_ACTION_PROBE:
+    case FPI_DEVICE_ACTION_CAPTURE:
     default:
       break;
     }
@@ -379,21 +387,19 @@ static gboolean
 wait_for_command_timeout (gpointer data)
 {
   FpDeviceVirtualDevice *self = FP_DEVICE_VIRTUAL_DEVICE (data);
+  FpiDeviceAction action;
   GError *error = NULL;
 
   self->wait_command_id = 0;
 
-  switch (fpi_device_get_current_action (FP_DEVICE (self)))
+  action = fpi_device_get_current_action (FP_DEVICE (self));
+  if (action == FPI_DEVICE_ACTION_LIST || action == FPI_DEVICE_ACTION_DELETE)
     {
-    case FPI_DEVICE_ACTION_LIST:
-    case FPI_DEVICE_ACTION_DELETE:
       self->ignore_wait = TRUE;
       maybe_continue_current_action (self);
       self->ignore_wait = FALSE;
-      return FALSE;
 
-    default:
-      break;
+      return FALSE;
     }
 
   error = g_error_new (G_IO_ERROR, G_IO_ERROR_TIMED_OUT, "No commands arrived in time to run!");
