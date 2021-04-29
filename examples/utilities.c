@@ -101,6 +101,7 @@ finger_to_string (FpFinger finger)
     case FP_FINGER_RIGHT_LITTLE:
       return "right little";
 
+    case FP_FINGER_UNKNOWN:
     default:
       return "unknown";
     }
