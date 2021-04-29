@@ -174,6 +174,8 @@ dev_clear_storage (FpDevice *dev)
       return;
     }
 
+  g_hash_table_remove_all (vdev->prints_storage);
+
   fpi_device_clear_storage_complete (dev, NULL);
 }
 
