@@ -1,5 +1,5 @@
-#include <libfprint-2/fprint.h>
-#include <libfprint-2/fp-image-device.h>
+#include <fprint.h>
+#include <fp-image-device.h>
 
 fp_context_get_type
 fp_device_get_type
