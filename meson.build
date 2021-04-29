@@ -33,6 +33,7 @@ common_cflags = cc.get_supported_arguments([
     '-Wmissing-noreturn',
     '-Wpointer-arith',
     '-Wshadow',
+    '-Wswitch-enum',
     '-Wtype-limits',
     '-Wundef',
     '-Wunused',
