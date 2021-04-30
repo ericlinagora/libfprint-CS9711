@@ -1716,7 +1716,7 @@ fp_device_capture_sync (FpDevice     *device,
  *
  * Delete a given print from the device.
  *
- * Returns: %FALSE on error, %TRUE otherwise
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
  */
 gboolean
 fp_device_delete_print_sync (FpDevice     *device,

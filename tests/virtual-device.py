@@ -1007,7 +1007,7 @@ class VirtualDeviceStorage(VirtualDevice):
     def cleanup_device_storage(self):
         if self.dev.is_open() and not self.dev.props.removed:
             for print in self.dev.list_prints_sync():
-                self.assertTrue(self.dev.delete_print_sync(print, None))
+                self.dev.delete_print_sync(print, None)
 
     def test_device_properties(self):
         self.assertEqual(self.dev.get_driver(), 'virtual_device_storage')
