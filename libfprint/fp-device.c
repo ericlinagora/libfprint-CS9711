@@ -1767,6 +1767,34 @@ fp_device_list_prints_sync (FpDevice     *device,
 }
 
 /**
+ * fp_device_clear_storage_sync:
+ * @device: a #FpDevice
+ * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @error: Return location for errors, or %NULL to ignore
+ *
+ * Clear sensor storage.
+ *
+ * Returns: (type void): %FALSE on error, %TRUE otherwise
+ */
+gboolean
+fp_device_clear_storage_sync (FpDevice     *device,
+                              GCancellable *cancellable,
+                              GError      **error)
+{
+  g_autoptr(GAsyncResult) task = NULL;
+
+  g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
+
+  fp_device_clear_storage (device,
+                           cancellable,
+                           async_result_ready, &task);
+  while (!task)
+    g_main_context_iteration (NULL, TRUE);
+
+  return fp_device_clear_storage_finish (device, task, error);
+}
+
+/**
  * fp_device_get_features:
  * @device: a #FpDevice
  *
@@ -1802,32 +1830,4 @@ fp_device_has_feature (FpDevice       *device,
     return fp_device_get_features (device) == feature;
 
   return (fp_device_get_features (device) & feature) == feature;
-}
-
-/**
- * fp_device_clear_storage_sync:
- * @device: a #FpDevice
- * @cancellable: (nullable): a #GCancellable, or %NULL
- * @error: Return location for errors, or %NULL to ignore
- *
- * Clear sensor storage.
- *
- * Returns: (type void): %FALSE on error, %TRUE otherwise
- */
-gboolean
-fp_device_clear_storage_sync (FpDevice     *device,
-                              GCancellable *cancellable,
-                              GError      **error)
-{
-  g_autoptr(GAsyncResult) task = NULL;
-
-  g_return_val_if_fail (FP_IS_DEVICE (device), FALSE);
-
-  fp_device_clear_storage (device,
-                           cancellable,
-                           async_result_ready, &task);
-  while (!task)
-    g_main_context_iteration (NULL, TRUE);
-
-  return fp_device_clear_storage_finish (device, task, error);
 }
