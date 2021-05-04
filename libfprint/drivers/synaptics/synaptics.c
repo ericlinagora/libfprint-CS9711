@@ -993,13 +993,18 @@ delete_msg_cb (FpiDeviceSynaptics *self,
       break;
 
     case BMKT_RSP_DEL_USER_FP_FAIL:
-      fp_info ("Failed to delete enrolled user: %d", resp->result);
-      if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)
-        fpi_device_delete_complete (device,
-                                    fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND));
+      if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS ||
+          resp->result == BMKT_FP_DATABASE_EMPTY)
+        {
+          fp_info ("Database no record");
+          fpi_device_delete_complete (device, NULL);
+        }
       else
-        fpi_device_delete_complete (device,
-                                    fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
+        {
+          fp_info ("Failed to delete enrolled user: %d", resp->result);
+          fpi_device_delete_complete (device,
+                                      fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
+        }
       break;
 
     case BMKT_RSP_DEL_USER_FP_OK:
