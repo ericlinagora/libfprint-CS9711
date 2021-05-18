@@ -57,10 +57,8 @@ auto_close_fake_device_free (FpAutoCloseDevice *device)
     }
 
   if (fp_device_is_open (device))
-    {
-      if (!fp_device_close_sync (device, NULL, &error))
-        g_error ("Could not close device: %s", error->message);
-    }
+    if (!fp_device_close_sync (device, NULL, &error))
+      g_error ("Could not close device: %s", error->message);
 
   g_object_unref (device);
 }
@@ -1975,6 +1973,236 @@ test_driver_identify_report_no_callback (void)
 }
 
 static void
+test_driver_identify_suspend_continues (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
+  g_autoptr(MatchCbData) identify_data = g_new0 (MatchCbData, 1);
+  g_autoptr(GPtrArray) prints = NULL;
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(GError) error = NULL;
+  void (*orig_identify) (FpDevice *device);
+  FpiDeviceFake *fake_dev;
+  FpPrint *expected_matched;
+
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  fake_dev = FPI_DEVICE_FAKE (device);
+  orig_identify = dev_class->identify;
+  dev_class->identify = fake_device_stub_identify;
+
+  prints = make_fake_prints_gallery (device, 500);
+  expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
+  fp_print_set_description (expected_matched, "fake-verified");
+
+  match_data->gallery = prints;
+
+  fake_dev->ret_print = make_fake_print (device, NULL);
+
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  fp_device_identify (device, prints, NULL,
+                      test_driver_match_cb, match_data, NULL,
+                      (GAsyncReadyCallback) test_driver_identify_cb, identify_data);
+
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+
+  fake_dev->ret_suspend = NULL;
+  fp_device_suspend_sync (device, NULL, &error);
+  g_assert (fake_dev->last_called_function == dev_class->suspend);
+  g_assert_no_error (error);
+
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+
+  g_assert_false (match_data->called);
+  g_assert_false (identify_data->called);
+
+  fake_dev->ret_resume = NULL;
+  fp_device_resume_sync (device, NULL, &error);
+  g_assert (fake_dev->last_called_function == dev_class->resume);
+  g_assert_no_error (error);
+
+  orig_identify (device);
+
+  /* This currently happens immediately (not ABI though) */
+  g_assert_true (match_data->called);
+  g_assert (match_data->match == expected_matched);
+
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+
+  g_assert_true (identify_data->called);
+  g_assert (identify_data->match == expected_matched);
+
+  g_assert (fake_dev->last_called_function == orig_identify);
+}
+
+static void
+test_driver_identify_suspend_succeeds (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
+  g_autoptr(MatchCbData) identify_data = g_new0 (MatchCbData, 1);
+  g_autoptr(GPtrArray) prints = NULL;
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(GError) error = NULL;
+  void (*orig_identify) (FpDevice *device);
+  FpiDeviceFake *fake_dev;
+  FpPrint *expected_matched;
+
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  fake_dev = FPI_DEVICE_FAKE (device);
+  orig_identify = dev_class->identify;
+  dev_class->identify = fake_device_stub_identify;
+
+  prints = make_fake_prints_gallery (device, 500);
+  expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
+  fp_print_set_description (expected_matched, "fake-verified");
+
+  match_data->gallery = prints;
+
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  fake_dev->ret_print = make_fake_print (device, NULL);
+  fp_device_identify (device, prints, NULL,
+                      test_driver_match_cb, match_data, NULL,
+                      (GAsyncReadyCallback) test_driver_identify_cb, identify_data);
+
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+
+  /* suspend_sync hangs until cancellation, so we need to trigger orig_identify
+   * from the mainloop after calling suspend_sync.
+   */
+  fpi_device_add_timeout (device, 0, (FpTimeoutFunc) orig_identify, NULL, NULL);
+
+  fake_dev->ret_suspend = fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED);
+  fp_device_suspend_sync (device, NULL, &error);
+
+  /* At this point we are done with everything */
+  g_assert (fake_dev->last_called_function == orig_identify);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_NOT_SUPPORTED);
+  g_clear_error (&error);
+
+  /* We suspended, but device reported success and that will be reported. */
+  g_assert_true (match_data->called);
+  g_assert (match_data->match == expected_matched);
+  g_assert_true (identify_data->called);
+  g_assert (identify_data->match == expected_matched);
+
+  /* Resuming the device does not call resume handler, as the action was
+   * cancelled already.
+   */
+  fake_dev->last_called_function = NULL;
+  fp_device_resume_sync (device, NULL, &error);
+  g_assert (fake_dev->last_called_function == NULL);
+  g_assert_no_error (error);
+}
+
+static void
+test_driver_identify_suspend_busy_error (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(MatchCbData) match_data = g_new0 (MatchCbData, 1);
+  g_autoptr(MatchCbData) identify_data = g_new0 (MatchCbData, 1);
+  g_autoptr(GPtrArray) prints = NULL;
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(GError) error = NULL;
+  void (*orig_identify) (FpDevice *device);
+  FpiDeviceFake *fake_dev;
+  FpPrint *expected_matched;
+
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  fake_dev = FPI_DEVICE_FAKE (device);
+  orig_identify = dev_class->identify;
+  dev_class->identify = fake_device_stub_identify;
+
+  prints = make_fake_prints_gallery (device, 500);
+  expected_matched = g_ptr_array_index (prints, g_random_int_range (0, 499));
+  fp_print_set_description (expected_matched, "fake-verified");
+
+  match_data->gallery = prints;
+
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
+  fake_dev->ret_print = make_fake_print (device, NULL);
+  fp_device_identify (device, prints, NULL,
+                      test_driver_match_cb, match_data, NULL,
+                      (GAsyncReadyCallback) test_driver_identify_cb, identify_data);
+
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+
+  /* suspend_sync hangs until cancellation, so we need to trigger orig_identify
+   * from the mainloop after calling suspend_sync.
+   */
+  fpi_device_add_timeout (device, 0, (FpTimeoutFunc) orig_identify, NULL, NULL);
+
+  fake_dev->ret_suspend = fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED);
+  fp_device_suspend_sync (device, NULL, &error);
+  fake_dev->ret_error = NULL;
+
+  /* At this point we are done with everything */
+  g_assert (fake_dev->last_called_function == orig_identify);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_NOT_SUPPORTED);
+  g_clear_error (&error);
+
+  /* The device reported an error, an this error will be overwritten.
+   */
+  g_assert_false (match_data->called);
+  g_assert_true (identify_data->called);
+  g_assert_null (identify_data->match);
+  g_assert_error (identify_data->error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_BUSY);
+
+  fake_dev->last_called_function = NULL;
+  fp_device_resume_sync (device, NULL, &error);
+  g_assert (fake_dev->last_called_function == NULL);
+  g_assert_no_error (error);
+}
+
+static void
+test_driver_identify_suspend_while_idle (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(GError) error = NULL;
+  FpiDeviceFake *fake_dev;
+
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  fake_dev = FPI_DEVICE_FAKE (device);
+
+  /* Suspending and resuming a closed device works */
+  fp_device_suspend (device, NULL, (GAsyncReadyCallback) fp_device_suspend_finish, &error);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+  g_assert_no_error (error);
+
+  fp_device_resume (device, NULL, (GAsyncReadyCallback) fp_device_resume_finish, NULL);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+  g_assert_no_error (error);
+
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+
+  fake_dev->last_called_function = NULL;
+  fp_device_suspend (device, NULL, (GAsyncReadyCallback) fp_device_suspend_finish, &error);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+  g_assert_no_error (error);
+
+  fp_device_resume (device, NULL, (GAsyncReadyCallback) fp_device_resume_finish, NULL);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+  g_assert_no_error (error);
+}
+
+static void
 test_driver_identify_warmup_cooldown (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
@@ -2415,7 +2643,8 @@ test_driver_critical (void)
   /* We started a verify operation, now emulate a "critical" section */
   fpi_device_critical_enter (device);
 
-  /* Throw an external cancellation against it. */
+  /* Throw a suspend and external cancellation against it. */
+  fp_device_suspend (device, NULL, NULL, NULL);
   g_cancellable_cancel (cancellable);
 
   /* The only thing that happens is that the cancellable is cancelled */
@@ -2433,7 +2662,7 @@ test_driver_critical (void)
     continue;
   g_assert (fake_dev->last_called_function == NULL);
 
-  /* Leaving it and running the mainloop will run the cancel handler */
+  /* Leaving it and running the mainloop will first run the cancel handler */
   fpi_device_critical_leave (device);
   while (g_main_context_iteration (NULL, FALSE) && !fake_dev->last_called_function)
     continue;
@@ -2441,10 +2670,34 @@ test_driver_critical (void)
   g_assert_true (fpi_device_action_is_cancelled (device));
   fake_dev->last_called_function = NULL;
 
+  /* Then the suspend handler */
+  while (g_main_context_iteration (NULL, FALSE) && !fake_dev->last_called_function)
+    continue;
+  g_assert (fake_dev->last_called_function == dev_class->suspend);
+  fake_dev->last_called_function = NULL;
+
   /* Nothing happens afterwards */
   while (g_main_context_iteration (NULL, FALSE))
     continue;
   g_assert (fake_dev->last_called_function == NULL);
+
+
+  /* Throw a resume at the system */
+  fpi_device_critical_enter (device);
+  fp_device_resume (device, NULL, NULL, NULL);
+
+  /* Nothing will happen, as the resume is delayed */
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+
+  /* Finally the resume is called from the mainloop after leaving the critical section */
+  fpi_device_critical_leave (device);
+  g_assert (fake_dev->last_called_function == NULL);
+  while (g_main_context_iteration (NULL, FALSE) && !fake_dev->last_called_function)
+    continue;
+  g_assert (fake_dev->last_called_function == dev_class->resume);
+  fake_dev->last_called_function = NULL;
 
 
   /* The "verify" operation is still ongoing, finish it. */
@@ -3068,6 +3321,11 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/identify/not_reported", test_driver_identify_not_reported);
   g_test_add_func ("/driver/identify/complete_retry", test_driver_identify_complete_retry);
   g_test_add_func ("/driver/identify/report_no_cb", test_driver_identify_report_no_callback);
+
+  g_test_add_func ("/driver/identify/suspend_continues", test_driver_identify_suspend_continues);
+  g_test_add_func ("/driver/identify/suspend_succeeds", test_driver_identify_suspend_succeeds);
+  g_test_add_func ("/driver/identify/suspend_busy_error", test_driver_identify_suspend_busy_error);
+  g_test_add_func ("/driver/identify/suspend_while_idle", test_driver_identify_suspend_while_idle);
 
   g_test_add_func ("/driver/identify/warmup_cooldown", test_driver_identify_warmup_cooldown);
 
