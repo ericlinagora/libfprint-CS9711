@@ -1231,6 +1231,11 @@ test_driver_match_cb (FpDevice *device,
 }
 
 static void
+fake_device_stub_verify (FpDevice *device)
+{
+}
+
+static void
 test_driver_verify (void)
 {
   g_autoptr(GError) error = NULL;
@@ -2391,6 +2396,64 @@ test_driver_cancel_fail (void)
 }
 
 static void
+test_driver_critical (void)
+{
+  g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
+  g_autoptr(GCancellable) cancellable = g_cancellable_new ();
+  g_autoptr(FpPrint) enrolled_print = make_fake_print_reffed (device, NULL);
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  void (*orig_verify) (FpDevice *device) = dev_class->verify;
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+
+  fake_dev->last_called_function = NULL;
+
+  dev_class->verify = fake_device_stub_verify;
+  fp_device_verify (device, enrolled_print, cancellable,
+                    NULL, NULL, NULL,
+                    NULL, NULL);
+
+  /* We started a verify operation, now emulate a "critical" section */
+  fpi_device_critical_enter (device);
+
+  /* Throw an external cancellation against it. */
+  g_cancellable_cancel (cancellable);
+
+  /* The only thing that happens is that the cancellable is cancelled */
+  g_assert_true (fpi_device_action_is_cancelled (device));
+  g_assert (fake_dev->last_called_function == NULL);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+
+  /* Leaving and entering the critical section in the same mainloop iteration
+   * does not do anything. */
+  fpi_device_critical_leave (device);
+  fpi_device_critical_enter (device);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+
+  /* Leaving it and running the mainloop will run the cancel handler */
+  fpi_device_critical_leave (device);
+  while (g_main_context_iteration (NULL, FALSE) && !fake_dev->last_called_function)
+    continue;
+  g_assert (fake_dev->last_called_function == dev_class->cancel);
+  g_assert_true (fpi_device_action_is_cancelled (device));
+  fake_dev->last_called_function = NULL;
+
+  /* Nothing happens afterwards */
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == NULL);
+
+
+  /* The "verify" operation is still ongoing, finish it. */
+  orig_verify (device);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+}
+
+static void
 test_driver_current_action (void)
 {
   g_autoptr(FpDevice) device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
@@ -3020,6 +3083,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/clear_storage/error", test_driver_clear_storage_error);
   g_test_add_func ("/driver/cancel", test_driver_cancel);
   g_test_add_func ("/driver/cancel/fail", test_driver_cancel_fail);
+
+  g_test_add_func ("/driver/critical", test_driver_critical);
 
   g_test_add_func ("/driver/get_current_action", test_driver_current_action);
   g_test_add_func ("/driver/get_current_action/open", test_driver_current_action_open);
