@@ -1126,7 +1126,7 @@ fp_device_resume (FpDevice           *device,
     case FPI_DEVICE_ACTION_LIST:
     case FPI_DEVICE_ACTION_CLEAR_STORAGE:
       /* cannot happen as we make sure these tasks complete before suspend */
-      g_assert_not_reached();
+      g_assert_not_reached ();
       complete_suspend_resume_task (device);
       break;
     }
