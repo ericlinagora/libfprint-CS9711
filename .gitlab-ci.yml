@@ -160,4 +160,13 @@ container_fedora_build:
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
     # a list of packages to install
-    FDO_DISTRIBUTION_PACKAGES: $LIBFPRINT_DEPENDENCIES
+    FDO_DISTRIBUTION_PACKAGES:
+      $LIBFPRINT_DEPENDENCIES
+      vala
+      libpcap-devel
+      libudev-devel
+    FDO_DISTRIBUTION_EXEC: |
+      git clone https://github.com/martinpitt/umockdev.git && \
+        cd umockdev && \
+        meson _build --prefix=/usr && \
+        ninja -C _build && ninja -C _build install
