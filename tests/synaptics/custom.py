@@ -24,6 +24,8 @@ assert d.has_feature(FPrint.DeviceFeature.STORAGE_CLEAR)
 
 d.open_sync()
 
+d.clear_storage_sync()
+
 template = FPrint.Print.new(d)
 
 def enroll_progress(*args):
