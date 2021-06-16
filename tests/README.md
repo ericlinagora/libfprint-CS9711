@@ -7,8 +7,9 @@ This document describes how to create a 'capture' test: a test that
 captures a picture of a fingerprint from the device (mocked by
 `umockdev`) and compares it with the standard one.
 
-Other kinds of `umockdev` tests could be created in a similar manner.
-
+Other kinds of `umockdev` tests can be created in a similar manner. For
+match-on-chip devices you would instead create a test specific `custom.py`
+script, capture it and store the capture to `custom.pcapng`.
 
 'Capture' Test Creation
 -----------------------
@@ -50,12 +51,14 @@ A new 'capture' test is created by means of `capture.py` script:
 
    `umockdev-record /dev/bus/usb/001/005 > DRIVER/device`
 
-5. Record interaction of `capture.py` (or other test) with the device:
+5. Record interaction of `capture.py` (or other test) with the device. To do
+   so, start wireshark and record `usbmonX` (where X is the bus number). Then
+   run the test script:
 
-   `umockdev-record -i /dev/bus/usb/001/005=DRIVER/capture.ioctl -- python3 ./capture.py DRIVER/capture.png`
+   `python3 ./capture.py DRIVER/capture.png`
 
-   Files `capture.ioctl` and `capture.png` will be created as the
-   result of this command.
+   Save the wireshark recording as `capture.pcapng`. The command will create
+   `capture.png`.
 
 6. Add driver's name to `drivers_tests` in the `meson.build`.
 7. Check whether everything works as expected.
@@ -66,28 +69,6 @@ arm, or anything else producing an image with the device can be used.
 
 Possible Issues
 ---------------
-`umockdev-record` aggressively groups URBs. In most cases, manual
-intervention is unfortunately required. Often, drivers do a chain of
-commands like: A then B each with a different reply. However,
-`umockdev-record` could create a file like this:
-
-    A
-     reply 1
-     reply 2
-    B
-     reply 1
-     reply 2
-
-In that case, records must be re-ordered:
-
-    A
-     reply 1
-    B
-     reply 1
-    A
-     reply 2
-    B
-     reply 2
 
 Other changes may be needed to get everything working. For example the
 `elan` driver relies on a timeout that is not reported correctly. In
