@@ -93,6 +93,10 @@ G_DEFINE_TYPE (FpiDeviceElanSpi, fpi_device_elanspi, FP_TYPE_IMAGE_DEVICE);
 static void
 elanspi_do_hwreset (FpiDeviceElanSpi *self, GError **err)
 {
+  /* Skip in emulation mode, since we don't mock hid devices */
+  if (g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") == 0)
+    return;
+
   /*
    * TODO: Make this also work with the non-HID cases
    */
@@ -474,8 +478,8 @@ elanspi_capture_old_handler (FpiSsm *ssm, FpDevice *dev)
       /* is the sensor ready? */
       if (!(self->sensor_status & 4))
         {
-          /* has the timeout expired? */
-          if (g_get_monotonic_time () > self->capture_timeout)
+          /* has the timeout expired? -- disabled in testing since valgrind is very slow */
+          if (g_get_monotonic_time () > self->capture_timeout && g_strcmp0 (g_getenv ("FP_DEVICE_EMULATION"), "1") != 0)
             {
               /* end with a timeout */
               fpi_ssm_mark_failed (ssm, g_error_new (G_IO_ERROR, G_IO_ERROR_TIMED_OUT, "timed out waiting for new line"));
