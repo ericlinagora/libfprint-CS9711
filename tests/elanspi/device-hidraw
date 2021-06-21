@@ -1,0 +1,136 @@
+P: /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1/i2c-ELAN1300:00/0018:04F3:3057.0001/hidraw/hidraw0
+N: hidraw0
+E: DEVNAME=/dev/hidraw0
+E: MAJOR=241
+E: MINOR=0
+E: SUBSYSTEM=hidraw
+A: dev=241:0\n
+L: device=../../../0018:04F3:3057.0001
+A: power/async=disabled\n
+A: power/control=auto\n
+A: power/runtime_active_kids=0\n
+A: power/runtime_active_time=0\n
+A: power/runtime_enabled=disabled\n
+A: power/runtime_status=unsupported\n
+A: power/runtime_suspended_time=0\n
+A: power/runtime_usage=0\n
+
+P: /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1/i2c-ELAN1300:00/0018:04F3:3057.0001
+E: DRIVER=hid-multitouch
+E: HID_ID=0018:000004F3:00003057
+E: HID_NAME=ELAN1300:00 04F3:3057
+E: HID_PHYS=i2c-ELAN1300:00
+E: HID_UNIQ=
+E: MODALIAS=hid:b0018g0004v000004F3p00003057
+E: SUBSYSTEM=hid
+A: country=00\n
+L: driver=../../../../../../../bus/hid/drivers/hid-multitouch
+A: modalias=hid:b0018g0004v000004F3p00003057\n
+A: power/async=enabled\n
+A: power/control=auto\n
+A: power/runtime_active_kids=0\n
+A: power/runtime_active_time=0\n
+A: power/runtime_enabled=disabled\n
+A: power/runtime_status=unsupported\n
+A: power/runtime_suspended_time=0\n
+A: power/runtime_usage=0\n
+A: quirks=334864\n
+H: report_descriptor=05010902A10185010901A100050919012902150025017501950281029506810305010930093109381581257F750895038106050C0A380295018106750895038103C0C0050D0905A10185040922A102150025010947094295027501810275019502810395017504250F095181020501150026880C7510550E6513093035004691019501810246140126A20826A20809318102050D150025649503C0550C66011047FFFF000027FFFF000075109501095681020954257F9501750881020509090125017501950181029507810309C5750895048103050D85020955095975049502250FB102850709607501950115002501B102950FB1030600FF0600FF850609C5150026FF007508960001B102850D09C4150026FF0075089504B102850C09C696E0027508B102850B09C795427508B102C0050D090EA10185030922A10009521500250A75089502B102C00922A1008505095709581500750195022503B102950EB103C0C00600FF0901A101850E09C5150026FF0026FF0075089504B102C0
+
+P: /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1/i2c-ELAN1300:00
+E: DRIVER=i2c_hid
+E: MODALIAS=acpi:ELAN1300:PNP0C50:
+E: SUBSYSTEM=i2c
+E: ID_VENDOR_FROM_DATABASE=ELAD srl
+L: driver=../../../../../../bus/i2c/drivers/i2c_hid
+L: firmware_node=../../../../../LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:72/ELAN1300:00
+A: modalias=acpi:ELAN1300:PNP0C50:\n
+A: name=ELAN1300:00\n
+A: power/async=enabled\n
+A: power/control=auto\n
+A: power/runtime_active_kids=0\n
+A: power/runtime_active_time=0\n
+A: power/runtime_enabled=disabled\n
+A: power/runtime_status=unsupported\n
+A: power/runtime_suspended_time=0\n
+A: power/runtime_usage=0\n
+
+P: /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1
+E: SUBSYSTEM=i2c
+L: device=../../i2c_designware.1
+L: firmware_node=../../../../LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:72
+A: name=Synopsys DesignWare I2C adapter\n
+A: power/async=disabled\n
+A: power/runtime_active_kids=0\n
+A: power/runtime_enabled=enabled\n
+A: power/runtime_status=suspended\n
+A: power/runtime_usage=0\n
+L: software_node=../../../../../kernel/software_nodes/node1
+
+P: /devices/pci0000:00/0000:00:15.1/i2c_designware.1
+E: DEVTYPE=mfd_device
+E: DRIVER=i2c_designware
+E: MODALIAS=platform:i2c_designware
+E: SUBSYSTEM=platform
+E: ID_PATH=pci-0000:00:15.1-platform-i2c_designware.1
+E: ID_PATH_TAG=pci-0000_00_15_1-platform-i2c_designware_1
+L: driver=../../../../bus/platform/drivers/i2c_designware
+A: driver_override=(null)\n
+L: firmware_node=../../../LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:72
+A: modalias=platform:i2c_designware\n
+A: power/async=disabled\n
+A: power/autosuspend_delay_ms=1000\n
+A: power/control=auto\n
+A: power/runtime_active_kids=0\n
+A: power/runtime_active_time=1507234\n
+A: power/runtime_enabled=enabled\n
+A: power/runtime_status=active\n
+A: power/runtime_suspended_time=12722220\n
+A: power/runtime_usage=0\n
+L: software_node=../../../../kernel/software_nodes/node1
+
+P: /devices/pci0000:00/0000:00:15.1
+E: DRIVER=intel-lpss
+E: PCI_CLASS=118000
+E: PCI_ID=8086:9D61
+E: PCI_SUBSYS_ID=1043:1D30
+E: PCI_SLOT_NAME=0000:00:15.1
+E: MODALIAS=pci:v00008086d00009D61sv00001043sd00001D30bc11sc80i00
+E: SUBSYSTEM=pci
+E: ID_PCI_CLASS_FROM_DATABASE=Signal processing controller
+E: ID_PCI_SUBCLASS_FROM_DATABASE=Signal processing controller
+E: ID_VENDOR_FROM_DATABASE=Intel Corporation
+E: ID_MODEL_FROM_DATABASE=Sunrise Point-LP Serial IO I2C Controller
+A: ari_enabled=0\n
+A: broken_parity_status=0\n
+A: class=0x118000\n
+H: config=8680619D060010002100801110008000048013EF0000000000000000000000000000000000000000000000004310301D000000008000000000000000FF020000
+A: consistent_dma_mask_bits=64\n
+A: d3cold_allowed=1\n
+A: device=0x9d61\n
+A: dma_mask_bits=32\n
+L: driver=../../../bus/pci/drivers/intel-lpss
+A: driver_override=(null)\n
+A: enable=1\n
+L: firmware_node=../../LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:72
+A: irq=17\n
+A: local_cpulist=0-7\n
+A: local_cpus=ff\n
+A: modalias=pci:v00008086d00009D61sv00001043sd00001D30bc11sc80i00\n
+A: msi_bus=1\n
+A: numa_node=-1\n
+A: power/async=enabled\n
+A: power/control=on\n
+A: power/pm_qos_latency_tolerance_us=auto\n
+A: power/runtime_active_kids=1\n
+A: power/runtime_active_time=9614317\n
+A: power/runtime_enabled=forbidden\n
+A: power/runtime_status=active\n
+A: power/runtime_suspended_time=4616038\n
+A: power/runtime_usage=1\n
+A: resource=0x00000000ef138000 0x00000000ef138fff 0x0000000000140204\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n0x0000000000000000 0x0000000000000000 0x0000000000000000\n
+A: revision=0x21\n
+A: subsystem_device=0x1d30\n
+A: subsystem_vendor=0x1043\n
+A: vendor=0x8086\n
+
