@@ -23,16 +23,11 @@
 #include "fpi-context.h"
 #include "fpi-device.h"
 #include <gusb.h>
+#include <stdio.h>
 
 #include <config.h>
 
 #ifdef HAVE_UDEV
-#include <sys/ioctl.h>
-#include <sys/unistd.h>
-#include <sys/types.h>
-#include <sys/fcntl.h>
-#include <sys/stat.h>
-#include <linux/hidraw.h>
 #include <gudev/gudev.h>
 #endif
 
@@ -521,22 +516,18 @@ fp_context_enumerate (FpContext *context)
               {
                 for (matched_hidraw = hidraw_devices; matched_hidraw; matched_hidraw = matched_hidraw->next)
                   {
-                    const gchar * devnode = g_udev_device_get_device_file (matched_hidraw->data);
-                    int temp_hid = -1, res;
-                    struct hidraw_devinfo info;
+                    /* Find the parent HID node, and check the vid/pid from its HID_ID property */
+                    g_autoptr(GUdevDevice) parent = g_udev_device_get_parent_with_subsystem (matched_hidraw->data, "hid", NULL);
+                    const gchar * hid_id = g_udev_device_get_property (parent, "HID_ID");
+                    guint32 vendor, product;
 
-                    if (!devnode)
+                    if (!parent || !hid_id)
                       continue;
 
-                    temp_hid = open (devnode, O_RDWR);
-                    if (temp_hid < 0)
+                    if (sscanf (hid_id, "%*X:%X:%X", &vendor, &product) != 2)
                       continue;
 
-                    res = ioctl (temp_hid, HIDIOCGRAWINFO, &info);
-                    close (temp_hid);
-                    if (res < 0)
-                      continue;
-                    if (info.vendor == entry->hid_id.vid && info.product == entry->hid_id.pid)
+                    if (vendor == entry->hid_id.vid && product == entry->hid_id.pid)
                       break;
                   }
                 /* If match was not found exit */
