@@ -87,6 +87,9 @@ mathlib_dep = cc.find_library('m', required: false)
 # The following dependencies are only used for tests
 cairo_dep = dependency('cairo', required: false)
 
+# introspection scanning and Gio-2.0.gir
+gobject_introspection = dependency('gobject-introspection-1.0', required: get_option('introspection'))
+
 # Drivers
 drivers = get_option('drivers').split(',')
 virtual_drivers = [
