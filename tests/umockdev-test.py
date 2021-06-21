@@ -3,6 +3,7 @@
 import sys
 import os
 import os.path
+import glob
 import shutil
 import tempfile
 import subprocess
@@ -30,7 +31,6 @@ ddir = sys.argv[1]
 tmpdir = tempfile.mkdtemp(prefix='libfprint-umockdev-test-')
 
 assert os.path.isdir(ddir)
-assert os.path.isfile(os.path.join(ddir, "device"))
 
 def cmp_pngs(png_a, png_b):
     print("Comparing PNGs %s and %s" % (png_a, png_b))
@@ -59,14 +59,17 @@ def get_umockdev_runner(ioctl_basename):
     ioctl = os.path.join(ddir, "{}.ioctl".format(ioctl_basename))
     pcap = os.path.join(ddir, "{}.pcapng".format(ioctl_basename))
 
-    device = os.path.join(ddir, "device")
-
-    if os.path.exists(pcap):
+    devices = glob.glob(os.path.join(ddir, "device")) + glob.glob(os.path.join(ddir, "device-*[!~]"))
+    device_args = []
+    for device in devices:
         p = open(device).readline().strip()
         assert p.startswith('P: ')
+        device_args.extend(("-d", device))
+
+    if os.path.exists(pcap):
         syspath = '/sys' + p[3:]
 
-        umockdev = ['umockdev-run', '-d', device,
+        umockdev = ['umockdev-run', *device_args,
                     '-p', "%s=%s" % (syspath, pcap),
                     '--']
 
@@ -79,7 +82,7 @@ def get_umockdev_runner(ioctl_basename):
         assert dev.startswith('@DEV ')
         dev = dev[5:]
 
-        umockdev = ['umockdev-run', '-d', device,
+        umockdev = ['umockdev-run', *device_args,
                     '-i', "%s=%s" % (dev, ioctl),
                     '--']
     wrapper = os.getenv('LIBFPRINT_TEST_WRAPPER')
