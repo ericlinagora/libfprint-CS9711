@@ -2177,6 +2177,39 @@ test_driver_delete_error (void)
   g_assert_false (ret);
 }
 
+static void
+test_driver_clear_storage (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
+  FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+  gboolean ret;
+
+  ret = fp_device_clear_storage_sync (device, NULL, &error);
+  g_assert (fake_dev->last_called_function == dev_class->clear_storage);
+  g_assert_no_error (error);
+  g_assert_true (ret);
+}
+
+static void
+test_driver_clear_storage_error (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpAutoCloseDevice) device = auto_close_fake_device_new ();
+  FpDeviceClass *dev_class = FP_DEVICE_GET_CLASS (device);
+  FpiDeviceFake *fake_dev = FPI_DEVICE_FAKE (device);
+  gboolean ret;
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
+  ret = fp_device_clear_storage_sync (device, NULL, &error);
+  g_assert (fake_dev->last_called_function == dev_class->clear_storage);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_assert (error == g_steal_pointer (&fake_dev->ret_error));
+
+  g_assert_false (ret);
+}
+
 static gboolean
 fake_device_delete_wait_for_cancel_timeout (gpointer data)
 {
@@ -2543,6 +2576,12 @@ test_driver_action_error_all (void)
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
   g_clear_error (&error);
 
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert_false (fp_device_clear_storage_sync (device, NULL, &error));
+  g_assert_true (fake_dev->last_called_function == dev_class->clear_storage);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_clear_error (&error);
+
   /* Test close last, as we can't operate on a closed device. */
   fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID);
   g_assert_false (fp_device_close_sync (device, NULL, &error));
@@ -2639,6 +2678,16 @@ test_driver_action_error_fallback_all (void)
   g_assert_false (fp_device_delete_print_sync (device, enrolled_print, NULL, &error));
   g_test_assert_expected_messages ();
   g_assert_true (fake_dev->last_called_function == dev_class->delete);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
+  g_clear_error (&error);
+
+  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+                         "*Device failed to pass an error to generic action "
+                         "error function*");
+
+  g_assert_false (fp_device_clear_storage_sync (device, NULL, &error));
+  g_test_assert_expected_messages ();
+  g_assert_true (fake_dev->last_called_function == dev_class->clear_storage);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_clear_error (&error);
 
@@ -2846,6 +2895,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/list/no_storage", test_driver_list_no_storage);
   g_test_add_func ("/driver/delete", test_driver_delete);
   g_test_add_func ("/driver/delete/error", test_driver_delete_error);
+  g_test_add_func ("/driver/clear_storage", test_driver_clear_storage);
+  g_test_add_func ("/driver/clear_storage/error", test_driver_clear_storage_error);
   g_test_add_func ("/driver/cancel", test_driver_cancel);
   g_test_add_func ("/driver/cancel/fail", test_driver_cancel_fail);
 

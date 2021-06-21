@@ -115,7 +115,8 @@ class VirtualDeviceBase(unittest.TestCase):
     def send_command(self, command, *args):
         self.assertIn(command, ['INSERT', 'REMOVE', 'SCAN', 'ERROR', 'RETRY',
             'FINGER', 'UNPLUG', 'SLEEP', 'SET_ENROLL_STAGES', 'SET_SCAN_TYPE',
-            'SET_CANCELLATION_ENABLED', 'SET_KEEP_ALIVE', 'IGNORED_COMMAND'])
+            'SET_CANCELLATION_ENABLED', 'SET_KEEP_ALIVE', 'IGNORED_COMMAND',
+            'CONT'])
 
         with Connection(self.sockaddr) as con:
             params = ' '.join(str(p) for p in args)
@@ -1006,8 +1007,8 @@ class VirtualDeviceStorage(VirtualDevice):
 
     def cleanup_device_storage(self):
         if self.dev.is_open() and not self.dev.props.removed:
-            for print in self.dev.list_prints_sync():
-                self.dev.delete_print_sync(print, None)
+            self.send_command('CONT')
+            self.dev.clear_storage_sync()
 
     def test_device_properties(self):
         self.assertEqual(self.dev.get_driver(), 'virtual_device_storage')
@@ -1105,6 +1106,27 @@ class VirtualDeviceStorage(VirtualDevice):
             self.dev.delete_print_sync(p)
         self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
                                                 FPrint.DeviceError.DATA_NOT_FOUND))
+
+    def test_clear_storage(self):
+        self.send_command('INSERT', 'p1')
+        l = self.dev.list_prints_sync()
+        print(l[0])
+        self.assertEqual(len(l), 1)
+        self.send_command('CONT')
+        self.dev.clear_storage_sync()
+        self.assertFalse(self.dev.list_prints_sync())
+
+    def test_clear_storage_error(self):
+        self.send_command('INSERT', 'p1')
+        l = self.dev.list_prints_sync()
+        print(l[0])
+        self.assertEqual(len(l), 1)
+
+        self.send_error(FPrint.DeviceError.PROTO)
+        with self.assertRaises(GLib.Error) as error:
+            self.dev.clear_storage_sync()
+        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
+                                                FPrint.DeviceError.PROTO))
 
     def test_identify_match(self):
         rt = self.enroll_print('right-thumb', FPrint.Finger.RIGHT_THUMB)
