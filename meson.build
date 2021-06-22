@@ -179,14 +179,14 @@ foreach driver: drivers
 
         libfprint_conf.set10('HAVE_PIXMAN', true)
     endif
-	if udev_drivers.contains(driver)
-		gudev_dep = dependency('gudev-1.0', required: false)
-		if not gudev_dep.found()
-			error('udev is required for SPI support')
-		endif
+        if udev_drivers.contains(driver)
+            gudev_dep = dependency('gudev-1.0', required: false)
+            if not gudev_dep.found()
+                error('udev is required for SPI support')
+            endif
 
-		libfprint_conf.set10('HAVE_UDEV', true)
-	endif
+            libfprint_conf.set10('HAVE_UDEV', true)
+        endif
     if not all_drivers.contains(driver)
         error('Invalid driver \'' + driver + '\'')
     endif
