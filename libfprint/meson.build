@@ -329,6 +329,23 @@ udev_hwdb_generator = custom_target('udev-hwdb',
     install: false,
 )
 
+if udev_rules
+    udev_rules = executable('fprint-list-udev-rules',
+        'fprint-list-udev-rules.c',
+        dependencies: libfprint_private_dep,
+        link_with: libfprint_drivers,
+        install: false)
+
+    custom_target('udev-rules',
+        output: '70-@0@.rules'.format(versioned_libname),
+        depend_files: drivers_sources,
+        capture: true,
+        command: [ udev_rules ],
+        install: true,
+        install_dir: udev_rules_dir,
+    )
+endif
+
 custom_target('sync-udev-hwdb',
     depends: udev_hwdb_generator,
     output: 'sync-udev-hwdb',

@@ -164,6 +164,9 @@ nss_dep = dependency('', required: false)
 imaging_dep = dependency('', required: false)
 gudev_dep = dependency('', required: false)
 libfprint_conf.set10('HAVE_PIXMAN', false)
+
+udev_rules = false
+
 foreach driver: drivers
     if driver == 'uru4000'
         nss_dep = dependency('nss', required: false)
@@ -180,6 +183,8 @@ foreach driver: drivers
         libfprint_conf.set10('HAVE_PIXMAN', true)
     endif
         if udev_drivers.contains(driver)
+            udev_rules = true
+
             gudev_dep = dependency('gudev-1.0', required: false)
             if not gudev_dep.found()
                 error('udev is required for SPI support')
@@ -191,6 +196,14 @@ foreach driver: drivers
         error('Invalid driver \'' + driver + '\'')
     endif
 endforeach
+
+if udev_rules
+    udev_rules_dir = get_option('udev_rules_dir')
+    if udev_rules_dir == 'auto'
+        udev_dep = dependency('udev')
+        udev_rules_dir = udev_dep.get_pkgconfig_variable('udevdir') + '/hwdb.d'
+    endif
+endif
 
 supported_drivers = []
 foreach driver: drivers

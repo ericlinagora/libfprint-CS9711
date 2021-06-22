@@ -6,8 +6,12 @@ option('introspection',
        description: 'Build GObject Introspection repository',
        type: 'boolean',
        value: true)
+option('udev_rules_dir',
+       description: 'Installation path for udev rules',
+       type: 'string',
+       value: 'auto')
 option('udev_hwdb',
-       description: 'Whether to create a udev hwdb',
+       description: 'Whether to create a udev hwdb for autosuspend (included in systemd v248 and later)',
        type: 'feature',
        value: 'auto')
 option('udev_hwdb_dir',
