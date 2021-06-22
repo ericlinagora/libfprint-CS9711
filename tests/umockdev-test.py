@@ -19,6 +19,7 @@ try:
         print('umockdev is too old for test to be reliable, expect random failures!')
         print('Please update umockdev to at least 0.13.2.')
     pcap_supported = version >= (0, 15, 6) or os.getenv('CI_COMMIT_SHA') is not None
+    spi_supported = version >= (0, 15, 6) or os.getenv('CI_COMMIT_SHA') is not None
 
 except FileNotFoundError:
     print('umockdev-run not found, skipping test!')
@@ -81,10 +82,17 @@ def get_umockdev_runner(ioctl_basename):
         dev = open(ioctl).readline().strip()
         assert dev.startswith('@DEV ')
         dev = dev[5:]
+        if dev.endswith(" (SPI)"):
+            dev = dev[:dev.rindex(" ")]
+
+            # Skip test if we detect too old umockdev for spi replay
+            if not spi_supported:
+                sys.exit(77)
 
         umockdev = ['umockdev-run', *device_args,
                     '-i', "%s=%s" % (dev, ioctl),
                     '--']
+
     wrapper = os.getenv('LIBFPRINT_TEST_WRAPPER')
     return umockdev + (wrapper.split(' ') if wrapper else []) + [sys.executable]
 
