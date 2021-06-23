@@ -210,69 +210,36 @@ aes_blit_stripe (struct fpi_frame_asmbl_ctx *ctx,
                  struct fpi_frame *stripe,
                  int x, int y)
 {
-  unsigned int ix, iy;
-  unsigned int fx, fy;
-  unsigned int width, height;
+  unsigned int ix1, iy1;
+  unsigned int fx1, fy1;
+  unsigned int fx, fy, ix, iy;
 
-  /* Find intersection */
+  /* Select starting point inside image and frame */
   if (x < 0)
     {
-      width = ctx->frame_width + x;
-      ix = 0;
-      fx = -x;
+      ix1 = 0;
+      fx1 = -x;
     }
   else
     {
-      ix = x;
-      fx = 0;
-      width = ctx->frame_width;
+      ix1 = x;
+      fx1 = 0;
     }
-  if ((ix + width) > img->width)
-    width = img->width - ix;
 
   if (y < 0)
     {
-      iy = 0;
-      fy = -y;
-      height = ctx->frame_height + y;
+      iy1 = 0;
+      fy1 = -y;
     }
   else
     {
-      iy = y;
-      fy = 0;
-      height = ctx->frame_height;
+      iy1 = y;
+      fy1 = 0;
     }
 
-  if (fx > ctx->frame_width)
-    return;
-
-  if (fy > ctx->frame_height)
-    return;
-
-  if (ix > img->width)
-    return;
-
-  if (iy > img->height)
-    return;
-
-  if ((iy + height) > img->height)
-    height = img->height - iy;
-
-  for (; fy < height; fy++, iy++)
-    {
-      if (x < 0)
-        {
-          ix = 0;
-          fx = -x;
-        }
-      else
-        {
-          ix = x;
-          fx = 0;
-        }
-      for (; fx < width; fx++, ix++)
-        img->data[ix + (iy * img->width)] = ctx->get_pixel (ctx, stripe, fx, fy);
-    }
+  for (fy = fy1, iy = iy1; fy < ctx->frame_height && iy < img->height; fy++, iy++)
+    for (fx = fx1, ix = ix1; fx < ctx->frame_width && ix < img->width; fx++, ix++)
+      img->data[ix + (iy * img->width)] = ctx->get_pixel (ctx, stripe, fx, fy);
 }
 
 /**
@@ -298,7 +265,6 @@ fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
 
   //FIXME g_return_if_fail
   g_return_val_if_fail (stripes != NULL, NULL);
-  BUG_ON (ctx->image_width < ctx->frame_width);
 
   /* No offset for 1st image */
   fpi_frame = stripes->data;
@@ -331,7 +297,7 @@ fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
 
   /* Assemble stripes */
   y = reverse ? (height - ctx->frame_height) : 0;
-  x = (ctx->image_width - ctx->frame_width) / 2;
+  x = ((int) ctx->image_width - (int) ctx->frame_width) / 2;
 
   for (l = stripes; l != NULL; l = l->next)
     {
