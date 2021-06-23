@@ -465,7 +465,7 @@ int
 vfs301_proto_peek_event (FpDeviceVfs301 *dev)
 {
   g_autoptr(GError) error = NULL;
-  FpiUsbTransfer *transfer;
+  g_autoptr(FpiUsbTransfer) transfer = NULL;
 
   const char no_event[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   const char got_event[] = {0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00};
