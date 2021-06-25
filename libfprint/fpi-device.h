@@ -249,6 +249,10 @@ void fpi_device_set_nr_enroll_stages (FpDevice *device,
 void fpi_device_set_scan_type (FpDevice  *device,
                                FpScanType scan_type);
 
+void fpi_device_update_features (FpDevice       *device,
+                                 FpDeviceFeature update,
+                                 FpDeviceFeature value);
+
 void fpi_device_action_error (FpDevice *device,
                               GError   *error);
 

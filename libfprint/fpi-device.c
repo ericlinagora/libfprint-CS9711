@@ -277,6 +277,29 @@ fpi_device_set_scan_type (FpDevice  *device,
   g_object_notify (G_OBJECT (device), "scan-type");
 }
 
+/**
+ * fpi_device_update_features:
+ * @device: The #FpDevice
+ * @update: The feature flags to update
+ * @value: The value to set the flags to
+ *
+ * Updates the feature flags for the device. This can be used
+ * to runtime detect features that are supported by the device.
+ */
+void
+fpi_device_update_features (FpDevice       *device,
+                            FpDeviceFeature update,
+                            FpDeviceFeature value)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_return_if_fail (FP_IS_DEVICE (device));
+  g_return_if_fail (priv->current_action == FPI_DEVICE_ACTION_PROBE);
+  g_return_if_fail ((value & update) == value);
+
+  priv->features = (priv->features & ~update) | (value & update);
+}
+
 typedef struct
 {
   GSource   source;

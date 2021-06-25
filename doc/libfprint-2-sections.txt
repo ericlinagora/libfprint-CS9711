@@ -159,6 +159,7 @@ fpi_device_action_is_cancelled
 fpi_device_add_timeout
 fpi_device_set_nr_enroll_stages
 fpi_device_set_scan_type
+fpi_device_update_features
 fpi_device_remove
 fpi_device_report_finger_status
 fpi_device_report_finger_status_changes

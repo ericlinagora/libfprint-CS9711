@@ -38,6 +38,8 @@ fpi_device_fake_probe (FpDevice *device)
   fake_dev->last_called_function = fpi_device_fake_probe;
   g_assert_cmpuint (fpi_device_get_current_action (device), ==, FPI_DEVICE_ACTION_PROBE);
 
+  fpi_device_update_features (device, fake_dev->probe_features_update, fake_dev->probe_features_value);
+
   if (fake_dev->return_action_error)
     {
       fpi_device_action_error (device, fake_dev->ret_error);
