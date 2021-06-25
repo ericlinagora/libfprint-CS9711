@@ -221,6 +221,15 @@ dev_delete (FpDevice *dev)
 }
 
 static void
+dev_probe (FpDevice *dev)
+{
+  /* Disable features listed in driver_data */
+  fpi_device_update_features (dev, fpi_device_get_driver_data (dev), 0);
+
+  fpi_device_probe_complete (dev, NULL, NULL, NULL);
+}
+
+static void
 fpi_device_virtual_device_storage_init (FpDeviceVirtualDeviceStorage *self)
 {
   FpDeviceVirtualDevice *vdev = FP_DEVICE_VIRTUAL_DEVICE (self);
@@ -242,8 +251,8 @@ fpi_device_virtual_device_storage_finalize (GObject *object)
 }
 
 static const FpIdEntry driver_ids[] = {
-  { .virtual_envvar = "FP_VIRTUAL_DEVICE_STORAGE" },
-  { .virtual_envvar = "FP_VIRTUAL_DEVICE_IDENT" },
+  { .virtual_envvar = "FP_VIRTUAL_DEVICE_STORAGE", .driver_data = 0 },
+  { .virtual_envvar = "FP_VIRTUAL_DEVICE_STORAGE_NO_LIST", .driver_data = FP_DEVICE_FEATURE_STORAGE_LIST },
   { .virtual_envvar = NULL }
 };
 
@@ -259,6 +268,7 @@ fpi_device_virtual_device_storage_class_init (FpDeviceVirtualDeviceStorageClass 
   dev_class->full_name = "Virtual device with storage and identification for debugging";
   dev_class->id_table = driver_ids;
 
+  dev_class->probe = dev_probe;
   dev_class->identify = dev_identify;
   dev_class->list = dev_list;
   dev_class->delete = dev_delete;
