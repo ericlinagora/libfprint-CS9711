@@ -98,7 +98,7 @@ if get_option('introspection')
                 args: join_paths(meson.current_source_dir(), driver_test),
                 env: driver_envs,
                 suite: ['drivers'],
-                timeout: 10,
+                timeout: 15,
                 depends: libfprint_typelib,
             )
         else
