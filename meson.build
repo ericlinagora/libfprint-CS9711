@@ -98,10 +98,6 @@ virtual_drivers = [
     'virtual_device_storage',
 ]
 
-udev_drivers = [
-    'elanspi'
-]
-
 default_drivers = [
     'upektc_img',
     'vfs5011',
@@ -125,7 +121,10 @@ default_drivers = [
     'upeksonly',
     'upekts',
     'goodixmoc',
-    'nb1010'
+    'nb1010',
+
+    # SPI
+    'elanspi',
 ]
 
 # FIXME: All the drivers should be fixed by adjusting the byte order.
@@ -135,7 +134,7 @@ endian_independent_drivers = virtual_drivers + [
     'synaptics',
 ]
 
-all_drivers = default_drivers + virtual_drivers + udev_drivers
+all_drivers = default_drivers + virtual_drivers
 
 if drivers == [ 'all' ]
     drivers = all_drivers
@@ -144,6 +143,11 @@ endif
 if drivers == [ 'default' ]
     drivers = default_drivers
 endif
+
+# For detection whether udev is needed
+udev_drivers = [
+    'elanspi'
+]
 
 if drivers.length() == 0 or drivers[0] == ''
     error('Cannot build libfprint without drivers, please specify a valid value for the drivers option')
