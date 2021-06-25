@@ -1,6 +1,50 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2021-06-30: v1.92.0 release
+
+Highlights:
+ * Support for SPI devices was added together with the elanspi driver
+ * Generate hwdb for autosuspend (which is now pulled by systemd)
+ * An API was added to clear the device storage.
+   Note: Devices may not implement the "list" API anymore.
+ * Device features can now be queried using a common API
+
+New drivers:
+ * vfs7552
+ * nb1010
+ * elanspi
+
+Driver changes:
+ * uru4000: Fix deactivation when unplugged unexpectedly
+ * goodixmoc: Correctly complete verify/identify after retry condition
+ * goodixmoc: Support power shield feature
+ * goodixmoc: Support new PIDs
+ * synaptics: Fix driver lockup when sequence counter overflows (#358)
+ * synaptics: Remove unnecessary device reset
+ * synaptics: Support new PIDs
+ * synaptics: Add clear_storage and remove list support
+ * synaptics: Fix initialization if the device is still busy when opening
+ * upeksonly: Fix double free in USB transfer callbacks
+ * elan: Support new PIDs
+ * vfs301: Fix leak of USB transfer
+ * uru4000: Silence warning happening during startup
+
+Internal API changes:
+ * ssm: Add getter for the device
+ * ssm: Add cleanup state feature
+ * image-device: Allow overriding number of enroll stages
+ * context: Support udev based device discovery
+ * spi-transfer: Add SPI transfer helper routines
+
+Other:
+ * Use pcap based USB replay for CI
+ * New virtual drivers for more advanced testing
+ * Ensure async operations are run in the thread local main context
+ * Disable drivers on big-endian unless they are verified to work
+ * Add missing gobject-introspection dependency
+
+
 2020-12-01: v1.90.7 release
 
 Highlights:
