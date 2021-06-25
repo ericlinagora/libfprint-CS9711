@@ -332,7 +332,7 @@ udev_hwdb_generator = custom_target('udev-hwdb',
     install: false,
 )
 
-if udev_rules
+if install_udev_rules
     udev_rules = executable('fprint-list-udev-rules',
         'fprint-list-udev-rules.c',
         dependencies: libfprint_private_dep,

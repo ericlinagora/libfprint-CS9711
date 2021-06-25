@@ -166,7 +166,8 @@ imaging_dep = dependency('', required: false)
 gudev_dep = dependency('', required: false)
 libfprint_conf.set10('HAVE_PIXMAN', false)
 
-udev_rules = false
+udev_rules = get_option('udev_rules')
+install_udev_rules = udev_rules.enabled()
 
 foreach driver: drivers
     if driver == 'uru4000'
@@ -184,7 +185,7 @@ foreach driver: drivers
         libfprint_conf.set10('HAVE_PIXMAN', true)
     endif
         if udev_drivers.contains(driver)
-            udev_rules = true
+            install_udev_rules = true
 
             gudev_dep = dependency('gudev-1.0', required: false)
             if not gudev_dep.found()
@@ -198,7 +199,11 @@ foreach driver: drivers
     endif
 endforeach
 
-if udev_rules
+if udev_rules.disabled()
+    install_udev_rules = false
+endif
+
+if install_udev_rules
     udev_rules_dir = get_option('udev_rules_dir')
     if udev_rules_dir == 'auto'
         udev_dep = dependency('udev')
