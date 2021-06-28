@@ -111,10 +111,10 @@ def custom():
                           ['%s' % os.path.join(ddir, "custom.py")])
 
 try:
-    if os.path.exists(os.path.join(ddir, "capture.ioctl")):
+    if glob.glob(os.path.join(ddir, "capture.*")):
         capture()
 
-    if os.path.exists(os.path.join(ddir, "custom.ioctl")):
+    if glob.glob(os.path.join(ddir, "custom.*")):
         custom()
 
 except Exception as e:
