@@ -461,7 +461,7 @@ create_print (FpiDeviceSynaptics *self,
               guint8              finger_id)
 {
   FpPrint *print;
-  g_autofree gchar *user_id_safe;
+  g_autofree gchar *user_id_safe = NULL;
   GVariant *data = NULL;
   GVariant *uid = NULL;
 
