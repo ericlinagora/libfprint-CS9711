@@ -221,7 +221,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
       if (response_size > transfer->actual_length)
         {
           fp_dbg ("response_size is %lu, actual_length is %d",
-                  response_size, (gint) transfer->actual_length);
+                  (gulong) response_size, (gint) transfer->actual_length);
           fp_dbg ("Waiting for rest of transfer");
           BUG_ON (self->response_rest);
           self->response_rest = response_size - transfer->actual_length;
@@ -309,7 +309,7 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
                                             data);
           BUG_ON (self->image_size != IMAGE_SIZE);
           fp_dbg ("Image size is %lu",
-                  self->image_size);
+                  (gulong) self->image_size);
           img = fp_image_new (IMAGE_WIDTH, IMAGE_HEIGHT);
           img->flags |= FPI_IMAGE_PARTIAL;
           memcpy (img->data, self->image_bits,
