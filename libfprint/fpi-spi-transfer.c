@@ -323,7 +323,7 @@ transfer_chunk (FpiSpiTransfer *transfer, gsize full_length, gsize *transferred)
     {
       if (skip < transfer->length_wr && len < block_size)
         {
-          xfer[transfers].tx_buf = (guint64) transfer->buffer_wr + skip;
+          xfer[transfers].tx_buf = (gsize) transfer->buffer_wr + skip;
           xfer[transfers].len = MIN (block_size, transfer->length_wr - skip);
 
           len += xfer[transfers].len;
@@ -340,7 +340,7 @@ transfer_chunk (FpiSpiTransfer *transfer, gsize full_length, gsize *transferred)
     {
       if (skip < transfer->length_rd && len < block_size)
         {
-          xfer[transfers].rx_buf = (guint64) transfer->buffer_rd + skip;
+          xfer[transfers].rx_buf = (gsize) transfer->buffer_rd + skip;
           xfer[transfers].len = MIN (block_size, transfer->length_rd - skip);
 
           len += xfer[transfers].len;
