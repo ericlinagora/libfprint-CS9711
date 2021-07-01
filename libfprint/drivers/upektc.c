@@ -411,7 +411,7 @@ dev_init (FpImageDevice *dev)
       break;
 
     default:
-      fp_err ("Device variant %lu is not known", driver_data);
+      fp_err ("Device variant %" G_GUINT64_FORMAT " is not known", driver_data);
       g_assert_not_reached ();
       fpi_image_device_open_complete (dev, fpi_device_error_new (FP_DEVICE_ERROR_GENERAL));
       return;
