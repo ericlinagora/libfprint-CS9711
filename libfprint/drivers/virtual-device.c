@@ -192,7 +192,7 @@ process_cmds (FpDeviceVirtualDevice * self,
         {
           guint64 sleep_ms = g_ascii_strtoull (cmd + strlen (SLEEP_CMD_PREFIX), NULL, 10);
 
-          g_debug ("Sleeping %lums", sleep_ms);
+          g_debug ("Sleeping %" G_GUINT64_FORMAT "ms", sleep_ms);
           self->sleep_timeout_id = g_timeout_add (sleep_ms, sleep_timeout_cb, self);
 
           return FALSE;
@@ -275,7 +275,7 @@ recv_instruction_cb (GObject      *source_object,
   gsize bytes;
 
   bytes = fpi_device_virtual_listener_read_finish (listener, res, &error);
-  fp_dbg ("Got instructions of length %ld", bytes);
+  fp_dbg ("Got instructions of length %" G_GSIZE_FORMAT, bytes);
 
   if (error)
     {
