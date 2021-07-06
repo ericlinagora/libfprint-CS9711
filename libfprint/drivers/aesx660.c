@@ -365,7 +365,7 @@ capture_read_stripe_data_cb (FpiUsbTransfer *transfer,
       return;
     }
 
-  fp_dbg ("Got %lu bytes of data", actual_length);
+  fp_dbg ("Got %" G_GSIZE_FORMAT " bytes of data", actual_length);
   while (actual_length)
     {
       gssize payload_length;
@@ -386,7 +386,7 @@ capture_read_stripe_data_cb (FpiUsbTransfer *transfer,
                        (priv->stripe_packet->data[AESX660_RESPONSE_SIZE_MSB_OFFSET] << 8);
       fp_dbg ("Got frame, type %.2x payload of size %.4lx",
               priv->stripe_packet->data[AESX660_RESPONSE_TYPE_OFFSET],
-              payload_length);
+              (long) payload_length);
 
       still_needed_len = MAX (0, AESX660_HEADER_SIZE + payload_length - (gssize) priv->stripe_packet->len);
       copy_len = MIN (actual_length, still_needed_len);
@@ -441,7 +441,7 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
       break;
 
     case CAPTURE_SET_IDLE:
-      fp_dbg ("Got %lu frames", priv->strips_len);
+      fp_dbg ("Got %" G_GSIZE_FORMAT " frames", priv->strips_len);
       aesX660_send_cmd (ssm, _dev, set_idle_cmd, sizeof (set_idle_cmd),
                         capture_set_idle_cmd_cb);
       break;
