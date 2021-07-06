@@ -79,7 +79,7 @@ struct _FpiDeviceUpeksonly
   int                              num_flying;
 
   GSList                          *rows;
-  size_t                           num_rows;
+  unsigned                         num_rows;
   unsigned char                   *rowbuf;
   int                              rowbuf_offset;
 
@@ -215,7 +215,7 @@ handoff_img (FpImageDevice *dev)
 
   self->rows = g_slist_reverse (self->rows);
 
-  fp_dbg ("%lu rows", self->num_rows);
+  fp_dbg ("%u rows", self->num_rows);
   img = fpi_assemble_lines (&self->assembling_ctx, self->rows, self->num_rows);
 
   g_slist_free_full (self->rows, g_free);
@@ -295,7 +295,7 @@ row_complete (FpImageDevice *dev)
           if (self->num_blank > FINGER_REMOVED_THRESHOLD)
             {
               self->finger_state = FINGER_REMOVED;
-              fp_dbg ("detected finger removal. Blank rows: %d, Full rows: %lu",
+              fp_dbg ("detected finger removal. Blank rows: %d, Full rows: %u",
                       self->num_blank, self->num_rows);
               handoff_img (dev);
               return;
