@@ -24,6 +24,7 @@ envs.set('NO_AT_BRIDGE', '1')
 drivers_tests = [
     'aes3500',
     'elan',
+    'elanmoc',
     'elanspi',
     'synaptics',
     'vfs0050',
