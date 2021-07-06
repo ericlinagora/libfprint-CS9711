@@ -1219,7 +1219,7 @@ elanspi_guess_image (FpiDeviceElanSpi *self, guint16 *raw_image)
 
   sq_stddev /= (frame_width * frame_height);
 
-  fp_dbg ("<guess> stddev=%ld, ip=%d, is_fp=%d, is_empty=%d", sq_stddev, invalid_percent, is_fp, is_empty);
+  fp_dbg ("<guess> stddev=%" G_GUINT64_FORMAT "d, ip=%d, is_fp=%d, is_empty=%d", sq_stddev, invalid_percent, is_fp, is_empty);
 
   if (invalid_percent < ELANSPI_MAX_REAL_INVALID_PERCENT)
     is_fp += 1;
