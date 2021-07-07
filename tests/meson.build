@@ -33,6 +33,7 @@ drivers_tests = [
     'vfs7552',
     'goodixmoc',
     'nb1010',
+    'egis0570',
 ]
 
 if get_option('introspection')
