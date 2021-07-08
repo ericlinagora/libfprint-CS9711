@@ -717,6 +717,21 @@ identify_msg_cb (FpiDeviceSynaptics *self,
 static void
 identify (FpDevice *device)
 {
+  GPtrArray *prints = NULL;
+
+  fpi_device_get_identify_data (device, &prints);
+
+  /* Identify over no prints does not work for synaptics.
+   * This *may* make sense for other devices though, as identify may return
+   * a matched print even if it is not in the list of prints.
+   */
+  if (prints->len == 0)
+    {
+      fpi_device_identify_report (device, NULL, NULL, NULL);
+      fpi_device_identify_complete (device, NULL);
+      return;
+    }
+
   init_identify_msg (device);
   compose_and_send_identify_msg (device);
 }
