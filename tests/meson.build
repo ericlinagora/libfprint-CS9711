@@ -27,6 +27,7 @@ drivers_tests = [
     'elanmoc',
     'elanspi',
     'synaptics',
+    'upektc_img',
     'vfs0050',
     'vfs301',
     'vfs5011',
