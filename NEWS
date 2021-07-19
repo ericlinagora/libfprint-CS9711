@@ -1,6 +1,15 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2021-06-30: v1.92.1 release
+
+Highlights:
+ * elanmoc: New driver for ELAN match-on-chip devices
+ * egis0570: New driver for some Egis Technology devices
+ * synaptics: Fix empty identify causing enroll issues
+ * elan: Support more PIDs
+ * misc: Architecture related bugfixes
+
 2021-06-30: v1.92.0 release
 
 Highlights:
