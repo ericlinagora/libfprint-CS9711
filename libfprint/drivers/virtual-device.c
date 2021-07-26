@@ -150,6 +150,8 @@ process_cmds (FpDeviceVirtualDevice * self,
               char                  **scan_id,
               GError                **error)
 {
+  gboolean removed;
+
   if (g_cancellable_is_cancelled (self->cancellable) ||
       (fpi_device_get_current_action (FP_DEVICE (self)) != FPI_DEVICE_ACTION_NONE &&
        g_cancellable_is_cancelled (fpi_device_get_cancellable (FP_DEVICE (self)))))
@@ -250,8 +252,11 @@ process_cmds (FpDeviceVirtualDevice * self,
   if (self->ignore_wait)
     return TRUE;
 
+  g_object_get (self, "removed", &removed, NULL);
+
   g_assert (self->wait_command_id == 0);
-  self->wait_command_id = g_timeout_add (500, wait_for_command_timeout, self);
+  if (!scan || removed)
+    self->wait_command_id = g_timeout_add (500, wait_for_command_timeout, self);
   return FALSE;
 }
 
@@ -304,6 +309,7 @@ recv_instruction_cb (GObject      *source_object,
       else if (g_str_has_prefix (cmd, UNPLUG_CMD))
         {
           fpi_device_remove (FP_DEVICE (self));
+          maybe_continue_current_action (self);
         }
       else if (g_str_has_prefix (cmd, SET_ENROLL_STAGES_PREFIX))
         {
