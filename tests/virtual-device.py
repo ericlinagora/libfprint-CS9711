@@ -322,7 +322,7 @@ class VirtualDeviceBase(unittest.TestCase):
             else:
                 self.assertFalse(match)
 
-        if isinstance(scan_nick, str):
+        if isinstance(scan_nick, str) and not self.dev.has_storage():
             self.assertEqual(self._verify_fp.props.fpi_data.get_string(), scan_nick)
 
 
@@ -470,15 +470,8 @@ class VirtualDevice(VirtualDeviceBase):
     def test_enroll_verify_no_match(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_RING)
 
-        if self.dev.has_storage():
-            with self.assertRaises(GLib.Error) as error:
-                self.check_verify(matching, 'not-testprint', match=False,
-                    identify=self.dev.supports_identify())
-            self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
-                                                    FPrint.DeviceError.DATA_NOT_FOUND))
-        else:
-            self.check_verify(matching, 'not-testprint', match=False,
-                identify=self.dev.supports_identify())
+        self.check_verify(matching, 'not-testprint', match=False,
+            identify=self.dev.supports_identify())
 
     def test_enroll_verify_error(self):
         matching = self.enroll_print('testprint', FPrint.Finger.LEFT_RING)
@@ -597,14 +590,11 @@ class VirtualDevice(VirtualDeviceBase):
                                                 FPrint.DeviceRetry.TOO_SHORT))
 
         self.send_command('SCAN', 'another-id')
+        verify_match, verify_fp = self.dev.verify_sync(enrolled)
+        self.assertFalse(verify_match)
         if self.dev.has_storage():
-            with self.assertRaises(GLib.GError) as error:
-                self.dev.verify_sync(enrolled)
-            self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
-                                                    FPrint.DeviceError.DATA_NOT_FOUND))
+            self.assertIsNone(verify_fp)
         else:
-            verify_match, verify_fp = self.dev.verify_sync(enrolled)
-            self.assertFalse(verify_match)
             self.assertFalse(verify_fp.equal(enrolled))
 
         self.send_auto(enrolled)
@@ -821,13 +811,7 @@ class VirtualDevice(VirtualDeviceBase):
         self.wait_timeout(10)
         self.assertFalse(self._verify_completed)
 
-        if self.dev.has_storage():
-            with self.assertRaises(GLib.Error) as error:
-                self.complete_verify()
-            self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
-                                                    FPrint.DeviceError.DATA_NOT_FOUND))
-        else:
-            self.complete_verify()
+        self.complete_verify()
         self.assertTrue(self._verify_reported)
 
     def test_close_error(self):
@@ -1159,18 +1143,12 @@ class VirtualDeviceStorage(VirtualDevice):
                                                 FPrint.DeviceError.DATA_NOT_FOUND))
 
     def test_verify_missing_print(self):
-        with self.assertRaises(GLib.Error) as error:
-            self.check_verify(FPrint.Print.new(self.dev),
-                'not-existing-print', False, identify=False)
-        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
-                                                FPrint.DeviceError.DATA_NOT_FOUND))
+        self.check_verify(FPrint.Print.new(self.dev),
+            'not-existing-print', False, identify=False)
 
     def test_identify_missing_print(self):
-        with self.assertRaises(GLib.Error) as error:
-            self.check_verify(FPrint.Print.new(self.dev),
-                              'not-existing-print', False, identify=True)
-        self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
-                                                FPrint.DeviceError.DATA_NOT_FOUND))
+        self.check_verify(FPrint.Print.new(self.dev),
+                          'not-existing-print', False, identify=True)
 
 
 if __name__ == '__main__':

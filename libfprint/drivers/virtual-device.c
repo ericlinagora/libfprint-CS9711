@@ -543,7 +543,7 @@ dev_verify (FpDevice *dev)
 
       if (self->prints_storage && !g_hash_table_contains (self->prints_storage, scan_id))
         {
-          error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND);
+          g_clear_object (&new_scan);
           success = FALSE;
         }
       else

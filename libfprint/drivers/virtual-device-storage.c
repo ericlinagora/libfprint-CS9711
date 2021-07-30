@@ -67,12 +67,17 @@ dev_identify (FpDevice *dev)
                                              new_scan,
                                              (GEqualFunc) fp_print_equal,
                                              NULL))
-        error = fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND);
+        {
+          match = FALSE;
+          g_clear_object (&new_scan);
+        }
       else if (g_ptr_array_find_with_equal_func (prints,
                                                  new_scan,
                                                  (GEqualFunc) fp_print_equal,
                                                  &idx))
-        match = g_ptr_array_index (prints, idx);
+        {
+          match = g_ptr_array_index (prints, idx);
+        }
 
       if (!self->match_reported)
         {
