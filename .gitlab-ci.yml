@@ -69,6 +69,7 @@ test:
     - cat _build/meson-logs/coverage.txt
   artifacts:
     expose_as: 'Coverage Report'
+    when: always
     paths:
       - _build/meson-logs
       - _build/meson-logs/coveragereport/index.html
@@ -86,6 +87,7 @@ test_valgrind:
     - meson test -C _build --print-errorlogs --no-stdsplit --setup=valgrind
   artifacts:
     expose_as: 'Valgrind test logs'
+    when: always
     paths:
       - _build/meson-logs
       - _build/meson-logs/testlog-valgrind.txt
