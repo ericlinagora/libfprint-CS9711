@@ -58,6 +58,7 @@ typedef enum {
  * @FP_DEVICE_FEATURE_STORAGE_DELETE: Supports deleting stored templates
  * @FP_DEVICE_FEATURE_STORAGE_CLEAR: Supports clearing the whole storage
  * @FP_DEVICE_FEATURE_DUPLICATES_CHECK: Natively supports duplicates detection
+ * @FP_DEVICE_FEATURE_ALWAYS_ON: Whether the device can run continuously
  */
 typedef enum /*< flags >*/ {
   FP_DEVICE_FEATURE_NONE = 0,
@@ -69,6 +70,7 @@ typedef enum /*< flags >*/ {
   FP_DEVICE_FEATURE_STORAGE_DELETE = 1 << 5,
   FP_DEVICE_FEATURE_STORAGE_CLEAR = 1 << 6,
   FP_DEVICE_FEATURE_DUPLICATES_CHECK = 1 << 7,
+  FP_DEVICE_FEATURE_ALWAYS_ON = 1 << 8,
 } FpDeviceFeature;
 
 /**
