@@ -1595,6 +1595,28 @@ fake_device_stub_identify (FpDevice *device)
 }
 
 static void
+test_driver_identify_cb (FpDevice     *device,
+                         GAsyncResult *res,
+                         gpointer      user_data)
+{
+  MatchCbData *data = user_data;
+  gboolean r;
+
+  g_assert (data->called == FALSE);
+  data->called = TRUE;
+
+  r = fp_device_identify_finish (device, res, &data->match, &data->print, &data->error);
+
+  if (r)
+    g_assert_no_error (data->error);
+  else
+    g_assert_nonnull (data->error);
+
+  if (data->match)
+    g_assert_no_error (data->error);
+}
+
+static void
 test_driver_supports_identify (void)
 {
   g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
@@ -1945,6 +1967,84 @@ test_driver_identify_report_no_callback (void)
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_NOT_SUPPORTED);
   g_assert (error == g_steal_pointer (&fake_dev->ret_error));
   g_assert_false (match);
+}
+
+static void
+test_driver_identify_warmup_cooldown (void)
+{
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(MatchCbData) identify_data = g_new0 (MatchCbData, 1);
+  g_autoptr(GPtrArray) prints = NULL;
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(GError) error = NULL;
+  void (*orig_identify) (FpDevice *device);
+  FpiDeviceFake *fake_dev;
+  gint64 start_time;
+
+  dev_class->temp_hot_seconds = 2;
+  dev_class->temp_cold_seconds = 5;
+
+  device = g_object_new (FPI_TYPE_DEVICE_FAKE, NULL);
+  fake_dev = FPI_DEVICE_FAKE (device);
+  orig_identify = dev_class->identify;
+  dev_class->identify = fake_device_stub_identify;
+
+  prints = make_fake_prints_gallery (device, 500);
+
+  g_assert_true (fp_device_open_sync (device, NULL, NULL));
+  fake_dev->last_called_function = NULL;
+
+  fake_dev->ret_error = fpi_device_error_new (FP_DEVICE_ERROR_GENERAL);
+
+  /* Undefined: Whether match_cb is called. */
+  fp_device_identify (device, prints, NULL,
+                      NULL, NULL, NULL,
+                      (GAsyncReadyCallback) test_driver_identify_cb, identify_data);
+
+  /* Identify is running, the temperature will change after only a short time.
+   * Changes are delayed by 100ms and we give 150ms of slack for the test.
+   */
+  start_time = g_get_monotonic_time ();
+  g_assert_cmpint (fp_device_get_temperature (device), ==, FP_TEMPERATURE_COLD);
+  while (fp_device_get_temperature (device) == FP_TEMPERATURE_COLD)
+    g_main_context_iteration (NULL, TRUE);
+  g_assert_cmpint (fp_device_get_temperature (device), ==, FP_TEMPERATURE_WARM);
+  g_assert_false (g_cancellable_is_cancelled (fpi_device_get_cancellable (device)));
+  g_assert_cmpint (g_get_monotonic_time () - start_time, <, 0 + 250000);
+
+  /* we reach hot 2 seconds later */
+  while (fp_device_get_temperature (device) == FP_TEMPERATURE_WARM)
+    g_main_context_iteration (NULL, TRUE);
+  g_assert_cmpint (fp_device_get_temperature (device), ==, FP_TEMPERATURE_HOT);
+  g_assert_true (g_cancellable_is_cancelled (fpi_device_get_cancellable (device)));
+  g_assert_cmpint (g_get_monotonic_time () - start_time, <, 2000000 + 250000);
+
+  /* cancel vfunc will be called now */
+  g_assert (fake_dev->last_called_function == NULL);
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert (fake_dev->last_called_function == dev_class->cancel);
+
+  orig_identify (device);
+  fake_dev->ret_error = NULL;
+  while (g_main_context_iteration (NULL, FALSE))
+    continue;
+  g_assert_true (identify_data->called);
+  g_assert_error (identify_data->error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_TOO_HOT);
+
+  /* Now, wait for it to cool down again;
+   * WARM should be reached after about 2s
+   * COLD after 5s but give it some more slack. */
+  start_time = g_get_monotonic_time ();
+  while (fp_device_get_temperature (device) == FP_TEMPERATURE_HOT)
+    g_main_context_iteration (NULL, TRUE);
+  g_assert_cmpint (fp_device_get_temperature (device), ==, FP_TEMPERATURE_WARM);
+  g_assert_cmpint (g_get_monotonic_time () - start_time, <, 2000000 + 250000);
+
+  while (fp_device_get_temperature (device) == FP_TEMPERATURE_WARM)
+    g_main_context_iteration (NULL, TRUE);
+  g_assert_cmpint (fp_device_get_temperature (device), ==, FP_TEMPERATURE_COLD);
+  g_assert_cmpint (g_get_monotonic_time () - start_time, <, 5000000 + 500000);
 }
 
 static void
@@ -2905,6 +3005,9 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/identify/not_reported", test_driver_identify_not_reported);
   g_test_add_func ("/driver/identify/complete_retry", test_driver_identify_complete_retry);
   g_test_add_func ("/driver/identify/report_no_cb", test_driver_identify_report_no_callback);
+
+  g_test_add_func ("/driver/identify/warmup_cooldown", test_driver_identify_warmup_cooldown);
+
   g_test_add_func ("/driver/capture", test_driver_capture);
   g_test_add_func ("/driver/capture/not_supported", test_driver_capture_not_supported);
   g_test_add_func ("/driver/capture/error", test_driver_capture_error);
