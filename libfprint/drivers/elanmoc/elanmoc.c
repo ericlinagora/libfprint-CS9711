@@ -689,7 +689,10 @@ identify_status_report (FpiDeviceElanmoc *self, int verify_status_id,
 
   if (error)
     {
-      fpi_device_enroll_complete (device, NULL, error);
+      if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
+        fpi_device_verify_complete (device, error);
+      else
+        fpi_device_identify_complete (device, error);
       return;
     }
 
