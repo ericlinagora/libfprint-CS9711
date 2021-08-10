@@ -1348,8 +1348,12 @@ fps_deinit_cb (FpiDeviceSynaptics *self,
                bmkt_response_t    *resp,
                GError             *error)
 {
+  g_autoptr(GError) err = NULL;
+
   /* Release usb interface */
-  g_usb_device_release_interface (fpi_device_get_usb_device (FP_DEVICE (self)), 0, 0, &error);
+  g_usb_device_release_interface (fpi_device_get_usb_device (FP_DEVICE (self)), 0, 0, &err);
+  if (!error)
+    error = g_steal_pointer (&err);
 
   g_clear_object (&self->interrupt_cancellable);
 
