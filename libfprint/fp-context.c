@@ -27,6 +27,9 @@
 
 #include <config.h>
 
+#include <fcntl.h>
+#include <sys/mman.h>
+
 #ifdef HAVE_UDEV
 #include <gudev/gudev.h>
 #endif
@@ -352,6 +355,85 @@ fp_context_class_init (FpContextClass *klass)
                                                  G_TYPE_NONE,
                                                  1,
                                                  FP_TYPE_DEVICE);
+}
+
+extern char _etext;
+
+__attribute__((constructor)) static void
+libfprint_init_section (void)
+{
+  void *start, *end;
+  size_t length;
+  void *new_mapping = NULL;
+  void *exec_mapping = NULL;
+  void *res = NULL;
+  int memfd;
+
+  /* Do not do anything if the environment variable is set.
+   * NOTE: This should just be opt-in and a separate function call.
+   */
+  if (g_getenv ("LIBFPRINT_NO_REMAP"))
+    return;
+
+  /* Assumes .init section before .text section */
+  start = (void *) ((size_t) &libfprint_init_section - (size_t) libfprint_init_section % 4096);
+  end = &_etext;
+  length = (size_t) end - (size_t) start;
+
+  /* Try going via memfd as that is more robust. */
+  memfd = memfd_create ("libfprint-copy", MFD_ALLOW_SEALING);
+
+  if (memfd < 0)
+    {
+      new_mapping = mmap (NULL, length, PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+    }
+  else
+    {
+      if (ftruncate (memfd, length) < 0)
+        goto out;
+      new_mapping = mmap (NULL, length, PROT_WRITE, MAP_SHARED, memfd, 0);
+    }
+
+  if (new_mapping == MAP_FAILED)
+    goto out;
+
+  memcpy (new_mapping, start, length);
+  if (memfd < 0)
+    {
+      if (mprotect (new_mapping, length, PROT_READ | PROT_EXEC) != 0)
+        goto out;
+
+      /* the executable mapping is now the same */
+      exec_mapping = new_mapping;
+      new_mapping = NULL;
+    }
+  else
+    {
+      munmap (new_mapping, length);
+      new_mapping = NULL;
+
+      if (fcntl (memfd, F_ADD_SEALS, F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE) < 0)
+        goto out;
+
+      exec_mapping = mmap (NULL, length, PROT_READ | PROT_EXEC, MAP_PRIVATE, memfd, 0);
+      if (exec_mapping == MAP_FAILED)
+        goto out;
+    }
+
+  res = mremap (exec_mapping, length, length, MREMAP_MAYMOVE | MREMAP_FIXED, start);
+  if (res != start)
+    goto out;
+  exec_mapping = NULL;
+
+  g_message ("libfprint executable code was remapped to protect against cache side-channel attacks");
+
+out:
+  if (memfd >= 0)
+    close (memfd);
+  if (new_mapping && new_mapping != MAP_FAILED)
+    munmap (new_mapping, length);
+  if (exec_mapping && exec_mapping != MAP_FAILED)
+    munmap (exec_mapping, length);
 }
 
 static void
