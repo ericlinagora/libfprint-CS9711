@@ -135,7 +135,7 @@ static const struct elanmoc_cmd elanmoc_set_mod_cmd = {
 
 static const struct elanmoc_cmd elanmoc_check_reenroll_cmd = {
   .cmd_header = {0x40, 0xff, 0x22},
-  .cmd_len = 5,
+  .cmd_len = 3 + ELAN_USERDATE_SIZE,
   .resp_len = 2,
 };
 

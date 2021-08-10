@@ -431,7 +431,7 @@ elan_enroll_run_state (FpiSsm *ssm, FpDevice *dev)
     case MOC_ENROLL_REENROLL_CHECK:
       data = fpi_ssm_get_data (ssm);
       cmd_buf = elanmoc_compose_cmd (&elanmoc_check_reenroll_cmd);
-      cmd_buf[4] = data[16];
+      memcpy (cmd_buf + 3, data, ELAN_USERDATE_SIZE);
       elanmoc_get_cmd (dev, cmd_buf, elanmoc_check_reenroll_cmd.cmd_len, elanmoc_check_reenroll_cmd.resp_len, 0, elanmoc_reenroll_cb);
       break;
 
