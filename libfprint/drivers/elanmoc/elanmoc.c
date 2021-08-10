@@ -331,7 +331,8 @@ elanmoc_reenroll_cb (FpiDeviceElanmoc *self,
       if ((self->curr_enrolled == (ELAN_MAX_ENROLL_NUM + 1)) && (buffer_in[1] == 0x00))
         {
           fp_warn ("elanmoc_reenroll_cb over enroll max");
-          fpi_ssm_mark_completed (self->task_ssm);
+          fpi_ssm_mark_failed (self->task_ssm,
+                               fpi_device_error_new (FP_DEVICE_ERROR_DATA_FULL));
           return;
         }
       if (buffer_in[1] == 0x00)
