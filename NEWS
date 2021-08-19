@@ -1,6 +1,18 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2021-06-30: v1.94.0 release
+
+Highlights:
+ * Implement suspend/resume handling including USB wakeup configuration.
+   This requires writing the "persist" and "wakeup" sysfs attributes.
+ * Add simple temperature module to prevent devices from becoming too hot
+ * Add feature for continuous scanning
+ * New internal "critical section" API to simplify driver development
+ * elan: new PID 0x0c58
+ * elanmoc: Fixes for multi-user handling and FW changes
+ * virtual-device: Do not time out for SCAN command
+
 2021-06-30: v1.92.1 release
 
 Highlights:
