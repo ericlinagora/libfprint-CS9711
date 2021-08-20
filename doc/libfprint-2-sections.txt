@@ -180,10 +180,12 @@ fpi_device_verify_complete
 fpi_device_identify_complete
 fpi_device_capture_complete
 fpi_device_delete_complete
+fpi_device_list_complete
+fpi_device_suspend_complete
+fpi_device_resume_complete
 fpi_device_enroll_progress
 fpi_device_verify_report
 fpi_device_identify_report
-fpi_device_list_complete
 fpi_device_class_auto_initialize_features
 </SECTION>
 
