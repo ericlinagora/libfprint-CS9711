@@ -50,6 +50,8 @@ fp_device_capture
 fp_device_delete_print
 fp_device_list_prints
 fp_device_clear_storage
+fp_device_suspend
+fp_device_resume
 fp_device_open_finish
 fp_device_close_finish
 fp_device_enroll_finish
@@ -59,6 +61,8 @@ fp_device_capture_finish
 fp_device_delete_print_finish
 fp_device_list_prints_finish
 fp_device_clear_storage_finish
+fp_device_suspend_finish
+fp_device_resume_finish
 fp_device_open_sync
 fp_device_close_sync
 fp_device_enroll_sync
@@ -68,6 +72,8 @@ fp_device_capture_sync
 fp_device_delete_print_sync
 fp_device_list_prints_sync
 fp_device_clear_storage_sync
+fp_device_suspend_sync
+fp_device_resume_sync
 FpDevice
 </SECTION>
 
