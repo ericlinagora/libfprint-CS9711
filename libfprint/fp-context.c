@@ -473,6 +473,7 @@ fp_context_enumerate (FpContext *context)
 
 
 #ifdef HAVE_UDEV
+  g_debug ("probing via udev");
   {
     g_autoptr(GUdevClient) udev_client = g_udev_client_new (NULL);
 
@@ -483,6 +484,8 @@ fp_context_enumerate (FpContext *context)
 
     g_autoptr(GList) spidev_devices = g_udev_client_query_by_subsystem (udev_client, "spidev");
     g_autoptr(GList) hidraw_devices = g_udev_client_query_by_subsystem (udev_client, "hidraw");
+
+    g_debug ("probing via udev: got devices");
 
     /* for each potential driver, try to match all requested resources. */
     for (i = 0; i < priv->drivers->len; i++)
@@ -534,6 +537,7 @@ fp_context_enumerate (FpContext *context)
                 if (matched_hidraw == NULL)
                   continue;
               }
+            g_debug ("probing via udev: found a device");
             priv->pending_devices++;
             g_async_initable_new_async (driver,
                                         G_PRIORITY_LOW,
@@ -562,10 +566,15 @@ fp_context_enumerate (FpContext *context)
     g_list_foreach (spidev_devices, (GFunc) g_object_unref, NULL);
     g_list_foreach (hidraw_devices, (GFunc) g_object_unref, NULL);
   }
+  g_debug ("probing via udev: done");
 #endif
 
-  while (priv->pending_devices)
+  g_debug("enumeration done, pending devices: %d", priv->pending_devices);
+
+  while (priv->pending_devices) {
+    g_debug("pending devices: %d", priv->pending_devices);
     g_main_context_iteration (NULL, TRUE);
+  }
 }
 
 /**
