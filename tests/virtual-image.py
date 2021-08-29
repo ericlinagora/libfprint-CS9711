@@ -136,6 +136,7 @@ class VirtualImage(unittest.TestCase):
         self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.CAPTURE))
         self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.IDENTIFY))
         self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.VERIFY))
+        self.assertTrue(self.dev.has_feature(FPrint.DeviceFeature.UPDATE_PRINT))
         self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.DUPLICATES_CHECK))
         self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE))
         self.assertFalse(self.dev.has_feature(FPrint.DeviceFeature.STORAGE_LIST))
@@ -144,7 +145,8 @@ class VirtualImage(unittest.TestCase):
         self.assertEqual(self.dev.get_features(),
                          FPrint.DeviceFeature.CAPTURE |
                          FPrint.DeviceFeature.IDENTIFY |
-                         FPrint.DeviceFeature.VERIFY)
+                         FPrint.DeviceFeature.VERIFY |
+                         FPrint.DeviceFeature.UPDATE_PRINT)
 
     def test_capture_prevents_close(self):
         cancel = Gio.Cancellable()
@@ -167,7 +169,7 @@ class VirtualImage(unittest.TestCase):
         while not self._cancelled:
             ctx.iteration(True)
 
-    def enroll_print(self, image):
+    def enroll_print(self, image, template=None):
         self._step = 0
         self._enrolled = None
 
@@ -181,14 +183,15 @@ class VirtualImage(unittest.TestCase):
             self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
             self._enrolled = fp
 
-        template = FPrint.Print.new(self.dev)
-        template.props.finger = FPrint.Finger.LEFT_THUMB
-        template.props.username = "testuser"
-        template.props.description = "test print"
-        datetime = GLib.DateTime.new_now_local()
-        date = GLib.Date()
-        date.set_dmy(*datetime.get_ymd()[::-1])
-        template.props.enroll_date = date
+        if template is None:
+            template = FPrint.Print.new(self.dev)
+            template.props.finger = FPrint.Finger.LEFT_THUMB
+            template.props.username = "testuser"
+            template.props.description = "test print"
+            datetime = GLib.DateTime.new_now_local()
+            date = GLib.Date()
+            date.set_dmy(*datetime.get_ymd()[::-1])
+            template.props.enroll_date = date
         self.assertEqual(self.dev.get_finger_status(), FPrint.FingerStatusFlags.NONE)
         self.dev.enroll(template, None, progress_cb, tuple(), done_cb)
 
@@ -263,6 +266,28 @@ class VirtualImage(unittest.TestCase):
         while self._verify_match is None:
             ctx.iteration(True)
         assert(not self._verify_match)
+
+        # Test fingerprint updates
+        # Enroll a second print
+        fp_whorl_tended_arch = self.enroll_print('tented_arch', fp_whorl)
+
+        # Make sure the first print verifies successfully after the update
+        self._verify_match = None
+        self._verify_fp = None
+        self.dev.verify(fp_whorl_tended_arch, callback=verify_cb)
+        self.send_image('whorl')
+        while self._verify_match is None:
+            ctx.iteration(True)
+        assert(self._verify_match)
+
+        # Make sure the second print verifies successfully after the update
+        self._verify_match = None
+        self._verify_fp = None
+        self.dev.verify(fp_whorl_tended_arch, callback=verify_cb)
+        self.send_image('tented_arch')
+        while self._verify_match is None:
+            ctx.iteration(True)
+        assert(self._verify_match)
 
         # Test verify error cases
         self._verify_fp = None

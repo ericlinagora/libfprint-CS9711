@@ -35,6 +35,7 @@ typedef struct _EnrollData
   unsigned int  sigint_handler;
   FpFinger      finger;
   int           ret_value;
+  gboolean      update_fingerprint;
 } EnrollData;
 
 static void
@@ -84,7 +85,8 @@ on_enroll_completed (FpDevice *dev, GAsyncResult *res, void *user_data)
       /* Even if the device has storage, it may not be able to save all the
        * metadata that the print contains, so we can always save a local copy
        * containing the handle to the device print */
-      int r = print_data_save (print, enroll_data->finger);
+      int r = print_data_save (print, enroll_data->finger,
+                               enroll_data->update_fingerprint);
       if (r < 0)
         {
           g_warning ("Data save failed, code %d", r);
@@ -124,6 +126,40 @@ on_enroll_progress (FpDevice *device,
           fp_device_get_nr_enroll_stages (device));
 }
 
+static gboolean
+should_update_fingerprint (void)
+{
+  int update_choice;
+  gboolean update_fingerprint = FALSE;
+
+  printf ("Should an existing fingerprint be updated instead of being replaced (if present)? "
+          "Enter Y/y or N/n to make a choice.\n");
+  update_choice = getchar ();
+  if (update_choice == EOF)
+    {
+      g_warning ("EOF encountered while reading a character");
+      return EXIT_FAILURE;
+    }
+
+  switch (update_choice)
+    {
+    case 'y':
+    case 'Y':
+      update_fingerprint = TRUE;
+      break;
+
+    case 'n':
+    case 'N':
+      update_fingerprint = FALSE;
+      break;
+
+    default:
+      g_warning ("Invalid choice %c, should be Y/y or N/n.", update_choice);
+      return EXIT_FAILURE;
+    }
+  return update_fingerprint;
+}
+
 static void
 on_device_opened (FpDevice *dev, GAsyncResult *res, void *user_data)
 {
@@ -139,13 +175,26 @@ on_device_opened (FpDevice *dev, GAsyncResult *res, void *user_data)
       return;
     }
 
-  printf ("Opened device. It's now time to enroll your finger.\n\n");
+  printf ("Opened device.\n");
+
+  if (fp_device_has_feature (dev, FP_DEVICE_FEATURE_UPDATE_PRINT))
+    {
+      printf ("The device supports fingerprint updates.\n");
+      enroll_data->update_fingerprint = should_update_fingerprint ();
+    }
+  else
+    {
+      printf ("The device doesn't support fingerprint updates. Old prints will be erased.\n");
+      enroll_data->update_fingerprint = FALSE;
+    }
+
+  printf ("It's now time to enroll your finger.\n\n");
   printf ("You will need to successfully scan your %s finger %d times to "
           "complete the process.\n\n", finger_to_string (enroll_data->finger),
           fp_device_get_nr_enroll_stages (dev));
   printf ("Scan your finger now.\n");
 
-  print_template = print_create_template (dev, enroll_data->finger);
+  print_template = print_create_template (dev, enroll_data->finger, enroll_data->update_fingerprint);
   fp_device_enroll (dev, print_template, enroll_data->cancellable,
                     on_enroll_progress, NULL, NULL,
                     (GAsyncReadyCallback) on_enroll_completed,
@@ -171,11 +220,9 @@ main (void)
   FpDevice *dev;
   FpFinger finger;
 
-  g_print ("This program will enroll the selected finger, unconditionally "
-           "overwriting any print for the same finger that was enrolled "
-           "previously. If you want to continue, press enter, otherwise hit "
-           "Ctrl+C\n");
-  getchar ();
+  g_print ("This program will enroll the selected finger overwriting any print for the same"
+           " finger that was enrolled previously. Fingerprint updates without erasing old data"
+           " are possible on devices supporting that. Ctrl+C interrupts program execution.\n");
 
   g_print ("Choose the finger to enroll:\n");
   finger = finger_chooser ();

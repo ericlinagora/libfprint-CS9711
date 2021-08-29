@@ -1189,10 +1189,11 @@ fp_device_resume_finish (FpDevice     *device,
  * fp_device_enroll_finish().
  *
  * The @template_print parameter is a #FpPrint with available metadata filled
- * in. The driver may make use of this metadata, when e.g. storing the print on
- * device memory. It is undefined whether this print is filled in by the driver
- * and returned, or whether the driver will return a newly created print after
- * enrollment succeeded.
+ * in and, optionally, with existing fingerprint data to be updated with newly
+ * enrolled fingerprints if a device driver supports it. The driver may make use
+ * of the metadata, when e.g. storing the print on device memory. It is undefined
+ * whether this print is filled in by the driver and returned, or whether the
+ * driver will return a newly created print after enrollment succeeded.
  */
 void
 fp_device_enroll (FpDevice           *device,
@@ -1229,19 +1230,30 @@ fp_device_enroll (FpDevice           *device,
 
   if (!FP_IS_PRINT (template_print))
     {
-      g_warning ("User did not pass a print template!");
       g_task_return_error (task,
-                           fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID));
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_DATA_INVALID,
+                                                     "User did not pass a print template!"));
       return;
     }
 
   g_object_get (template_print, "fpi-type", &print_type, NULL);
   if (print_type != FPI_PRINT_UNDEFINED)
     {
-      g_warning ("Passed print template must be newly created and blank!");
-      g_task_return_error (task,
-                           fpi_device_error_new (FP_DEVICE_ERROR_DATA_INVALID));
-      return;
+      if (!fp_device_has_feature (device, FP_DEVICE_FEATURE_UPDATE_PRINT))
+        {
+          g_task_return_error (task,
+                               fpi_device_error_new_msg (FP_DEVICE_ERROR_DATA_INVALID,
+                                                         "A device does not support print updates!"));
+          return;
+        }
+      if (!fp_print_compatible (template_print, device))
+        {
+          g_task_return_error (task,
+                               fpi_device_error_new_msg (FP_DEVICE_ERROR_DATA_INVALID,
+                                                         "The print and device must have a matching driver and device id"
+                                                         " for a fingerprint update to succeed"));
+          return;
+        }
     }
 
   priv->current_action = FPI_DEVICE_ACTION_ENROLL;

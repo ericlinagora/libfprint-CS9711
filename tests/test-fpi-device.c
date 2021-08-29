@@ -27,6 +27,7 @@
 #include "fpi-compat.h"
 #include "fpi-log.h"
 #include "test-device-fake.h"
+#include "fp-print-private.h"
 
 /* Utility functions */
 
@@ -138,6 +139,16 @@ make_fake_print (FpDevice *device,
   if (!print_data)
     print_data = g_variant_new_string ("Test print private data");
   g_object_set (G_OBJECT (enrolled_print), "fpi-data", print_data, NULL);
+
+  return enrolled_print;
+}
+
+static FpPrint *
+make_fake_nbis_print (FpDevice *device)
+{
+  FpPrint *enrolled_print = fp_print_new (device);
+
+  fpi_print_set_type (enrolled_print, FPI_PRINT_NBIS);
 
   return enrolled_print;
 }
@@ -1045,12 +1056,116 @@ test_driver_enroll_error_no_print (void)
   out_print =
     fp_device_enroll_sync (device, fp_print_new (device), NULL, NULL, NULL, &error);
 
-  g_test_assert_expected_messages ();
   g_assert (fake_dev->last_called_function == dev_class->enroll);
   g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_GENERAL);
   g_assert_null (out_print);
   g_assert_null (fake_dev->ret_print);
   g_clear_error (&error);
+}
+
+static void
+test_driver_enroll_update_nbis (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpPrint) template_print = NULL;
+  FpiDeviceFake *fake_dev = NULL;
+  FpPrint *out_print = NULL;
+
+  dev_class->features |= FP_DEVICE_FEATURE_UPDATE_PRINT;
+  device = auto_close_fake_device_new ();
+  fake_dev = FPI_DEVICE_FAKE (device);
+
+  template_print = make_fake_nbis_print (device);
+  fake_dev->ret_print = template_print;
+
+  out_print =
+    fp_device_enroll_sync (device, template_print, NULL, NULL, NULL, &error);
+
+  g_assert (fake_dev->last_called_function == dev_class->enroll);
+  g_assert (fake_dev->action_data == template_print);
+
+  g_assert_no_error (error);
+  g_assert (out_print == template_print);
+}
+
+static void
+test_driver_enroll_update_nbis_wrong_device (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpPrint) template_print = NULL;
+  FpiDeviceFake *fake_dev = NULL;
+  FpPrint *out_print = NULL;
+
+  dev_class->features |= FP_DEVICE_FEATURE_UPDATE_PRINT;
+
+  device = auto_close_fake_device_new ();
+  fake_dev = FPI_DEVICE_FAKE (device);
+
+  template_print = make_fake_nbis_print (device);
+  template_print->device_id = g_strdup ("wrong_device");
+  fake_dev->ret_print = template_print;
+
+  out_print =
+    fp_device_enroll_sync (device, template_print, NULL, NULL, NULL, &error);
+
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert (out_print == NULL);
+}
+
+static void
+test_driver_enroll_update_nbis_wrong_driver (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpPrint) template_print = NULL;
+  FpiDeviceFake *fake_dev = NULL;
+  FpPrint *out_print = NULL;
+
+  dev_class->features |= FP_DEVICE_FEATURE_UPDATE_PRINT;
+
+  device = auto_close_fake_device_new ();
+  fake_dev = FPI_DEVICE_FAKE (device);
+
+  template_print = make_fake_nbis_print (device);
+  template_print->driver = g_strdup ("wrong_driver");
+  fake_dev->ret_print = template_print;
+
+  out_print =
+    fp_device_enroll_sync (device, template_print, NULL, NULL, NULL, &error);
+
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert (out_print == NULL);
+}
+
+static void
+test_driver_enroll_update_nbis_missing_feature (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(FpAutoResetClass) dev_class = auto_reset_device_class ();
+  g_autoptr(FpAutoCloseDevice) device = NULL;
+  g_autoptr(FpPrint) template_print = NULL;
+  FpiDeviceFake *fake_dev = NULL;
+  FpPrint *out_print = NULL;
+
+  device = auto_close_fake_device_new ();
+  fake_dev = FPI_DEVICE_FAKE (device);
+
+  template_print = make_fake_nbis_print (device);
+  fake_dev->ret_print = template_print;
+
+  out_print =
+    fp_device_enroll_sync (device, template_print, NULL, NULL, NULL, &error);
+
+  g_assert (fake_dev->last_called_function == dev_class->open);
+  g_assert (fake_dev->action_data == NULL);
+
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_DATA_INVALID);
+  g_assert (out_print == NULL);
 }
 
 typedef struct
@@ -3306,6 +3421,13 @@ main (int argc, char *argv[])
   g_test_add_func ("/driver/enroll/error", test_driver_enroll_error);
   g_test_add_func ("/driver/enroll/error/no_print", test_driver_enroll_error_no_print);
   g_test_add_func ("/driver/enroll/progress", test_driver_enroll_progress);
+  g_test_add_func ("/driver/enroll/update_nbis", test_driver_enroll_update_nbis);
+  g_test_add_func ("/driver/enroll/update_nbis_wrong_device",
+                   test_driver_enroll_update_nbis_wrong_device);
+  g_test_add_func ("/driver/enroll/update_nbis_wrong_driver",
+                   test_driver_enroll_update_nbis_wrong_driver);
+  g_test_add_func ("/driver/enroll/update_nbis_missing_feature",
+                   test_driver_enroll_update_nbis_missing_feature);
   g_test_add_func ("/driver/verify", test_driver_verify);
   g_test_add_func ("/driver/verify/fail", test_driver_verify_fail);
   g_test_add_func ("/driver/verify/retry", test_driver_verify_retry);

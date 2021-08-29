@@ -61,6 +61,7 @@ enum {
   /* Private property*/
   PROP_FPI_TYPE,
   PROP_FPI_DATA,
+  PROP_FPI_PRINTS,
   N_PROPS
 };
 
@@ -133,6 +134,10 @@ fp_print_get_property (GObject    *object,
       g_value_set_variant (value, self->data);
       break;
 
+    case PROP_FPI_PRINTS:
+      g_value_set_pointer (value, self->prints);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -186,6 +191,11 @@ fp_print_set_property (GObject      *object,
     case PROP_FPI_DATA:
       g_clear_pointer (&self->data, g_variant_unref);
       self->data = g_value_dup_variant (value);
+      break;
+
+    case PROP_FPI_PRINTS:
+      g_clear_pointer (&self->prints, g_ptr_array_unref);
+      self->prints = g_value_get_pointer (value);
       break;
 
     default:
@@ -297,6 +307,19 @@ fp_print_class_init (FpPrintClass *klass)
                           "The raw data for internal use only",
                           G_VARIANT_TYPE_ANY,
                           NULL,
+                          G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE);
+
+  /**
+   * FpPrint::fpi-prints: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
+  properties[PROP_FPI_PRINTS] =
+    g_param_spec_pointer ("fpi-prints",
+                          "Prints",
+                          "Prints for internal use only",
                           G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE);
 
   g_object_class_install_properties (object_class, N_PROPS, properties);

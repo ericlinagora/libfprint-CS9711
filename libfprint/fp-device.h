@@ -59,6 +59,7 @@ typedef enum {
  * @FP_DEVICE_FEATURE_STORAGE_CLEAR: Supports clearing the whole storage
  * @FP_DEVICE_FEATURE_DUPLICATES_CHECK: Natively supports duplicates detection
  * @FP_DEVICE_FEATURE_ALWAYS_ON: Whether the device can run continuously
+ * @FP_DEVICE_FEATURE_UPDATE_PRINT: Supports updating an existing print record using new scans
  */
 typedef enum /*< flags >*/ {
   FP_DEVICE_FEATURE_NONE = 0,
@@ -71,6 +72,7 @@ typedef enum /*< flags >*/ {
   FP_DEVICE_FEATURE_STORAGE_CLEAR = 1 << 6,
   FP_DEVICE_FEATURE_DUPLICATES_CHECK = 1 << 7,
   FP_DEVICE_FEATURE_ALWAYS_ON = 1 << 8,
+  FP_DEVICE_FEATURE_UPDATE_PRINT = 1 << 9,
 } FpDeviceFeature;
 
 /**

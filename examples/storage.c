@@ -102,8 +102,23 @@ save_data (GVariant *data)
   return 0;
 }
 
+static FpPrint *
+load_print_from_data (GVariant *data)
+{
+  const guchar *stored_data = NULL;
+  gsize stored_len;
+  FpPrint *print;
+
+  g_autoptr(GError) error = NULL;
+  stored_data = (const guchar *) g_variant_get_fixed_array (data, &stored_len, 1);
+  print = fp_print_deserialize (stored_data, stored_len, &error);
+  if (error)
+    g_warning ("Error deserializing data: %s", error->message);
+  return print;
+}
+
 int
-print_data_save (FpPrint *print, FpFinger finger)
+print_data_save (FpPrint *print, FpFinger finger, gboolean update_fingerprint)
 {
   g_autofree gchar *descr = get_print_data_descriptor (print, NULL, finger);
 
@@ -137,25 +152,12 @@ print_data_load (FpDevice *dev, FpFinger finger)
 
   g_autoptr(GVariant) val = NULL;
   g_autoptr(GVariantDict) dict = NULL;
-  const guchar *stored_data = NULL;
-  gsize stored_len;
 
   dict = load_data ();
   val = g_variant_dict_lookup_value (dict, descr, G_VARIANT_TYPE ("ay"));
 
   if (val)
-    {
-      FpPrint *print;
-      g_autoptr(GError) error = NULL;
-
-      stored_data = (const guchar *) g_variant_get_fixed_array (val, &stored_len, 1);
-      print = fp_print_deserialize (stored_data, stored_len, &error);
-
-      if (error)
-        g_warning ("Error deserializing data: %s", error->message);
-
-      return print;
-    }
+    return load_print_from_data (val);
 
   return NULL;
 }
@@ -207,16 +209,30 @@ gallery_data_load (FpDevice *dev)
 }
 
 FpPrint *
-print_create_template (FpDevice *dev, FpFinger finger)
+print_create_template (FpDevice *dev, FpFinger finger, gboolean load_existing)
 {
+  g_autoptr(GVariantDict) dict = NULL;
   g_autoptr(GDateTime) datetime = NULL;
   g_autoptr(GDate) date = NULL;
+  g_autoptr(GVariant) existing_val = NULL;
+  g_autofree gchar *descr = get_print_data_descriptor (NULL, dev, finger);
   FpPrint *template = NULL;
   gint year, month, day;
 
-  template = fp_print_new (dev);
-  fp_print_set_finger (template, finger);
-  fp_print_set_username (template, g_get_user_name ());
+  if (load_existing)
+    {
+      dict = load_data ();
+      existing_val = g_variant_dict_lookup_value (dict, descr, G_VARIANT_TYPE ("ay"));
+      if (existing_val != NULL)
+        template = load_print_from_data (existing_val);
+    }
+  if (template == NULL)
+    {
+      template = fp_print_new (dev);
+      fp_print_set_finger (template, finger);
+      fp_print_set_username (template, g_get_user_name ());
+    }
+
   datetime = g_date_time_new_now_local ();
   g_date_time_get_ymd (datetime, &year, &month, &day);
   date = g_date_new_dmy (day, month, year);

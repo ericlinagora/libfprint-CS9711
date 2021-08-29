@@ -101,6 +101,7 @@ fp_image_device_start_capture_action (FpDevice *device)
   FpImageDevice *self = FP_IMAGE_DEVICE (device);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpiDeviceAction action;
+  FpiPrintType print_type;
 
   /* There is just one action that we cannot support out
    * of the box, which is a capture without first waiting
@@ -124,7 +125,9 @@ fp_image_device_start_capture_action (FpDevice *device)
       FpPrint *enroll_print = NULL;
 
       fpi_device_get_enroll_data (device, &enroll_print);
-      fpi_print_set_type (enroll_print, FPI_PRINT_NBIS);
+      g_object_get (enroll_print, "fpi-type", &print_type, NULL);
+      if (print_type != FPI_PRINT_NBIS)
+        fpi_print_set_type (enroll_print, FPI_PRINT_NBIS);
     }
 
   priv->enroll_stage = 0;
@@ -221,6 +224,7 @@ fp_image_device_class_init (FpImageDeviceClass *klass)
   fp_device_class->cancel = fp_image_device_cancel_action;
 
   fpi_device_class_auto_initialize_features (fp_device_class);
+  fp_device_class->features |= FP_DEVICE_FEATURE_UPDATE_PRINT;
 
   /* Default implementations */
   klass->activate = fp_image_device_default_activate;
