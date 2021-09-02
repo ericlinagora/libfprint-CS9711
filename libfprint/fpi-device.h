@@ -24,8 +24,6 @@
 #include "fp-image.h"
 #include "fpi-print.h"
 
-#include <config.h>
-
 /**
  * FpiDeviceUdevSubtype:
  * @FPI_DEVICE_UDEV_SUBTYPE_SPIDEV: The device requires an spidev node
