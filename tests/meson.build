@@ -86,11 +86,7 @@ if get_option('introspection')
     endforeach
 
     foreach driver_test: drivers_tests
-        if driver_test.contains('-')
-          driver_name = driver_test.split('-')[0]
-        else
-          driver_name = driver_test
-        endif
+        driver_name = driver_test.split('-')[0]
         driver_envs = envs
         driver_envs.set('FP_DRIVERS_WHITELIST', driver_name)
 
