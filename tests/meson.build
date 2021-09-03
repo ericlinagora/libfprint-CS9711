@@ -42,6 +42,15 @@ drivers_tests = [
 ]
 
 if get_option('introspection')
+  conf = configuration_data()
+  conf.set('SRCDIR', meson.project_source_root())
+  conf.set('BUILDDIR', meson.project_build_root())
+  configure_file(configuration: conf,
+      input: 'create-driver-test.py.in',
+      output: 'create-driver-test.py')
+endif
+
+if get_option('introspection')
     envs.prepend('GI_TYPELIB_PATH', join_paths(meson.build_root(), 'libfprint'))
     virtual_devices_tests = [
         'virtual-image',
