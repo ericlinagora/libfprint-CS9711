@@ -574,7 +574,7 @@ fp_context_enumerate (FpContext *context)
  *
  * Get all devices. fp_context_enumerate() will be called as needed.
  *
- * Returns: (transfer none) (element-type FpDevice): a new #GPtrArray of #GUsbDevice's.
+ * Returns: (transfer none) (element-type FpDevice): a new #GPtrArray of #FpDevice's.
  */
 GPtrArray *
 fp_context_get_devices (FpContext *context)
