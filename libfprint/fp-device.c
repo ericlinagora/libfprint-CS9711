@@ -245,6 +245,7 @@ fp_device_get_property (GObject    *object,
 {
   FpDevice *self = FP_DEVICE (object);
   FpDevicePrivate *priv = fp_device_get_instance_private (self);
+  FpDeviceClass *cls = FP_DEVICE_GET_CLASS (self);
 
   switch (prop_id)
     {
@@ -282,6 +283,24 @@ fp_device_get_property (GObject    *object,
 
     case PROP_REMOVED:
       g_value_set_boolean (value, priv->is_removed);
+      break;
+
+    case PROP_FPI_USB_DEVICE:
+      g_value_set_object (value, priv->usb_device);
+      break;
+
+    case PROP_FPI_UDEV_DATA_SPIDEV:
+      if (cls->type == FP_DEVICE_TYPE_UDEV)
+        g_value_set_string (value, g_strdup (priv->udev_data.spidev_path));
+      else
+        g_value_set_string (value, NULL);
+      break;
+
+    case PROP_FPI_UDEV_DATA_HIDRAW:
+      if (cls->type == FP_DEVICE_TYPE_UDEV)
+        g_value_set_string (value, g_strdup (priv->udev_data.hidraw_path));
+      else
+        g_value_set_string (value, NULL);
       break;
 
     default:
@@ -530,7 +549,7 @@ fp_device_class_init (FpDeviceClass *klass)
                          "USB Device",
                          "Private: The USB device for the device",
                          G_USB_TYPE_DEVICE,
-                         G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+                         G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   /**
    * FpDevice::fpi-udev-data-spidev: (skip)
    *
@@ -543,7 +562,7 @@ fp_device_class_init (FpDeviceClass *klass)
                          "Udev data: spidev path",
                          "Private: The path to /dev/spidevN.M",
                          NULL,
-                         G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+                         G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   /**
    * FpDevice::fpi-udev-data-hidraw: (skip)
    *
@@ -556,7 +575,7 @@ fp_device_class_init (FpDeviceClass *klass)
                          "Udev data: hidraw path",
                          "Private: The path to /dev/hidrawN",
                          NULL,
-                         G_PARAM_STATIC_STRINGS | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+                         G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
   /**
    * FpDevice::fpi-driver-data: (skip)
