@@ -25,6 +25,7 @@ drivers_tests = [
     'aes2501',
     'aes3500',
     'elan',
+    'elan-cobo',
     'elanmoc',
     'elanspi',
     'synaptics',
