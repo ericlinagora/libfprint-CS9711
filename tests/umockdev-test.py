@@ -18,7 +18,7 @@ try:
     if version < (0, 13, 2):
         print('umockdev is too old for test to be reliable, expect random failures!')
         print('Please update umockdev to at least 0.13.2.')
-    pcap_supported = version >= (0, 16, 2) or os.getenv('CI_PROJECT_NAME') == "libfprint"
+    pcap_supported = version >= (0, 16, 3) or os.getenv('CI_PROJECT_NAME') == "libfprint"
     spi_supported = version >= (0, 16) or os.getenv('CI_PROJECT_NAME') == "libfprint"
 
 except FileNotFoundError:

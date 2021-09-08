@@ -30,6 +30,7 @@ drivers_tests = [
     'elanspi',
     'synaptics',
     'upektc_img',
+    'uru4000-msv2',
     'vfs0050',
     'vfs301',
     'vfs5011',
