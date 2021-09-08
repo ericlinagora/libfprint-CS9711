@@ -22,6 +22,7 @@ envs.set('FP_DRIVERS_WHITELIST', ':'.join([
 envs.set('NO_AT_BRIDGE', '1')
 
 drivers_tests = [
+    'aes2501',
     'aes3500',
     'elan',
     'elanmoc',
