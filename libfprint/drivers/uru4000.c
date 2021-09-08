@@ -360,9 +360,9 @@ start_irq_handler (FpImageDevice *dev)
   transfer = fpi_usb_transfer_new (FP_DEVICE (dev));
   transfer->ssm = NULL;
   transfer->short_is_error = TRUE;
-  fpi_usb_transfer_fill_bulk (transfer,
-                              EP_INTR,
-                              IRQ_LENGTH);
+  fpi_usb_transfer_fill_interrupt (transfer,
+                                   EP_INTR,
+                                   IRQ_LENGTH);
   fpi_usb_transfer_submit (transfer, 0, self->irq_cancellable, irq_handler, NULL);
 }
 
