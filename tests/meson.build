@@ -31,6 +31,7 @@ drivers_tests = [
     'synaptics',
     'upektc_img',
     'uru4000-msv2',
+    'uru4000-4500',
     'vfs0050',
     'vfs301',
     'vfs5011',
