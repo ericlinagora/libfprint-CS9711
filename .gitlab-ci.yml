@@ -1,6 +1,6 @@
 include:
   - local: '.gitlab-ci/libfprint-templates.yaml'
-  - project: 'wayland/ci-templates'
+  - project: 'freedesktop/ci-templates'
     ref: master
     file: '/templates/fedora.yml'
   - remote: 'https://gitlab.gnome.org/GNOME/citemplates/-/raw/master/flatpak/flatpak_ci_initiative.yml'
@@ -9,7 +9,7 @@ variables:
   extends: .libfprint_common_variables
   FDO_DISTRIBUTION_TAG: latest
   FDO_DISTRIBUTION_VERSION: rawhide
-  FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG"
+  FDO_UPSTREAM_REPO: "libfprint/$CI_PROJECT_NAME"
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
@@ -18,8 +18,6 @@ stages:
   - build
   - test
   - flatpak
-
-image: "$FEDORA_IMAGE"
 
 .build_one_driver_template: &build_one_driver
   script:
@@ -41,6 +39,7 @@ image: "$FEDORA_IMAGE"
 
 build:
   stage: build
+  extends: .fdo.distribution-image@fedora
   except:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
@@ -58,6 +57,7 @@ build:
 
 test:
   stage: test
+  extends: .fdo.distribution-image@fedora
   except:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
@@ -78,6 +78,7 @@ test:
 
 test_valgrind:
   stage: test
+  extends: .fdo.distribution-image@fedora
   except:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
@@ -96,6 +97,7 @@ test_valgrind:
 
 test_scan_build:
   stage: test
+  extends: .fdo.distribution-image@fedora
   except:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
@@ -111,6 +113,7 @@ test_scan_build:
 
 test_indent:
   stage: check-source
+  extends: .fdo.distribution-image@fedora
   except:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
@@ -121,6 +124,7 @@ test_indent:
 
 test_unsupported_list:
   stage: check-source
+  extends: .fdo.distribution-image@fedora
   except:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule"
@@ -159,6 +163,7 @@ container_fedora_build:
       - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
+    FDO_FORCE_REBUILD: 1
     # a list of packages to install
     FDO_DISTRIBUTION_PACKAGES:
       $LIBFPRINT_DEPENDENCIES
