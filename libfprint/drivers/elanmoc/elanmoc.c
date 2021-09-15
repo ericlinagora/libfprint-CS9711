@@ -806,7 +806,7 @@ elanmoc_enroll (FpDevice *device)
   FpPrint *print = NULL;
   GVariant *data = NULL;
   GVariant *uid = NULL;
-  g_autofree gchar *user_id;
+  g_autofree gchar *user_id = NULL;
   gsize user_id_len;
   guint8 *userdata = g_malloc0 (ELAN_USERDATE_SIZE);
 
