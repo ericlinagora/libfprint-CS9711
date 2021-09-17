@@ -56,7 +56,6 @@ struct _FpiDeviceGoodixMoc
   gint               max_stored_prints;
   GPtrArray         *list_result;
   guint8             template_id[TEMPLATE_ID_SIZE];
-  gboolean           is_enroll_identify;
   gboolean           is_power_button_shield_on;
 
 };
@@ -651,28 +650,6 @@ fp_enroll_enum_cb (FpiDeviceGoodixMoc  *self,
 }
 
 static void
-fp_enroll_identify_cb (FpiDeviceGoodixMoc  *self,
-                       gxfp_cmd_response_t *resp,
-                       GError              *error)
-{
-  if (error)
-    {
-      fpi_ssm_mark_failed (self->task_ssm, error);
-      return;
-    }
-  if (resp->verify.match)
-    {
-      fpi_ssm_mark_failed (self->task_ssm,
-                           fpi_device_error_new_msg (FP_DEVICE_ERROR_DATA_DUPLICATE,
-                                                     "Finger is too similar to another, try use a different finger"));
-      // maybe need fpi_device_enroll_report_message ...
-      return;
-    }
-  fpi_ssm_next_state (self->task_ssm);
-
-}
-
-static void
 fp_enroll_init_cb (FpiDeviceGoodixMoc  *self,
                    gxfp_cmd_response_t *resp,
                    GError              *error)
@@ -724,11 +701,6 @@ fp_enroll_capture_cb (FpiDeviceGoodixMoc  *self,
                                   fpi_device_retry_new (FP_DEVICE_RETRY_CENTER_FINGER));
       fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_CAPTURE);
       return;
-    }
-  if (self->is_enroll_identify)
-    {
-      self->is_enroll_identify = false;
-      fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_IDENTIFY);
     }
   else
     {
@@ -892,19 +864,6 @@ fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
                            NULL,
                            0,
                            fp_pwr_btn_shield_cb);
-      }
-      break;
-
-    case FP_ENROLL_IDENTIFY:
-      {
-        dummy[0] = 0x01;
-        dummy[1] = self->sensorcfg->config[10];
-        dummy[2] = self->sensorcfg->config[11];
-        goodix_sensor_cmd (self, MOC_CMD0_IDENTIFY, MOC_CMD1_DEFAULT,
-                           false,
-                           (const guint8 *) &self->template_id,
-                           TEMPLATE_ID_SIZE,
-                           fp_enroll_identify_cb);
       }
       break;
 
@@ -1462,7 +1421,6 @@ gx_fp_enroll (FpDevice *device)
   FpiDeviceGoodixMoc *self = FPI_DEVICE_GOODIXMOC (device);
 
   self->enroll_stage = 0;
-  self->is_enroll_identify = true;
 
   self->task_ssm = fpi_ssm_new_full (device, fp_enroll_sm_run_state,
                                      FP_ENROLL_NUM_STATES,
