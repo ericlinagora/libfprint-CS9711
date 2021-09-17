@@ -79,6 +79,44 @@ static gboolean parse_print_data (GVariant      *data,
                                   gsize         *tid_len,
                                   const guint8 **user_id,
                                   gsize         *user_id_len);
+
+static FpPrint *
+fp_print_from_template (FpiDeviceGoodixMoc *self, template_format_t *template)
+{
+  FpPrint *print;
+  GVariant *data;
+  GVariant *tid;
+  GVariant *uid;
+  g_autofree gchar *userid = NULL;
+
+  userid = g_strndup ((gchar *) template->payload.data, template->payload.size);
+
+  print = fp_print_new (FP_DEVICE (self));
+
+  tid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
+                                   template->tid,
+                                   TEMPLATE_ID_SIZE,
+                                   1);
+
+  uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
+                                   template->payload.data,
+                                   template->payload.size,
+                                   1);
+
+  data = g_variant_new ("(y@ay@ay)",
+                        template->finger_index,
+                        tid,
+                        uid);
+
+  fpi_print_set_type (print, FPI_PRINT_RAW);
+  fpi_print_set_device_stored (print, TRUE);
+  g_object_set (print, "fpi-data", data, NULL);
+  g_object_set (print, "description", userid, NULL);
+  fpi_print_fill_from_user_id (print, userid);
+
+  return print;
+}
+
 /******************************************************************************
  *
  *  fp_cmd_xxx Function
@@ -385,6 +423,7 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
 {
   g_autoptr(GPtrArray) templates = NULL;
   FpDevice *device = FP_DEVICE (self);
+  FpPrint *match = NULL;
   FpPrint *print = NULL;
   gint cnt = 0;
   gboolean find = false;
@@ -396,6 +435,8 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
     }
   if (resp->verify.match)
     {
+      match = fp_print_from_template (self, &resp->verify.template);
+
       if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
         {
           templates = g_ptr_array_sized_new (1);
@@ -409,22 +450,9 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
         }
       for (cnt = 0; cnt < templates->len; cnt++)
         {
-          g_autoptr(GVariant) data = NULL;
-          guint8 finger;
-          const guint8 *user_id;
-          gsize user_id_len = 0;
-          const guint8 *tid;
-          gsize tid_len = 0;
           print = g_ptr_array_index (templates, cnt);
-          g_object_get (print, "fpi-data", &data, NULL);
-          if (!parse_print_data (data, &finger, &tid, &tid_len, &user_id, &user_id_len))
-            {
-              fpi_ssm_mark_failed (self->task_ssm,
-                                   fpi_device_error_new_msg (FP_DEVICE_ERROR_DATA_INVALID,
-                                                             "Parse print error"));
-              return;
-            }
-          if (memcmp (&resp->verify.template.tid, tid, TEMPLATE_ID_SIZE) == 0)
+
+          if (fp_print_equal (print, match))
             {
               find = true;
               break;
@@ -434,9 +462,9 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
       if (find)
         {
           if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
-            fpi_device_verify_report (device, FPI_MATCH_SUCCESS, NULL, error);
+            fpi_device_verify_report (device, FPI_MATCH_SUCCESS, match, error);
           else
-            fpi_device_identify_report (device, print, print, error);
+            fpi_device_identify_report (device, print, match, error);
         }
     }
 
@@ -1224,36 +1252,10 @@ fp_template_list_cb (FpiDeviceGoodixMoc  *self,
 
   for (int n = 0; n < resp->finger_list_resp.finger_num; n++)
     {
-      GVariant *data = NULL;
-      GVariant *tid = NULL;
-      GVariant *uid = NULL;
       FpPrint *print;
-      gchar *userid;
 
-      userid = (gchar *) resp->finger_list_resp.finger_list[n].payload.data;
+      print = fp_print_from_template (self, &resp->finger_list_resp.finger_list[n]);
 
-      print = fp_print_new (FP_DEVICE (self));
-
-      tid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
-                                       resp->finger_list_resp.finger_list[n].tid,
-                                       TEMPLATE_ID_SIZE,
-                                       1);
-
-      uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
-                                       resp->finger_list_resp.finger_list[n].payload.data,
-                                       resp->finger_list_resp.finger_list[n].payload.size,
-                                       1);
-
-      data = g_variant_new ("(y@ay@ay)",
-                            resp->finger_list_resp.finger_list[n].finger_index,
-                            tid,
-                            uid);
-
-      fpi_print_set_type (print, FPI_PRINT_RAW);
-      fpi_print_set_device_stored (print, TRUE);
-      g_object_set (print, "fpi-data", data, NULL);
-      g_object_set (print, "description", userid, NULL);
-      fpi_print_fill_from_user_id (print, userid);
       g_ptr_array_add (self->list_result, g_object_ref_sink (print));
     }
 
