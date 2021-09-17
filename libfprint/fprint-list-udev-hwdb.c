@@ -166,7 +166,10 @@ print_driver (const FpDeviceClass *cls)
     }
 
   if (num_printed > 0)
-    g_print (" ID_AUTOSUSPEND=1\n");
+    {
+      g_print (" ID_AUTOSUSPEND=1\n");
+      g_print (" ID_PERSIST=0\n");
+    }
 }
 
 static int
