@@ -37,6 +37,7 @@ def print_usage():
     print(f'Usage: {sys.argv[0]} driver [test-variant-name]')
     print('A test variant name is optional, and must be all lower case letters, or dashes, with no spaces')
     print(f'The captured data will be stored in {SRCDIR}/tests/[driver name]-[test variant name]')
+    print(f'Create custom.py prior to execution for non image device tests.')
 
 if len(sys.argv) > 3:
     print_usage()
@@ -118,7 +119,13 @@ if capture_pid == 0:
 time.sleep(1)
 
 print('### Capturing fingerprint, please swipe or press your finger on the reader')
-with subprocess.Popen(['python3', SRCDIR + '/tests/capture.py', test_dir + '/capture.png']) as capture_process:
+cmd = ['python3', SRCDIR + '/tests/capture.py', test_dir + '/capture.png']
+capture_file = 'capture.pcapng' # capture for "capture" test
+if os.path.exists(os.path.join(test_dir, "custom.py")):
+    cmd = ['python3', os.path.join(test_dir, "custom.py")]
+    capture_file = "custom.pcapng"
+
+with subprocess.Popen(cmd) as capture_process:
     capture_process.wait()
     if capture_process.returncode != 0:
         print('Failed to capture fingerprint')
@@ -155,7 +162,7 @@ except ChildProcessError:
 # Filter the capture
 print(f'\n### Saving USB capture as test case {test_name}')
 args = ['tshark', '-r', unfiltered_cap_path, '-Y', f'usb.bus_id == {bus_num} and usb.device_address == {device_num}',
-        '-w', test_dir + '/capture.pcapng']
+        '-w', os.path.join(test_dir, capture_file)]
 with subprocess.Popen(args, stderr=subprocess.DEVNULL) as filter_process:
     filter_process.wait()
 
