@@ -1,7 +1,7 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
-2021-06-30: v1.94.0 release
+2021-08-20: v1.94.0 release
 
 Highlights:
  * Implement suspend/resume handling including USB wakeup configuration.
