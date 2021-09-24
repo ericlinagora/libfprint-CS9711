@@ -1,6 +1,16 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2021-09-24: v1.94.1 release
+
+Highlights:
+ * Ship a simple script to create new CI tests using tshark
+ * Added CI tests for elan, uru4000, aes2501
+ * goodixmoc: Remove duplicate checking during enroll and let fprintd handle it
+ * uru4000: Fix USB transfer type
+ * synaptics: Support for new PIDs
+ * goodixmoc: Support for new PIDs
+
 2021-08-20: v1.94.0 release
 
 Highlights:
