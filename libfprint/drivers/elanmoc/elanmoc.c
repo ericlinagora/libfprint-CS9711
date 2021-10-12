@@ -25,6 +25,7 @@
 G_DEFINE_TYPE (FpiDeviceElanmoc, fpi_device_elanmoc, FP_TYPE_DEVICE)
 
 static const FpIdEntry id_table[] = {
+  { .vid = 0x04f3,  .pid = 0x0c7d,  },
   { .vid = 0x04f3,  .pid = 0x0c7e,  },
   { .vid = 0,  .pid = 0,  .driver_data = 0 },   /* terminating entry */
 };
