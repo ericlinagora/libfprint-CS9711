@@ -1282,6 +1282,7 @@ gx_fp_probe (FpDevice *device)
     case 0x639C:
     case 0x63AC:
     case 0x63BC:
+    case 0x63CC:
     case 0x6A94:
       self->max_enroll_stage = 12;
       break;
@@ -1505,6 +1506,7 @@ static const FpIdEntry id_table[] = {
   { .vid = 0x27c6,  .pid = 0x639C,  },
   { .vid = 0x27c6,  .pid = 0x63AC,  },
   { .vid = 0x27c6,  .pid = 0x63BC,  },
+  { .vid = 0x27c6,  .pid = 0x63CC,  },
   { .vid = 0x27c6,  .pid = 0x6496,  },
   { .vid = 0x27c6,  .pid = 0x6584,  },
   { .vid = 0x27c6,  .pid = 0x658C,  },
