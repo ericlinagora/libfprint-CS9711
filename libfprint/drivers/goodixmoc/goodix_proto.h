@@ -113,14 +113,16 @@ typedef struct _gxfp_enroll_init
 #pragma pack(push, 1)
 typedef struct _template_format
 {
+  uint8_t _0x43_byte;
   uint8_t type;
   uint8_t finger_index;
+  uint8_t pad0;
   uint8_t accountid[32];
   uint8_t tid[32];
   struct
   {
-    uint32_t size;
-    uint8_t  data[56];
+    uint8_t size;
+    uint8_t data[56];
   } payload;
   uint8_t reserve[2];
 } template_format_t, *ptemplate_format_t;
