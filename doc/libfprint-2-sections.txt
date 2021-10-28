@@ -179,6 +179,7 @@ fpi_device_enroll_complete
 fpi_device_verify_complete
 fpi_device_identify_complete
 fpi_device_capture_complete
+fpi_device_clear_storage_complete
 fpi_device_delete_complete
 fpi_device_list_complete
 fpi_device_suspend_complete
@@ -286,3 +287,20 @@ FPI_TYPE_USB_TRANSFER
 fpi_usb_transfer_get_type
 </SECTION>
 
+<SECTION>
+<FILE>fpi-spi-transfer</FILE>
+FpiSpiTransferCallback
+FpiSpiTransfer
+fpi_spi_transfer_new
+fpi_spi_transfer_ref
+fpi_spi_transfer_unref
+fpi_spi_transfer_write
+fpi_spi_transfer_write_full
+fpi_spi_transfer_read
+fpi_spi_transfer_read_full
+fpi_spi_transfer_submit
+fpi_spi_transfer_submit_sync
+<SUBSECTION Standard>
+FPI_TYPE_SPI_TRANSFER
+fpi_spi_transfer_get_type
+</SECTION>

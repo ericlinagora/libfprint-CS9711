@@ -41,7 +41,8 @@
     </chapter>
 
     <chapter id="driver-helpers">
-      <title>USB and State Machine helpers</title>
+      <title>USB, SPI and State Machine helpers</title>
+      <xi:include href="xml/fpi-spi-transfer.xml"/>
       <xi:include href="xml/fpi-usb-transfer.xml"/>
       <xi:include href="xml/fpi-ssm.xml"/>
       <xi:include href="xml/fpi-log.xml"/>
