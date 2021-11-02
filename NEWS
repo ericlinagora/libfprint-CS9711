@@ -1,6 +1,13 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2021-11-02: v1.94.2 release
+
+Highlights:
+ * goodixmoc: Fix protocol error with certain username lengths
+ * elanmoc: New PID 0x0c7d
+ * goodixmoc: New PID 0x63cc
+
 2021-09-24: v1.94.1 release
 
 Highlights:
