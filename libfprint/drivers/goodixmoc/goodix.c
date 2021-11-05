@@ -1160,6 +1160,32 @@ fp_template_delete_cb (FpiDeviceGoodixMoc  *self,
   fp_info ("Successfully deleted enrolled user");
   fpi_device_delete_complete (device, NULL);
 }
+
+static void
+fp_template_delete_all_cb (FpiDeviceGoodixMoc  *self,
+                           gxfp_cmd_response_t *resp,
+                           GError              *error)
+{
+  FpDevice *device = FP_DEVICE (self);
+
+  if (error)
+    {
+      fpi_device_clear_storage_complete (device, error);
+      return;
+    }
+  if ((resp->result >= GX_FAILED) && (resp->result != GX_ERROR_FINGER_ID_NOEXIST))
+    {
+      fpi_device_clear_storage_complete (FP_DEVICE (self),
+                                         fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                                                   "Failed clear storage, result: 0x%x",
+                                                                   resp->result));
+      return;
+    }
+
+  fp_info ("Successfully cleared storage");
+  fpi_device_clear_storage_complete (device, NULL);
+}
+
 /******************************************************************************
  *
  *  fp_template_list Function
@@ -1484,6 +1510,19 @@ gx_fp_template_delete (FpDevice *device)
 }
 
 static void
+gx_fp_template_delete_all (FpDevice *device)
+{
+  FpiDeviceGoodixMoc *self = FPI_DEVICE_GOODIXMOC (device);
+
+  goodix_sensor_cmd (self, MOC_CMD0_DELETETEMPLATE, MOC_CMD1_DELETE_ALL,
+                     false,
+                     NULL,
+                     0,
+                     fp_template_delete_all_cb);
+
+}
+
+static void
 fpi_device_goodixmoc_init (FpiDeviceGoodixMoc *self)
 {
 
@@ -1526,6 +1565,7 @@ fpi_device_goodixmoc_class_init (FpiDeviceGoodixMocClass *klass)
   dev_class->probe  = gx_fp_probe;
   dev_class->enroll = gx_fp_enroll;
   dev_class->delete = gx_fp_template_delete;
+  dev_class->clear_storage = gx_fp_template_delete_all;
   dev_class->list   = gx_fp_template_list;
   dev_class->verify   = gx_fp_verify_identify;
   dev_class->identify = gx_fp_verify_identify;
