@@ -606,6 +606,7 @@ elanspi_calibrate_old_handler (FpiSsm *ssm, FpDevice *dev)
     case ELANSPI_CALIBOLD_CHECKFIN_CAPTURE:
     case ELANSPI_CALIBOLD_DACFINE_CAPTURE:
       chld = fpi_ssm_new (dev, elanspi_capture_old_handler, ELANSPI_CAPTOLD_NSTATES);
+      fpi_ssm_silence_debug (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -860,6 +861,7 @@ elanspi_calibrate_hv_handler (FpiSsm *ssm, FpDevice *dev)
 
     case ELANSPI_CALIBHV_CAPTURE:
       chld = fpi_ssm_new (dev, elanspi_capture_hv_handler, ELANSPI_CAPTHV_NSTATES);
+      fpi_ssm_silence_debug (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -1115,6 +1117,7 @@ do_sw_reset:
         chld = fpi_ssm_new_full (dev, elanspi_calibrate_hv_handler, ELANSPI_CALIBHV_NSTATES, ELANSPI_CALIBHV_PROTECT, "HV calibrate");
       else
         chld = fpi_ssm_new_full (dev, elanspi_calibrate_old_handler, ELANSPI_CALIBOLD_NSTATES, ELANSPI_CALIBOLD_PROTECT, "old calibrate");
+      fpi_ssm_silence_debug (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -1123,6 +1126,7 @@ do_sw_reset:
         chld = fpi_ssm_new (dev, elanspi_capture_hv_handler, ELANSPI_CAPTHV_NSTATES);
       else
         chld = fpi_ssm_new (dev, elanspi_capture_old_handler, ELANSPI_CAPTOLD_NSTATES);
+      fpi_ssm_silence_debug (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -1495,6 +1499,7 @@ elanspi_fp_capture_ssm_handler (FpiSsm *ssm, FpDevice *dev)
         chld = fpi_ssm_new (dev, elanspi_capture_hv_handler, ELANSPI_CAPTHV_NSTATES);
       else
         chld = fpi_ssm_new (dev, elanspi_capture_old_handler, ELANSPI_CAPTOLD_NSTATES);
+      fpi_ssm_silence_debug (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
