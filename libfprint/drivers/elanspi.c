@@ -1219,8 +1219,6 @@ elanspi_guess_image (FpiDeviceElanSpi *self, guint16 *raw_image)
 
   sq_stddev /= (frame_width * frame_height);
 
-  fp_dbg ("<guess> stddev=%" G_GUINT64_FORMAT "d, ip=%d, is_fp=%d, is_empty=%d", sq_stddev, invalid_percent, is_fp, is_empty);
-
   if (invalid_percent < ELANSPI_MAX_REAL_INVALID_PERCENT)
     is_fp += 1;
   if (invalid_percent > ELANSPI_MIN_EMPTY_INVALID_PERCENT)
@@ -1230,6 +1228,8 @@ elanspi_guess_image (FpiDeviceElanSpi *self, guint16 *raw_image)
     is_fp += 1;
   if (sq_stddev < ELANSPI_MAX_EMPTY_STDDEV)
     is_empty += 1;
+
+  fp_dbg ("<guess> stddev=%" G_GUINT64_FORMAT "d, ip=%d, is_fp=%d, is_empty=%d", sq_stddev, invalid_percent, is_fp, is_empty);
 
   if (is_fp > is_empty)
     return ELANSPI_GUESS_FINGERPRINT;
