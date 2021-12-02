@@ -260,6 +260,7 @@ fpi_ssm_get_device
 fpi_ssm_get_error
 fpi_ssm_dup_error
 fpi_ssm_get_cur_state
+fpi_ssm_silence_debug
 fpi_ssm_spi_transfer_cb
 fpi_ssm_spi_transfer_with_weak_pointer_cb
 fpi_ssm_usb_transfer_cb

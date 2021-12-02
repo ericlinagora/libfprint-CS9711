@@ -81,6 +81,7 @@ struct _FpiSsm
   int                     start_cleanup;
   int                     cur_state;
   gboolean                completed;
+  gboolean                silence;
   GSource                *timeout;
   GError                 *error;
   FpiSsmCompletedCallback callback;
@@ -245,10 +246,11 @@ fpi_ssm_free (FpiSsm *machine)
 
 /* Invoke the state handler */
 static void
-__ssm_call_handler (FpiSsm *machine)
+__ssm_call_handler (FpiSsm *machine, gboolean force_msg)
 {
-  fp_dbg ("[%s] %s entering state %d", fp_device_get_driver (machine->dev),
-          machine->name, machine->cur_state);
+  if (force_msg || !machine->silence)
+    fp_dbg ("[%s] %s entering state %d", fp_device_get_driver (machine->dev),
+            machine->name, machine->cur_state);
   machine->handler (machine, machine->dev);
 }
 
@@ -275,7 +277,7 @@ fpi_ssm_start (FpiSsm *ssm, FpiSsmCompletedCallback callback)
   ssm->cur_state = 0;
   ssm->completed = FALSE;
   ssm->error = NULL;
-  __ssm_call_handler (ssm);
+  __ssm_call_handler (ssm, TRUE);
 }
 
 static void
@@ -346,7 +348,7 @@ fpi_ssm_mark_completed (FpiSsm *machine)
   if (next_state < machine->nr_states)
     {
       machine->cur_state = next_state;
-      __ssm_call_handler (machine);
+      __ssm_call_handler (machine, TRUE);
       return;
     }
 
@@ -460,7 +462,7 @@ fpi_ssm_next_state (FpiSsm *machine)
   if (machine->cur_state == machine->nr_states)
     fpi_ssm_mark_completed (machine);
   else
-    __ssm_call_handler (machine);
+    __ssm_call_handler (machine, FALSE);
 }
 
 void
@@ -537,7 +539,7 @@ fpi_ssm_jump_to_state (FpiSsm *machine, int state)
   if (machine->cur_state == machine->nr_states)
     fpi_ssm_mark_completed (machine);
   else
-    __ssm_call_handler (machine);
+    __ssm_call_handler (machine, FALSE);
 }
 
 typedef struct
@@ -640,6 +642,22 @@ fpi_ssm_dup_error (FpiSsm *machine)
     return g_error_copy (machine->error);
 
   return NULL;
+}
+
+/**
+ * fpi_ssm_silence_debug:
+ * @machine: an #FpiSsm state machine
+ *
+ * Turn off state change debug messages from this SSM. This does not disable
+ * all messages, as e.g. the initial state, SSM completion and cleanup states
+ * are still printed out.
+ *
+ * Use if the SSM loops and would flood the debug log otherwise.
+ */
+void
+fpi_ssm_silence_debug (FpiSsm *machine)
+{
+  machine->silence = TRUE;
 }
 
 /**
