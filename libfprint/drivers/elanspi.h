@@ -97,7 +97,37 @@ static const struct elanspi_reg_entry elanspi_calibration_table_default[] = {
   {0xff, 0xff}
 };
 
-static const struct elanspi_reg_entry elanspi_calibration_table_id567[] = {
+static const struct elanspi_reg_entry elanspi_calibration_table_id6[] = {
+  {0x2A, 0x07},
+  {0x1,  0x00},
+  {0x2,  0x5f},
+  {0x3,  0x00},
+  {0x4,  0x5f},
+  {0x5,  0x60},
+  {0x6,  0xC0},
+  {0x7,  0x80},
+  {0x8,  0x04},
+  {0xA,  0x97},
+  {0xB,  0x72},
+  {0xC,  0x69},
+  {0xF,  0x2A},
+  {0x11, 0x2A},
+  {0x13, 0x27},
+  {0x15, 0x67},
+  {0x18, 0x04},
+  {0x21, 0x20},
+  {0x22, 0x36},
+  {0x29, 0x02},
+  {0x2A, 0x03},
+  {0x2A, 0x5F},
+  {0x2B, 0xC0},
+  {0x2C, 0x10},
+  {0x2E, 0xFF},
+
+  {0xff, 0xff}
+};
+
+static const struct elanspi_reg_entry elanspi_calibration_table_id57[] = {
   {0x2A, 0x07},
   {0x5,  0x60},
   {0x6,  0xC0},
@@ -143,9 +173,9 @@ static const struct elanspi_regtable elanspi_calibration_table_old = {
   .other = elanspi_calibration_table_default,
   .entries = {
     { .sid = 0x0, .table = elanspi_calibration_table_id0 },
-    { .sid = 0x5, .table = elanspi_calibration_table_id567 },
-    { .sid = 0x6, .table = elanspi_calibration_table_id567 },
-    { .sid = 0x7, .table = elanspi_calibration_table_id567 },
+    { .sid = 0x5, .table = elanspi_calibration_table_id57 },
+    { .sid = 0x6, .table = elanspi_calibration_table_id6 },
+    { .sid = 0x7, .table = elanspi_calibration_table_id57 },
     { .sid = 0x0, .table = NULL }
   }
 };
