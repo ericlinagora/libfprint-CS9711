@@ -439,6 +439,12 @@ elanspi_capture_old_line_handler (FpiSpiTransfer *transfer, FpDevice *dev, gpoin
     }
   else
     {
+      /* check for termination */
+      if (fpi_device_get_current_action (dev) == FPI_DEVICE_ACTION_NONE)
+        {
+          fpi_ssm_mark_completed (transfer->ssm);
+          return;
+        }
       /* check for cancellation */
       if (fpi_device_action_is_cancelled (dev))
         {
@@ -1486,11 +1492,12 @@ elanspi_fp_capture_ssm_handler (FpiSsm *ssm, FpDevice *dev)
       if (self->deactivating)
         {
           fp_dbg ("<capture> got deactivate; exiting");
+
+          self->deactivating = FALSE;
           fpi_ssm_mark_completed (ssm);
 
           /* mark deactivate done */
           fpi_image_device_deactivate_complete (FP_IMAGE_DEVICE (dev), NULL);
-          self->deactivating = FALSE;
 
           return;
         }
