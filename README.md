@@ -1,8 +1,9 @@
-libfprint
-=========
+# libfprint
 
 libfprint is part of the fprint project:
 https://fprint.freedesktop.org/
+
+## History
 
 libfprint was originally developed as part of an academic project at the
 University of Manchester with the aim of hiding differences between different
@@ -14,6 +15,8 @@ The academic university project runs off a codebase maintained separately
 from this one, although I try to keep them as similar as possible (I'm not
 hiding anything in the academic branch, it's just the open source release
 contains some commits excluded from the academic project).
+
+## License
 
 THE UNIVERSITY OF MANCHESTER DOES NOT ENDORSE THIS THIS SOFTWARE RELEASE AND
 IS IN NO WAY RESPONSIBLE FOR THE CODE CONTAINED WITHIN, OR ANY DAMAGES CAUSED
