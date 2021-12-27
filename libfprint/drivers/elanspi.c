@@ -434,21 +434,9 @@ elanspi_capture_old_line_handler (FpiSpiTransfer *transfer, FpDevice *dev, gpoin
   self->old_data.line_ptr += 1;
   /* if there is still data, continue from check lineready */
   if (self->old_data.line_ptr < self->sensor_height)
-    {
-      fpi_ssm_jump_to_state (transfer->ssm, ELANSPI_CAPTOLD_CHECK_LINEREADY);
-    }
+    fpi_ssm_jump_to_state (transfer->ssm, ELANSPI_CAPTOLD_CHECK_LINEREADY);
   else
-    {
-      /* check for cancellation */
-      if (fpi_device_action_is_cancelled (dev))
-        {
-          g_cancellable_set_error_if_cancelled (fpi_device_get_cancellable (dev), &error);
-          fpi_ssm_mark_failed (transfer->ssm, error);
-          return;
-        }
-      /* otherwise finish succesfully */
-      fpi_ssm_mark_completed (transfer->ssm);
-    }
+    fpi_ssm_mark_completed (transfer->ssm);
 }
 
 static void
@@ -607,6 +595,7 @@ elanspi_calibrate_old_handler (FpiSsm *ssm, FpDevice *dev)
     case ELANSPI_CALIBOLD_DACFINE_CAPTURE:
       chld = fpi_ssm_new (dev, elanspi_capture_old_handler, ELANSPI_CAPTOLD_NSTATES);
       fpi_ssm_silence_debug (chld);
+      fpi_ssm_set_critical (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -862,6 +851,7 @@ elanspi_calibrate_hv_handler (FpiSsm *ssm, FpDevice *dev)
     case ELANSPI_CALIBHV_CAPTURE:
       chld = fpi_ssm_new (dev, elanspi_capture_hv_handler, ELANSPI_CAPTHV_NSTATES);
       fpi_ssm_silence_debug (chld);
+      fpi_ssm_set_critical (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -1118,6 +1108,7 @@ do_sw_reset:
       else
         chld = fpi_ssm_new_full (dev, elanspi_calibrate_old_handler, ELANSPI_CALIBOLD_NSTATES, ELANSPI_CALIBOLD_PROTECT, "old calibrate");
       fpi_ssm_silence_debug (chld);
+      fpi_ssm_set_critical (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -1127,6 +1118,7 @@ do_sw_reset:
       else
         chld = fpi_ssm_new (dev, elanspi_capture_old_handler, ELANSPI_CAPTOLD_NSTATES);
       fpi_ssm_silence_debug (chld);
+      fpi_ssm_set_critical (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
@@ -1500,6 +1492,7 @@ elanspi_fp_capture_ssm_handler (FpiSsm *ssm, FpDevice *dev)
       else
         chld = fpi_ssm_new (dev, elanspi_capture_old_handler, ELANSPI_CAPTOLD_NSTATES);
       fpi_ssm_silence_debug (chld);
+      fpi_ssm_set_critical (chld);
       fpi_ssm_start_subsm (ssm, chld);
       return;
 
