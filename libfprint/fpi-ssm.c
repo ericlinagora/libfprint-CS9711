@@ -81,6 +81,7 @@ struct _FpiSsm
   int                     start_cleanup;
   int                     cur_state;
   gboolean                completed;
+  gboolean                critical;
   gboolean                silence;
   GSource                *timeout;
   GError                 *error;
@@ -277,6 +278,10 @@ fpi_ssm_start (FpiSsm *ssm, FpiSsmCompletedCallback callback)
   ssm->cur_state = 0;
   ssm->completed = FALSE;
   ssm->error = NULL;
+
+  if (ssm->critical)
+    fpi_device_critical_enter (ssm->dev);
+
   __ssm_call_handler (ssm, TRUE);
 }
 
@@ -366,6 +371,10 @@ fpi_ssm_mark_completed (FpiSsm *machine)
 
       machine->callback (machine, machine->dev, error);
     }
+
+  if (machine->critical)
+    fpi_device_critical_leave (machine->dev);
+
   fpi_ssm_free (machine);
 }
 
@@ -658,6 +667,23 @@ void
 fpi_ssm_silence_debug (FpiSsm *machine)
 {
   machine->silence = TRUE;
+}
+
+/**
+ * fpi_ssm_set_critical:
+ * @machine: an #FpiSsm state machine
+ *
+ * Sets up the SSM to hold a critical section in the driver code. See
+ * fpi_device_critical_enter() for more details. This is useful if the SSM must
+ * not be interrupted in order to keep the device in a good state. You can e.g.
+ * guarantee that an image transfer is completed.
+ *
+ * This function must be called before starting the SSM.
+ */
+void
+fpi_ssm_set_critical (FpiSsm *machine)
+{
+  machine->critical = TRUE;
 }
 
 /**

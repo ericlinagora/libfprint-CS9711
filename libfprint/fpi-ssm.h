@@ -97,6 +97,7 @@ GError * fpi_ssm_dup_error (FpiSsm *machine);
 int fpi_ssm_get_cur_state (FpiSsm *machine);
 
 void fpi_ssm_silence_debug (FpiSsm *machine);
+void fpi_ssm_set_critical (FpiSsm *machine);
 
 /* Callbacks to be used by the driver instead of implementing their own
  * logic.

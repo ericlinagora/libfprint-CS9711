@@ -247,6 +247,7 @@ fpi_ssm_new_full
 fpi_ssm_free
 fpi_ssm_start
 fpi_ssm_start_subsm
+fpi_ssm_set_critical
 fpi_ssm_next_state
 fpi_ssm_next_state_delayed
 fpi_ssm_jump_to_state
