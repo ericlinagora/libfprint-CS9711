@@ -259,12 +259,9 @@ gx_proto_parse_fingerid (
 
   if (buffer[Offset++] != 67)
     return -1;
-  fid_buffer_size--;
 
   template->type = buffer[Offset++];
-  fid_buffer_size--;
   template->finger_index = buffer[Offset++];
-  fid_buffer_size--;
   Offset++;
   memcpy (template->accountid, &buffer[Offset], sizeof (template->accountid));
   Offset += sizeof (template->accountid);
@@ -272,6 +269,8 @@ gx_proto_parse_fingerid (
   Offset += sizeof (template->tid);   // Offset == 68
   template->payload.size = buffer[Offset++];
   if (template->payload.size > sizeof (template->payload.data))
+    return -1;
+  if (template->payload.size + Offset > fid_buffer_size)
     return -1;
   memset (template->payload.data, 0, template->payload.size);
   memcpy (template->payload.data, &buffer[Offset], template->payload.size);
@@ -365,9 +364,12 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint16_t buffer_len, pgxfp_c
           if (buffer_len < 3)
             return -1;
           uint16_t tid_size = GUINT16_FROM_LE (*(uint16_t *) (buffer + 1));
-          if ((buffer_len < tid_size + 3) || (buffer_len > sizeof (template_format_t)) + 3)
+          offset += 3;
+
+          if (buffer_len < tid_size + offset)
             return -1;
-          memcpy (&presp->check_duplicate_resp.template, buffer + 3, tid_size);
+          if (gx_proto_parse_fingerid (buffer + offset, tid_size, &presp->check_duplicate_resp.template) != 0)
+            return -1;
         }
       break;
 
@@ -380,9 +382,12 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint16_t buffer_len, pgxfp_c
       fingerlist = buffer + 2;
       for(uint8_t num = 0; num < presp->finger_list_resp.finger_num; num++)
         {
-          uint16_t fingerid_length = GUINT16_FROM_LE (*(uint16_t *) (fingerlist + offset));
+          uint16_t fingerid_length;
+          if (buffer_len < offset + 2)
+            return -1;
+          fingerid_length = GUINT16_FROM_LE (*(uint16_t *) (fingerlist + offset));
           offset += 2;
-          if (buffer_len < fingerid_length + offset + 2)
+          if (buffer_len < fingerid_length + offset)
             return -1;
           if (gx_proto_parse_fingerid (fingerlist + offset,
                                        fingerid_length,
@@ -405,7 +410,7 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint16_t buffer_len, pgxfp_c
         presp->verify.match = (buffer[0] == 0) ? true : false;
         if (presp->verify.match)
           {
-            if (buffer_len < sizeof (template_format_t) + 10)
+            if (buffer_len < 10)
               return -1;
             offset += 1;
             presp->verify.rejectdetail = GUINT16_FROM_LE (*(uint16_t *) (buffer + offset));
@@ -416,6 +421,8 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint16_t buffer_len, pgxfp_c
             offset += 1;
             fingerid_size = GUINT16_FROM_LE (*(uint16_t *) (buffer + offset));
             offset += 2;
+            if (buffer_len < fingerid_size + offset)
+              return -1;
             if (gx_proto_parse_fingerid (buffer + offset, fingerid_size, &presp->verify.template) != 0)
               {
                 presp->result = GX_FAILED;
