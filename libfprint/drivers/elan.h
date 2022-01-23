@@ -31,9 +31,10 @@
 #define ELAN_0907 (1 << 0)
 #define ELAN_0C03 (1 << 1)
 #define ELAN_0C42 (1 << 2)
+#define ELAN_0C3D (1 << 3)
 
 /* devices which don't require frame rotation before assembling */
-#define ELAN_NOT_ROTATED ELAN_0C03
+#define ELAN_NOT_ROTATED (ELAN_0C03 | ELAN_0C3D)
 
 /* min FW version that supports calibration */
 #define ELAN_MIN_CALIBRATION_FW 0x0138
@@ -213,7 +214,7 @@ static const FpIdEntry elan_id_table[] = {
   {.vid = ELAN_VEND_ID,  .pid = 0x0c31, .driver_data = ELAN_ALL_DEV},
   {.vid = ELAN_VEND_ID,  .pid = 0x0c32, .driver_data = ELAN_ALL_DEV},
   {.vid = ELAN_VEND_ID,  .pid = 0x0c33, .driver_data = ELAN_ALL_DEV},
-  {.vid = ELAN_VEND_ID,  .pid = 0x0c3d, .driver_data = ELAN_ALL_DEV},
+  {.vid = ELAN_VEND_ID,  .pid = 0x0c3d, .driver_data = ELAN_0C3D},
   {.vid = ELAN_VEND_ID,  .pid = 0x0c42, .driver_data = ELAN_0C42},
   {.vid = ELAN_VEND_ID,  .pid = 0x0c4d, .driver_data = ELAN_ALL_DEV},
   {.vid = ELAN_VEND_ID,  .pid = 0x0c4f, .driver_data = ELAN_ALL_DEV},
