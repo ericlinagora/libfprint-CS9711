@@ -130,12 +130,14 @@ on_match_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
 
   if (match)
     {
-      char date_str[128];
+      const GDate *date = fp_print_get_enroll_date (match);
+      char date_str[128] = "<unknown>";
 
       verify_data->ret_value = EXIT_SUCCESS;
 
-      g_date_strftime (date_str, G_N_ELEMENTS (date_str), "%Y-%m-%d\0",
-                       fp_print_get_enroll_date (match));
+      if (date && g_date_valid (date))
+        g_date_strftime (date_str, G_N_ELEMENTS (date_str), "%Y-%m-%d\0",
+                         fp_print_get_enroll_date (match));
       g_debug ("Match report: device %s matched finger %s successifully "
                "with print %s, enrolled on date %s by user %s",
                fp_device_get_name (dev),

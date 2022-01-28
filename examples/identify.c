@@ -143,6 +143,7 @@ on_identify_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
   if (match)
     {
       g_autoptr(FpPrint) matched_print = g_object_ref (match);
+      const GDate *date;
       char date_str[128] = {};
 
       identify_data->ret_value = EXIT_SUCCESS;
@@ -155,7 +156,8 @@ on_identify_cb (FpDevice *dev, FpPrint *match, FpPrint *print,
             matched_print = g_steal_pointer (&stored_print);
         }
 
-      if (fp_print_get_enroll_date (matched_print))
+      date = fp_print_get_enroll_date (matched_print);
+      if (date && g_date_valid (date))
         g_date_strftime (date_str, G_N_ELEMENTS (date_str), "%Y-%m-%d\0",
                          fp_print_get_enroll_date (matched_print));
       else

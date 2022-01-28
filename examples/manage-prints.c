@@ -161,7 +161,7 @@ on_list_completed (FpDevice     *dev,
                    finger_to_string (fp_print_get_finger (print)),
                    fp_print_get_username (print));
 
-          if (date)
+          if (date && g_date_valid (date))
             {
               g_date_strftime (buf, G_N_ELEMENTS (buf), "%Y-%m-%d\0", date);
               g_print (", enrolled on %s", buf);
