@@ -764,9 +764,14 @@ fp_enroll_check_duplicate_cb (FpiDeviceGoodixMoc  *self,
     }
   if (resp->check_duplicate_resp.duplicate)
     {
+      g_autoptr(FpPrint) print = NULL;
+
+      print = g_object_ref_sink (fp_print_from_template (self, &resp->check_duplicate_resp.template));
+
       fpi_ssm_mark_failed (self->task_ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_DATA_DUPLICATE,
-                                                     "Finger has already enrolled"));
+                                                     "Finger was already enrolled as '%s'",
+                                                     fp_print_get_description (print)));
       return;
     }
 
