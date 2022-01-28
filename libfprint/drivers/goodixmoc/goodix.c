@@ -159,7 +159,7 @@ fp_cmd_receive_cb (FpiUsbTransfer *transfer,
     {
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Corrupted message received"));
+                                                     "Corrupted message header received"));
       return;
     }
 
