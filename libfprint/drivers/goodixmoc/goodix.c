@@ -420,12 +420,9 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
               gxfp_cmd_response_t *resp,
               GError              *error)
 {
-  g_autoptr(GPtrArray) templates = NULL;
   FpDevice *device = FP_DEVICE (self);
-  FpPrint *match = NULL;
-  FpPrint *print = NULL;
-  gint cnt = 0;
-  gboolean find = false;
+  FpPrint *new_scan = NULL;
+  FpPrint *matching = NULL;
 
   if (error)
     {
@@ -434,46 +431,34 @@ fp_verify_cb (FpiDeviceGoodixMoc  *self,
     }
   if (resp->verify.match)
     {
-      match = fp_print_from_template (self, &resp->verify.template);
+      new_scan = fp_print_from_template (self, &resp->verify.template);
 
       if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
         {
-          templates = g_ptr_array_sized_new (1);
-          fpi_device_get_verify_data (device, &print);
-          g_ptr_array_add (templates, print);
+          fpi_device_get_verify_data (device, &matching);
+          if (!fp_print_equal (matching, new_scan))
+            matching = NULL;
         }
       else
         {
+          GPtrArray *templates = NULL;
           fpi_device_get_identify_data (device, &templates);
-          g_ptr_array_ref (templates);
-        }
-      for (cnt = 0; cnt < templates->len; cnt++)
-        {
-          print = g_ptr_array_index (templates, cnt);
 
-          if (fp_print_equal (print, match))
+          for (gint i = 0; i < templates->len; i++)
             {
-              find = true;
-              break;
+              if (fp_print_equal (g_ptr_array_index (templates, i), new_scan))
+                {
+                  matching = g_ptr_array_index (templates, i);
+                  break;
+                }
             }
-
-        }
-      if (find)
-        {
-          if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
-            fpi_device_verify_report (device, FPI_MATCH_SUCCESS, match, error);
-          else
-            fpi_device_identify_report (device, print, match, error);
         }
     }
 
-  if (!find)
-    {
-      if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
-        fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, error);
-      else
-        fpi_device_identify_report (device, NULL, NULL, error);
-    }
+  if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
+    fpi_device_verify_report (device, matching ? FPI_MATCH_SUCCESS : FPI_MATCH_FAIL, new_scan, error);
+  else
+    fpi_device_identify_report (device, matching, new_scan, error);
 
   fpi_ssm_next_state (self->task_ssm);
 
