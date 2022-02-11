@@ -1,6 +1,16 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2021-11-02: v1.94.3 release
+
+Highlights:
+ * Ensure idle mainloop before completing enumeration (fprintd#119)
+ * It is now possible to extend already enrolled prints
+ * elanspi: Fix timeout error with some hardware (#438)
+ * elanspi: Fix cancellation issues
+ * goodixmoc: Return matching device print; fixes duplicate checking (#444)
+ * goodixmoc: Support clearing the storage (usually unused)
+
 2021-11-02: v1.94.2 release
 
 Highlights:
