@@ -225,6 +225,7 @@ fp_device_finalize (GObject *object)
 
   g_clear_pointer (&priv->current_idle_cancel_source, g_source_destroy);
   g_clear_pointer (&priv->current_task_idle_return_source, g_source_destroy);
+  g_clear_pointer (&priv->critical_section_flush_source, g_source_destroy);
 
   g_clear_pointer (&priv->device_id, g_free);
   g_clear_pointer (&priv->device_name, g_free);
