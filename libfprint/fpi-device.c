@@ -1550,6 +1550,47 @@ fpi_device_list_complete (FpDevice  *device,
     fpi_device_return_task_in_idle (device, FP_DEVICE_TASK_RETURN_ERROR, error);
 }
 
+static int
+update_attr (const char *attr, const char *value)
+{
+  int fd, err;
+  gssize r;
+  char buf[50] = { 0 };
+
+  fd = open (attr, O_RDONLY);
+  err = -errno;
+  if (fd < 0)
+    return -err;
+
+  r = read (fd, buf, sizeof (buf) - 1);
+  err = errno;
+  close (fd);
+  if (r < 0)
+    return -err;
+
+  g_strchomp (buf);
+  if (g_strcmp0 (buf, value) == 0)
+    return 0;
+
+  /* O_TRUNC makes things work in the umockdev environment */
+  fd = open (attr, O_WRONLY | O_TRUNC);
+  err = errno;
+  if (fd < 0)
+    return -err;
+
+  r = write (fd, value, strlen (value));
+  err = -errno;
+  close (fd);
+  if (r < 0)
+    {
+      /* Write failures are weird, and are worth a warning */
+      g_warning ("Could not write %s to %s", value, attr);
+      return -err;
+    }
+
+  return 0;
+}
+
 void
 fpi_device_configure_wakeup (FpDevice *device, gboolean enabled)
 {
@@ -1565,8 +1606,7 @@ fpi_device_configure_wakeup (FpDevice *device, gboolean enabled)
         guint8 bus, port;
         g_autofree gchar *sysfs_wakeup = NULL;
         g_autofree gchar *sysfs_persist = NULL;
-        gssize r;
-        int fd;
+        int res;
 
         ports = g_string_new (NULL);
         bus = g_usb_device_get_bus (priv->usb_device);
@@ -1582,20 +1622,9 @@ fpi_device_configure_wakeup (FpDevice *device, gboolean enabled)
         g_string_set_size (ports, ports->len - 1);
 
         sysfs_wakeup = g_strdup_printf ("/sys/bus/usb/devices/%d-%s/power/wakeup", bus, ports->str);
-        fd = open (sysfs_wakeup, O_WRONLY);
-
-        if (fd < 0)
-          {
-            /* Wakeup not existing appears to be relatively normal. */
-            g_debug ("Failed to open %s", sysfs_wakeup);
-          }
-        else
-          {
-            r = write (fd, wakeup_command, strlen (wakeup_command));
-            if (r < 0)
-              g_warning ("Could not configure wakeup to %s by writing %s", wakeup_command, sysfs_wakeup);
-            close (fd);
-          }
+        res = update_attr (sysfs_wakeup, wakeup_command);
+        if (res < 0)
+          g_debug ("Failed to set %s to %s", sysfs_wakeup, wakeup_command);
 
         /* Persist means that the kernel tries to keep the USB device open
          * in case it is "replugged" due to suspend.
@@ -1603,20 +1632,9 @@ fpi_device_configure_wakeup (FpDevice *device, gboolean enabled)
          * state. Instead, seeing an unplug and a new device makes more sense.
          */
         sysfs_persist = g_strdup_printf ("/sys/bus/usb/devices/%d-%s/power/persist", bus, ports->str);
-        fd = open (sysfs_persist, O_WRONLY);
-
-        if (fd < 0)
-          {
-            g_warning ("Failed to open %s", sysfs_persist);
-            return;
-          }
-        else
-          {
-            r = write (fd, "0", 1);
-            if (r < 0)
-              g_message ("Could not disable USB persist by writing to %s", sysfs_persist);
-            close (fd);
-          }
+        res = update_attr (sysfs_persist, "0");
+        if (res < 0)
+          g_warning ("Failed to disable USB persist by writing to %s", sysfs_persist);
 
         break;
       }
