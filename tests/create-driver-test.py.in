@@ -105,6 +105,11 @@ process.wait()
 # Run capture
 # https://osqa-ask.wireshark.org/questions/53919/how-can-i-precisely-specify-a-usb-device-to-capture-with-tshark/
 
+print(f'### Reseting USB port (as descriptors could be missing in the dump otherwise)')
+usb_device.open()
+usb_device.reset()
+usb_device.close()
+
 print(f'### Starting USB capture on usbmon{bus_num}')
 capture_pid = os.fork()
 assert(capture_pid >= 0)
