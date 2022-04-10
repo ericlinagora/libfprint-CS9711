@@ -361,6 +361,8 @@ fp_context_init (FpContext *self)
   FpContextPrivate *priv = fp_context_get_instance_private (self);
   guint i;
 
+  g_debug ("Initializing FpContext (libfprint version " LIBFPRINT_VERSION ")");
+
   priv->drivers = fpi_get_driver_types ();
 
   if (get_drivers_whitelist_env ())
