@@ -133,6 +133,7 @@ usb:v04F3p0C32*
 usb:v04F3p0C33*
 usb:v04F3p0C3D*
 usb:v04F3p0C42*
+usb:v04F3p0C4B*
 usb:v04F3p0C4D*
 usb:v04F3p0C4F*
 usb:v04F3p0C63*
@@ -258,7 +259,6 @@ usb:v138Ap0091*
 # Known unsupported devices
 usb:v04F3p036B*
 usb:v04F3p0C00*
-usb:v04F3p0C4B*
 usb:v04F3p0C4C*
 usb:v04F3p0C57*
 usb:v04F3p0C5E*
