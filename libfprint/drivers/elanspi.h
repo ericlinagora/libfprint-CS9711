@@ -71,6 +71,7 @@ struct elanspi_regtable
   struct
   {
     unsigned char                   sid;
+    unsigned                        quirk;
     const struct elanspi_reg_entry *table;
   } entries[];
 };
@@ -172,11 +173,11 @@ static const struct elanspi_reg_entry elanspi_calibration_table_id0[] = {
 static const struct elanspi_regtable elanspi_calibration_table_old = {
   .other = elanspi_calibration_table_default,
   .entries = {
-    { .sid = 0x0, .table = elanspi_calibration_table_id0 },
-    { .sid = 0x5, .table = elanspi_calibration_table_id57 },
-    { .sid = 0x6, .table = elanspi_calibration_table_id6 },
-    { .sid = 0x7, .table = elanspi_calibration_table_id57 },
-    { .sid = 0x0, .table = NULL }
+    { .sid = 0x0, .quirk = 0, .table = elanspi_calibration_table_id0 },
+    { .sid = 0x5, .quirk = 0, .table = elanspi_calibration_table_id57 },
+    { .sid = 0x6, .quirk = 0, .table = elanspi_calibration_table_id6 },
+    { .sid = 0x7, .quirk = 0, .table = elanspi_calibration_table_id57 },
+    { .sid = 0x0, .quirk = 0, .table = NULL }
   }
 };
 
@@ -312,20 +313,133 @@ static const struct elanspi_reg_entry elanspi_calibration_table_page1_id14[] = {
   {0xff, 0xff}
 };
 
-static const struct elanspi_regtable elanspi_calibration_table_new_page0 = {
-  .other = NULL,
-  .entries = {
-    { .sid = 0xe, .table = elanspi_calibration_table_page0_id14 },
-    { .sid = 0x0, .table = NULL }
-  }
+static const struct elanspi_reg_entry elanspi_calibration_table_page0_id14_x571[] = {
+  {0x00, 0x5a},
+  {0x01, 0x00},
+  {0x02, 0x4f},
+  {0x03, 0x00},
+  {0x09, 0x04},
+  {0x04, 0x4f},
+  {0x05, 0xa0},
+  {0x06, 0x57},
+  {0x07, 0x02},
+  {0x08, 0x00},
+  {0x0a, 0x63},
+  {0x0b, 0x01},
+  {0x0c, 0x08},
+  {0x0d, 0x00},
+  {0x0e, 0x00},
+  {0x0f, 0x13},
+  {0x10, 0x38},
+  {0x11, 0x01},
+  {0x12, 0x04},
+  {0x13, 0x00},
+  {0x14, 0x00},
+  {0x15, 0x04},
+  {0x16, 0x02},
+  {0x17, 0x00},
+  {0x18, 0x01},
+  {0x19, 0xf4},
+  {0x1a, 0x00},
+  {0x1b, 0x00},
+  {0x1c, 0x00},
+  {0x1d, 0x00},
+  {0x1e, 0x00},
+  {0x1f, 0x00},
+  {0x20, 0x00},
+  {0x21, 0x00},
+  {0x22, 0x06},
+  {0x23, 0x00},
+  {0x24, 0x00},
+  {0x25, 0x00},
+  {0x26, 0x00},
+  {0x27, 0xff},
+  {0x28, 0x00},
+  {0x29, 0x04},
+  {0x2b, 0xe2},
+  {0x2e, 0xd0},
+  {0x2f, 0x40},
+  {0x30, 0x01},
+  {0x31, 0x38},
+  {0x32, 0x00},
+  {0x33, 0x00},
+  {0x34, 0x00},
+  {0x35, 0x1f},
+  {0x36, 0xff},
+  {0x37, 0x00},
+  {0x38, 0x00},
+  {0x39, 0x00},
+  {0x3a, 0x00},
+  {0x2a, 0x5f},
+  {0x2c, 0x10},
+  {0xff, 0xff}
 };
 
-static const struct elanspi_regtable elanspi_calibration_table_new_page1 = {
-  .other = NULL,
-  .entries = {
-    { .sid = 0xe, .table = elanspi_calibration_table_page1_id14 },
-    { .sid = 0x0, .table = NULL }
-  }
+static const struct elanspi_reg_entry elanspi_calibration_table_page1_id14_x571[] = {
+  {0x00, 0xfb},
+  {0x01, 0xff},
+  {0x02, 0x7f},
+  {0x03, 0xd4},
+  {0x04, 0x7d},
+  {0x05, 0x19},
+  {0x06, 0x80},
+  {0x07, 0x40},
+  {0x08, 0x11},
+  {0x09, 0x00},
+  {0x0a, 0x00},
+  {0x0b, 0x00},
+  {0x0c, 0x00},
+  {0x0d, 0x00},
+  {0x0e, 0x32},
+  {0x0f, 0x00},
+  {0x10, 0x00},
+  {0x11, 0x32},
+  {0x12, 0x02},
+  {0x13, 0x08},
+  {0x14, 0x5c},
+  {0x15, 0x01},
+  {0x16, 0x15},
+  {0x17, 0x01},
+  {0x18, 0x14},
+  {0x19, 0x01},
+  {0x1a, 0x14},
+  {0x1b, 0x01},
+  {0x1c, 0x16},
+  {0x1d, 0x01},
+  {0x1e, 0x0b},
+  {0x1f, 0x01},
+  {0x20, 0x0b},
+  {0x21, 0x02},
+  {0x22, 0x08},
+  {0x23, 0x29},
+  {0x24, 0x00},
+  {0x25, 0x0c},
+  {0x26, 0x1b},
+  {0x27, 0x15},
+  {0x28, 0x1b},
+  {0x29, 0x15},
+  {0x2a, 0x00},
+  {0x2b, 0x00},
+  {0x2c, 0x01},
+  {0x2d, 0x16},
+  {0x2e, 0x01},
+  {0x2f, 0x16},
+  {0x30, 0x04},
+  {0x31, 0x44},
+  {0x32, 0x04},
+  {0x33, 0x44},
+  {0x34, 0x14},
+  {0x35, 0x00},
+  {0x36, 0x00},
+  {0x37, 0x00},
+  {0x38, 0x00},
+  {0x39, 0x03},
+  {0x3a, 0xfe},
+  {0x3b, 0x00},
+  {0x3c, 0x00},
+  {0x3d, 0x02},
+  {0x3e, 0x00},
+  {0x3f, 0x00}
 };
 
 #define ELANSPI_NO_ROTATE 0
@@ -335,10 +449,33 @@ static const struct elanspi_regtable elanspi_calibration_table_new_page1 = {
 
 #define ELANSPI_HV_FLIPPED 1
 
+#define ELANSPI_ROTATE_MASK 3
+
+#define ELANSPI_QUIRK_X571 (1 << 2)
+
+#define ELANSPI_QUIRK_MASK (ELANSPI_QUIRK_X571)
+
 #define ELANSPI_UDEV_TYPES FPI_DEVICE_UDEV_SUBTYPE_SPIDEV | FPI_DEVICE_UDEV_SUBTYPE_HIDRAW
 #define ELANSPI_TP_VID 0x04f3
 
-// using checkargs ACPI:HIDPID
+static const struct elanspi_regtable elanspi_calibration_table_new_page0 = {
+  .other = NULL,
+  .entries = {
+    { .sid = 0xe, .quirk = 0, .table = elanspi_calibration_table_page0_id14 },
+    { .sid = 0xe, .quirk = ELANSPI_QUIRK_X571, .table = elanspi_calibration_table_page0_id14_x571 },
+    { .sid = 0x0, .table = NULL }
+  }
+};
+
+static const struct elanspi_regtable elanspi_calibration_table_new_page1 = {
+  .other = NULL,
+  .entries = {
+    { .sid = 0xe, .quirk = 0, .table = elanspi_calibration_table_page1_id14 },
+    { .sid = 0xe, .quirk = ELANSPI_QUIRK_X571, .table = elanspi_calibration_table_page1_id14_x571 },
+    { .sid = 0x0, .table = NULL }
+  }
+};
+
 static const FpIdEntry elanspi_id_table[] = {
   {.udev_types = ELANSPI_UDEV_TYPES, .spi_acpi_id = "ELAN7001", .hid_id = {.vid = ELANSPI_TP_VID, .pid = 0x3057}, .driver_data = ELANSPI_180_ROTATE},
   {.udev_types = ELANSPI_UDEV_TYPES, .spi_acpi_id = "ELAN7001", .hid_id = {.vid = ELANSPI_TP_VID, .pid = 0x3087}, .driver_data = ELANSPI_180_ROTATE},
@@ -348,6 +485,7 @@ static const FpIdEntry elanspi_id_table[] = {
   {.udev_types = ELANSPI_UDEV_TYPES, .spi_acpi_id = "ELAN7001", .hid_id = {.vid = ELANSPI_TP_VID, .pid = 0x30b2}, .driver_data = ELANSPI_NO_ROTATE},
   {.udev_types = ELANSPI_UDEV_TYPES, .spi_acpi_id = "ELAN70A1", .hid_id = {.vid = ELANSPI_TP_VID, .pid = 0x30b2}, .driver_data = ELANSPI_NO_ROTATE},
   {.udev_types = ELANSPI_UDEV_TYPES, .spi_acpi_id = "ELAN7001", .hid_id = {.vid = ELANSPI_TP_VID, .pid = 0x309f}, .driver_data = ELANSPI_180_ROTATE},
+  {.udev_types = ELANSPI_UDEV_TYPES, .spi_acpi_id = "ELAN7001", .hid_id = {.vid = ELANSPI_TP_VID, .pid = 0x3104}, .driver_data = ELANSPI_QUIRK_X571 | ELANSPI_90RIGHT_ROTATE},
   {.udev_types = 0}
 };
 
@@ -357,6 +495,7 @@ static const FpIdEntry elanspi_id_table[] = {
 #define ELANSPI_MAX_OLD_STAGE2_CALBIRATION_MEAN 8000
 
 #define ELANSPI_HV_CALIBRATION_TARGET_MEAN 3000
+#define ELANSPI_HV_X571_CALIBRATION_TARGET_MEAN 7000
 
 #define ELANSPI_MIN_EMPTY_INVALID_PERCENT 6
 #define ELANSPI_MAX_REAL_INVALID_PERCENT 3

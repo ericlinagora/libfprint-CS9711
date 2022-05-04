@@ -63,6 +63,7 @@ struct _FpiDeviceElanSpi
       guint16 gdac_step;
       guint16 best_gdac;
       guint16 best_meandiff;
+      guint16 target_mean;
     } hv_data;
   };
 
@@ -408,6 +409,10 @@ elanspi_determine_sensor (FpiDeviceElanSpi *self, GError **err)
       self->frame_width = self->sensor_width;
       self->frame_height = self->sensor_height > ELANSPI_MAX_FRAME_HEIGHT ? ELANSPI_MAX_FRAME_HEIGHT : self->sensor_height;
     }
+
+  /* check x571 flag */
+  if (self->sensor_id == 0xe)
+    self->hv_data.target_mean = (fpi_device_get_driver_data (FP_DEVICE (self)) & ELANSPI_QUIRK_X571 ? ELANSPI_HV_X571_CALIBRATION_TARGET_MEAN : ELANSPI_HV_CALIBRATION_TARGET_MEAN);
 }
 
 static void
@@ -542,7 +547,7 @@ elanspi_write_regtable (FpiDeviceElanSpi *self, const struct elanspi_regtable * 
 
   for (int i = 0; table->entries[i].table; i += 1)
     {
-      if (table->entries[i].sid == self->sensor_id)
+      if (table->entries[i].sid == self->sensor_id && table->entries[i].quirk == (fpi_device_get_driver_data (FP_DEVICE (self)) & ELANSPI_QUIRK_MASK))
         {
           starting_entry = table->entries[i].table;
           break;
@@ -692,6 +697,8 @@ static void
 elanspi_capture_hv_image_handler (FpiSpiTransfer *transfer, FpDevice *dev, gpointer unused_data, GError *error)
 {
   FpiDeviceElanSpi *self = FPI_DEVICE_ELANSPI (dev);
+  ptrdiff_t outptr = 0, inptr = 0;
+  guint16 value = 0;
 
   if (error)
     {
@@ -699,24 +706,39 @@ elanspi_capture_hv_image_handler (FpiSpiTransfer *transfer, FpDevice *dev, gpoin
       return;
     }
 
-  int i, outptr;
-  guint16 value = 0;
-
-  for (i = 0, outptr = 0; i < transfer->length_rd && outptr < (self->sensor_height * self->sensor_width * 2); i += 1)
+  if (fpi_device_get_driver_data (dev) & ELANSPI_QUIRK_X571)
     {
-      if (transfer->buffer_rd[i] != 0xff)
+      /* decode image in x571 mode (just copy and fix endian) */
+      for (int y = 0; y < self->sensor_height; y += 1)
         {
-          if (outptr % 2)
+          inptr += 2; /* 2 dummy bytes per line at start */
+          for (int x = 0; x < self->sensor_width; x += 1)
             {
-              value <<= 8;
-              value |= transfer->buffer_rd[i];
-              self->last_image[outptr / 2] = value;
+              self->last_image[outptr / 2] = transfer->buffer_rd[inptr] + transfer->buffer_rd[inptr + 1] * 0x100;
+              inptr += 2;
+              outptr += 2;
             }
-          else
+        }
+    }
+  else
+    {
+      /* decode image (normal case; with weird 0xff checks) */
+      for (inptr = 0, outptr = 0; inptr < transfer->length_rd && outptr < (self->sensor_height * self->sensor_width * 2); inptr += 1)
+        {
+          if (transfer->buffer_rd[inptr] != 0xff)
             {
-              value = transfer->buffer_rd[i];
+              if (outptr % 2)
+                {
+                  value <<= 8;
+                  value |= transfer->buffer_rd[inptr];
+                  self->last_image[outptr / 2] = value;
+                }
+              else
+                {
+                  value = transfer->buffer_rd[inptr];
+                }
+              outptr += 1;
             }
-          outptr += 1;
         }
     }
 
@@ -774,12 +796,14 @@ elanspi_capture_hv_handler (FpiSsm *ssm, FpDevice *dev)
           return;
         }
       /* otherwise, read the image
-       * the hv sensors seem to  use 128 bytes of padding(?) this is only tested on the 0xe sensors */
+       * the hv sensors seem to use variable-length padding(?) this is only tested on the 0xe sensors
+       *
+       * in the x571 mode, the padding appears to be disabled and it just has 2 bytes of junk */
       xfer = fpi_spi_transfer_new (dev, self->spi_fd);
       xfer->ssm = ssm;
       fpi_spi_transfer_write (xfer, 2);
-      xfer->buffer_wr[0] = 0x10;                   /* receieve line */
-      fpi_spi_transfer_read (xfer, self->sensor_height * (self->sensor_width * 2 + 48));
+      xfer->buffer_wr[0] = 0x10;                   /* receieve line/image */
+      fpi_spi_transfer_read (xfer, self->sensor_height * (self->sensor_width * 2 + (fpi_device_get_driver_data (dev) & ELANSPI_QUIRK_X571 ? 2 : 48)));
       fpi_spi_transfer_submit (xfer, fpi_device_get_cancellable (dev), elanspi_capture_hv_image_handler, NULL);
       return;
     }
@@ -873,7 +897,7 @@ elanspi_calibrate_hv_handler (FpiSsm *ssm, FpDevice *dev)
 
     case ELANSPI_CALIBHV_PROCESS:
       /* compute mean */
-      mean_diff = abs (elanspi_mean_image (self, self->last_image) - ELANSPI_HV_CALIBRATION_TARGET_MEAN);
+      mean_diff = abs (elanspi_mean_image (self, self->last_image) - self->hv_data.target_mean);
       if (mean_diff < 100)
         {
           fp_dbg ("<calibhv> calibration ok (mdiff < 100 w/ gdac=%04x)", self->hv_data.gdac_value);
@@ -896,7 +920,7 @@ elanspi_calibrate_hv_handler (FpiSsm *ssm, FpDevice *dev)
           return;
         }
       /* update gdac */
-      if (elanspi_mean_image (self, self->last_image) < ELANSPI_HV_CALIBRATION_TARGET_MEAN)
+      if (elanspi_mean_image (self, self->last_image) < self->hv_data.target_mean)
         self->hv_data.gdac_value -= self->hv_data.gdac_step;
       else
         self->hv_data.gdac_value += self->hv_data.gdac_step;
