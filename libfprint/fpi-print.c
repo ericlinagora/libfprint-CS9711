@@ -154,11 +154,14 @@ minutiae_to_xyt (struct fp_minutiae *minutiae,
 gboolean
 fpi_print_add_from_image (FpPrint *print,
                           FpImage *image,
+                          gint     bz3_threshold,
                           GError **error)
 {
+  g_autofree struct xyt_struct *xyt = NULL;
   GPtrArray *minutiae;
   struct fp_minutiae _minutiae;
-  struct xyt_struct *xyt;
+  gint probe_len;
+  gint score;
 
   if (print->type != FPI_PRINT_NBIS || !image)
     {
@@ -173,8 +176,8 @@ fpi_print_add_from_image (FpPrint *print,
   if (!minutiae || minutiae->len == 0)
     {
       g_set_error (error,
-                   G_IO_ERROR,
-                   G_IO_ERROR_INVALID_DATA,
+                   FP_DEVICE_RETRY,
+                   FP_DEVICE_RETRY_GENERAL,
                    "No minutiae found in image or not yet detected!");
       return FALSE;
     }
@@ -185,7 +188,20 @@ fpi_print_add_from_image (FpPrint *print,
 
   xyt = g_new0 (struct xyt_struct, 1);
   minutiae_to_xyt (&_minutiae, image->width, image->height, xyt);
-  g_ptr_array_add (print->prints, xyt);
+
+  probe_len = bozorth_probe_init (xyt);
+  score = bozorth_to_gallery (probe_len, xyt, xyt);
+  fp_dbg ("self-match score %d/%d", score, bz3_threshold);
+  if (score <= bz3_threshold)
+    {
+      g_set_error (error,
+                   FP_DEVICE_RETRY,
+                   FP_DEVICE_RETRY_GENERAL,
+                   "Not enough minutiae to generate a match!");
+      return FPI_MATCH_SUCCESS;
+    }
+
+  g_ptr_array_add (print->prints, g_steal_pointer (&xyt));
 
   g_clear_object (&print->image);
   print->image = g_object_ref (image);

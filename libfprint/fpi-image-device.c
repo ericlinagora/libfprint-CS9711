@@ -277,7 +277,7 @@ fpi_image_device_minutiae_detected (GObject *source_object, GAsyncResult *res, g
     {
       print = fp_print_new (device);
       fpi_print_set_type (print, FPI_PRINT_NBIS);
-      if (!fpi_print_add_from_image (print, image, &error))
+      if (!fpi_print_add_from_image (print, image, priv->bz3_threshold, &error))
         {
           g_clear_object (&print);
 
