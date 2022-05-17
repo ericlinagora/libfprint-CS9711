@@ -130,6 +130,9 @@ typedef struct
 
 void match_data_free (FpMatchData *match_data);
 
+void fpi_device_suspend (FpDevice *device);
+void fpi_device_resume (FpDevice *device);
+
 void fpi_device_configure_wakeup (FpDevice *device,
                                   gboolean  enabled);
 void fpi_device_update_temp (FpDevice *device,

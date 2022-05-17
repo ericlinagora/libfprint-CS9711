@@ -866,16 +866,16 @@ fpi_device_critical_section_flush_idle_cb (FpDevice *device)
 
   if (priv->suspend_queued)
     {
-      cls->suspend (device);
       priv->suspend_queued = FALSE;
+      fpi_device_suspend (device);
 
       return G_SOURCE_CONTINUE;
     }
 
   if (priv->resume_queued)
     {
-      cls->resume (device);
       priv->resume_queued = FALSE;
+      fpi_device_resume (device);
 
       return G_SOURCE_CONTINUE;
     }
@@ -1590,6 +1590,107 @@ update_attr (const char *attr, const char *value)
     }
 
   return 0;
+}
+
+static void
+complete_suspend_resume_task (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  g_assert (priv->suspend_resume_task);
+
+  g_task_return_boolean (g_steal_pointer (&priv->suspend_resume_task), TRUE);
+}
+
+void
+fpi_device_suspend (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  /* If the device is currently idle, just complete immediately.
+   * For long running tasks, call the driver handler right away, for short
+   * tasks, wait for completion and then return the task.
+   */
+  switch (priv->current_action)
+    {
+    case FPI_DEVICE_ACTION_NONE:
+      fpi_device_suspend_complete (device, NULL);
+      break;
+
+    case FPI_DEVICE_ACTION_ENROLL:
+    case FPI_DEVICE_ACTION_VERIFY:
+    case FPI_DEVICE_ACTION_IDENTIFY:
+    case FPI_DEVICE_ACTION_CAPTURE:
+      if (FP_DEVICE_GET_CLASS (device)->suspend)
+        {
+          if (priv->critical_section)
+            priv->suspend_queued = TRUE;
+          else
+            FP_DEVICE_GET_CLASS (device)->suspend (device);
+        }
+      else
+        {
+          fpi_device_suspend_complete (device, fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED));
+        }
+      break;
+
+    default:
+    case FPI_DEVICE_ACTION_PROBE:
+    case FPI_DEVICE_ACTION_OPEN:
+    case FPI_DEVICE_ACTION_CLOSE:
+    case FPI_DEVICE_ACTION_DELETE:
+    case FPI_DEVICE_ACTION_LIST:
+    case FPI_DEVICE_ACTION_CLEAR_STORAGE:
+      g_signal_connect_object (priv->current_task,
+                               "notify::completed",
+                               G_CALLBACK (complete_suspend_resume_task),
+                               device,
+                               G_CONNECT_SWAPPED);
+
+      break;
+    }
+}
+
+void
+fpi_device_resume (FpDevice *device)
+{
+  FpDevicePrivate *priv = fp_device_get_instance_private (device);
+
+  switch (priv->current_action)
+    {
+    case FPI_DEVICE_ACTION_NONE:
+      fpi_device_resume_complete (device, NULL);
+      break;
+
+    case FPI_DEVICE_ACTION_ENROLL:
+    case FPI_DEVICE_ACTION_VERIFY:
+    case FPI_DEVICE_ACTION_IDENTIFY:
+    case FPI_DEVICE_ACTION_CAPTURE:
+      if (FP_DEVICE_GET_CLASS (device)->resume)
+        {
+          if (priv->critical_section)
+            priv->resume_queued = TRUE;
+          else
+            FP_DEVICE_GET_CLASS (device)->resume (device);
+        }
+      else
+        {
+          fpi_device_resume_complete (device, fpi_device_error_new (FP_DEVICE_ERROR_NOT_SUPPORTED));
+        }
+      break;
+
+    default:
+    case FPI_DEVICE_ACTION_PROBE:
+    case FPI_DEVICE_ACTION_OPEN:
+    case FPI_DEVICE_ACTION_CLOSE:
+    case FPI_DEVICE_ACTION_DELETE:
+    case FPI_DEVICE_ACTION_LIST:
+    case FPI_DEVICE_ACTION_CLEAR_STORAGE:
+      /* cannot happen as we make sure these tasks complete before suspend */
+      g_assert_not_reached ();
+      complete_suspend_resume_task (device);
+      break;
+    }
 }
 
 void
