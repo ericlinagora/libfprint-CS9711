@@ -225,6 +225,7 @@ cmd_interrupt_cb (FpiUsbTransfer *transfer,
     }
   else
     {
+      fpi_device_critical_leave (device);
       fpi_usb_transfer_submit (fpi_usb_transfer_ref (transfer),
                                0,
                                NULL,
