@@ -912,6 +912,7 @@ fpi_device_critical_leave (FpDevice *device)
     return;
 
   priv->critical_section_flush_source = g_idle_source_new ();
+  g_source_set_priority (priv->critical_section_flush_source, G_PRIORITY_HIGH);
   g_source_set_callback (priv->critical_section_flush_source,
                          (GSourceFunc) fpi_device_critical_section_flush_idle_cb,
                          device,
