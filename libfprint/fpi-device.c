@@ -21,6 +21,7 @@
 #define FP_COMPONENT "device"
 #include <math.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "fpi-log.h"
 
