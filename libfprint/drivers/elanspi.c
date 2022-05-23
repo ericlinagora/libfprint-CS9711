@@ -803,7 +803,10 @@ elanspi_capture_hv_handler (FpiSsm *ssm, FpDevice *dev)
       xfer->ssm = ssm;
       fpi_spi_transfer_write (xfer, 2);
       xfer->buffer_wr[0] = 0x10;                   /* receieve line/image */
-      fpi_spi_transfer_read (xfer, self->sensor_height * (self->sensor_width * 2 + (fpi_device_get_driver_data (dev) & ELANSPI_QUIRK_X571 ? 2 : 48)));
+      if (fpi_device_get_driver_data (dev) & ELANSPI_QUIRK_X571)
+        fpi_spi_transfer_read (xfer, self->sensor_height * (self->sensor_width * 2 + 2) - 2);
+      else
+        fpi_spi_transfer_read (xfer, self->sensor_height * (self->sensor_width * 2 + 48));
       fpi_spi_transfer_submit (xfer, fpi_device_get_cancellable (dev), elanspi_capture_hv_image_handler, NULL);
       return;
     }
