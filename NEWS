@@ -1,6 +1,17 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2022-05-24: v1.94.4 release
+
+Highlights:
+ * synaptics: New PIDs 0x0168, 0x015f
+ * elan: New PID 0x0c4b
+ * elanspi: New PID 0x241f
+ * synaptics: Minor fix to interrupt transfer resubmission
+ * Avoid sysfs writes if value is already expected
+ * Improvements to the testing setup
+ * Fixes to the internal critical section API
+
 2021-11-02: v1.94.3 release
 
 Highlights:
