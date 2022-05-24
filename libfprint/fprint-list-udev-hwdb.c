@@ -29,6 +29,7 @@ static const FpIdEntry whitelist_id_table[] = {
    * You can generate this list from the wiki page using e.g.:
    *   gio cat https://gitlab.freedesktop.org/libfprint/wiki/-/wikis/Unsupported-Devices.md | sed -n 's!|.*\([0-9a-fA-F]\{4\}\):\([0-9a-fA-F]\{4\}\).*|.*!  { .vid = 0x\1, .pid = 0x\2 },!p'
    */
+  { .vid = 0x04e8, .pid = 0x730b },
   { .vid = 0x04f3, .pid = 0x036b },
   { .vid = 0x04f3, .pid = 0x0c00 },
   { .vid = 0x04f3, .pid = 0x0c4c },
@@ -51,6 +52,7 @@ static const FpIdEntry whitelist_id_table[] = {
   { .vid = 0x06cb, .pid = 0x00d8 },
   { .vid = 0x06cb, .pid = 0x00da },
   { .vid = 0x06cb, .pid = 0x00dc },
+  { .vid = 0x06cb, .pid = 0x00e4 },
   { .vid = 0x06cb, .pid = 0x00e7 },
   { .vid = 0x06cb, .pid = 0x00e9 },
   { .vid = 0x06cb, .pid = 0x00fd },
@@ -66,6 +68,7 @@ static const FpIdEntry whitelist_id_table[] = {
   { .vid = 0x0bda, .pid = 0x5812 },
   { .vid = 0x10a5, .pid = 0x0007 },
   { .vid = 0x10a5, .pid = 0x9200 },
+  { .vid = 0x10a5, .pid = 0x9800 },
   { .vid = 0x1188, .pid = 0x9545 },
   { .vid = 0x138a, .pid = 0x0007 },
   { .vid = 0x138a, .pid = 0x003a },
@@ -87,6 +90,7 @@ static const FpIdEntry whitelist_id_table[] = {
   { .vid = 0x27c6, .pid = 0x5042 },
   { .vid = 0x27c6, .pid = 0x5110 },
   { .vid = 0x27c6, .pid = 0x5117 },
+  { .vid = 0x27c6, .pid = 0x5125 },
   { .vid = 0x27c6, .pid = 0x5201 },
   { .vid = 0x27c6, .pid = 0x521d },
   { .vid = 0x27c6, .pid = 0x5301 },
@@ -98,6 +102,7 @@ static const FpIdEntry whitelist_id_table[] = {
   { .vid = 0x27c6, .pid = 0x538c },
   { .vid = 0x27c6, .pid = 0x538d },
   { .vid = 0x27c6, .pid = 0x5395 },
+  { .vid = 0x27c6, .pid = 0x5503 },
   { .vid = 0x27c6, .pid = 0x5584 },
   { .vid = 0x27c6, .pid = 0x55a2 },
   { .vid = 0x27c6, .pid = 0x55a4 },
