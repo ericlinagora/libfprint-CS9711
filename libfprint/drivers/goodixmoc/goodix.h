@@ -35,6 +35,8 @@ typedef enum {
 typedef enum {
   FP_INIT_VERSION = 0,
   FP_INIT_CONFIG,
+  FP_INIT_TEMPLATE_LIST,
+  FP_INIT_RESET_DEVICE,
   FP_INIT_NUM_STATES,
 } FpInitState;
 

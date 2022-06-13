@@ -1041,6 +1041,47 @@ fp_init_config_cb (FpiDeviceGoodixMoc  *self,
   fpi_ssm_next_state (self->task_ssm);
 }
 
+static void
+fp_init_cb_reset_or_complete (FpiDeviceGoodixMoc  *self,
+                              gxfp_cmd_response_t *resp,
+                              GError              *error)
+{
+  if (error)
+    {
+      fp_warn ("Template storage appears to have been corrupted! Error was: %s", error->message);
+      fp_warn ("A known reason for this to happen is a firmware bug triggered by another storage area being initialized.");
+      fpi_ssm_jump_to_state (self->task_ssm, FP_INIT_RESET_DEVICE);
+    }
+  else
+    {
+      fpi_ssm_mark_completed (self->task_ssm);
+    }
+}
+
+static void
+fp_init_reset_device_cb (FpiDeviceGoodixMoc  *self,
+                         gxfp_cmd_response_t *resp,
+                         GError              *error)
+{
+  if (error)
+    {
+      fp_warn ("Reset failed: %s", error->message);
+      fpi_ssm_mark_failed (self->task_ssm, error);
+      return;
+    }
+  if ((resp->result >= GX_FAILED) && (resp->result != GX_ERROR_FINGER_ID_NOEXIST))
+    {
+      fp_warn ("Reset failed, device reported: 0x%x", resp->result);
+      fpi_ssm_mark_failed (self->task_ssm,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
+                                                     "Failed clear storage, result: 0x%x",
+                                                     resp->result));
+      return;
+    }
+
+  fp_warn ("Reset completed");
+  fpi_ssm_mark_completed (self->task_ssm);
+}
 
 static void
 fp_init_sm_run_state (FpiSsm *ssm, FpDevice *device)
@@ -1064,6 +1105,30 @@ fp_init_sm_run_state (FpiSsm *ssm, FpDevice *device)
                          (guint8 *) self->sensorcfg,
                          sizeof (gxfp_sensor_cfg_t),
                          fp_init_config_cb);
+      break;
+
+    case FP_INIT_TEMPLATE_LIST:
+      /* List prints to check whether the template DB was corrupted.
+       * As of 2022-06-13 there is a known firmware issue that can cause the
+       * stored templates for Linux to be corrupted when the Windows storage
+       * area is initialized.
+       * In that case, we'll get a protocol failure trying to retrieve the
+       * list of prints.
+       */
+      goodix_sensor_cmd (self, MOC_CMD0_GETFINGERLIST, MOC_CMD1_DEFAULT,
+                         FALSE,
+                         (const guint8 *) &dummy,
+                         1,
+                         fp_init_cb_reset_or_complete);
+      break;
+
+    case FP_INIT_RESET_DEVICE:
+      fp_warn ("Resetting device storage, you will need to enroll all prints again!");
+      goodix_sensor_cmd (self, MOC_CMD0_DELETETEMPLATE, MOC_CMD1_DELETE_ALL,
+                         FALSE,
+                         NULL,
+                         0,
+                         fp_init_reset_device_cb);
       break;
     }
 
