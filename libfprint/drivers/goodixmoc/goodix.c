@@ -661,7 +661,7 @@ fp_enroll_capture_cb (FpiDeviceGoodixMoc  *self,
   /* */
   if (resp->result >= GX_FAILED)
     {
-      fp_warn ("Capture sample failed, result: 0x%x", resp->result);
+      fp_info ("Capture sample failed, result: 0x%x", resp->result);
       fpi_device_enroll_progress (FP_DEVICE (self),
                                   self->enroll_stage,
                                   NULL,
@@ -675,7 +675,7 @@ fp_enroll_capture_cb (FpiDeviceGoodixMoc  *self,
   if ((resp->capture_data_resp.img_quality < self->sensorcfg->config[4]) ||
       (resp->capture_data_resp.img_coverage < self->sensorcfg->config[5]))
     {
-      fp_warn ("Capture sample poor quality(%d): %d or coverage(%d): %d",
+      fp_info ("Capture sample poor quality(%d): %d or coverage(%d): %d",
                self->sensorcfg->config[4],
                resp->capture_data_resp.img_quality,
                self->sensorcfg->config[5],
