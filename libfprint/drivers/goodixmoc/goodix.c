@@ -1360,6 +1360,7 @@ gx_fp_probe (FpDevice *device)
     case 0x6496:
     case 0x60A2:
     case 0x609C:
+    case 0x6384:
     case 0x639C:
     case 0x63AC:
     case 0x63BC:
@@ -1598,6 +1599,7 @@ static const FpIdEntry id_table[] = {
   { .vid = 0x27c6,  .pid = 0x5840,  },
   { .vid = 0x27c6,  .pid = 0x609C,  },
   { .vid = 0x27c6,  .pid = 0x60A2,  },
+  { .vid = 0x27c6,  .pid = 0x6384,  },
   { .vid = 0x27c6,  .pid = 0x639C,  },
   { .vid = 0x27c6,  .pid = 0x63AC,  },
   { .vid = 0x27c6,  .pid = 0x63BC,  },
