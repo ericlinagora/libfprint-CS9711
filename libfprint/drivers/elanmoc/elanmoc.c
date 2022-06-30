@@ -759,6 +759,7 @@ identify_status_report (FpiDeviceElanmoc *self, int verify_status_id,
 }
 
 enum identify_states {
+  IDENTIFY_SET_MODE,
   IDENTIFY_WAIT_FINGER,
   IDENTIFY_NUM_STATES,
 };
@@ -794,6 +795,13 @@ elan_identify_run_state (FpiSsm *ssm, FpDevice *dev)
   fp_info ("elanmoc %s ", __func__);
   switch (fpi_ssm_get_cur_state (ssm))
     {
+    case IDENTIFY_SET_MODE:
+      fp_info ("elanmoc %s IDENTIFY_SET_MODE", __func__);
+      cmd_buf = elanmoc_compose_cmd (&elanmoc_set_mod_cmd);
+      cmd_buf[3] = 0x03;
+      elanmoc_get_cmd (dev, cmd_buf, elanmoc_set_mod_cmd.cmd_len, elanmoc_set_mod_cmd.resp_len, 0, elanmoc_cmd_ack_cb);
+      break;
+
     case IDENTIFY_WAIT_FINGER:
       fp_info ("elanmoc %s VERIFY_WAIT_FINGER", __func__);
       cmd_buf = elanmoc_compose_cmd (&elanmoc_verify_cmd);
