@@ -40,6 +40,8 @@ fp_device_has_feature
 fp_device_has_storage
 fp_device_supports_identify
 fp_device_supports_capture
+fp_device_get_persistent_data
+fp_device_set_persistent_data
 fp_device_is_open
 fp_device_open
 fp_device_close

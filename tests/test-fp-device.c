@@ -232,6 +232,53 @@ test_device_has_storage (void)
   G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
+static void
+test_device_persistent_data (void)
+{
+  g_autoptr(FptContext) tctx = fpt_context_new_with_virtual_device (FPT_VIRTUAL_DEVICE_IMAGE);
+  g_autoptr(GVariant) initial = NULL;
+  g_autoptr(GVariant) loaded = NULL;
+  g_autoptr(GError) error = NULL;
+  guint8 *data = (guint8 *) 0xdeadbeef;
+  gsize length = 1;
+
+  initial = g_variant_ref_sink (g_variant_new ("(s)", "stored data"));
+
+  g_assert_true (fp_device_get_persistent_data (tctx->device, &data, &length, &error));
+  g_assert_cmpint (length, ==, 0);
+  g_assert_null (data);
+  g_assert_no_error (error);
+
+  /* Use the fact that this is a property that we can poke from the outside. */
+  g_object_set (tctx->device, "fpi-persistent-data", initial, NULL);
+
+  /* Works now */
+  g_assert_true (fp_device_get_persistent_data (tctx->device, &data, &length, &error));
+  g_assert_cmpint (length, !=, 0);
+  g_assert_nonnull (data);
+  g_assert_no_error (error);
+
+  /* We can't load the data, as data has been set already. */
+  g_assert_false (fp_device_set_persistent_data (tctx->device, data, length, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_EXISTS);
+  g_clear_pointer (&error, g_error_free);
+
+  /* Abuse that we can "load" again if the data is set to NULL.
+   * This is an implementation detail and just a lack of error checking. */
+  g_object_set (tctx->device, "fpi-persistent-data", NULL, NULL);
+
+  /* Incomplete data, causes parsing error */
+  g_assert_false (fp_device_set_persistent_data (tctx->device, data, 5, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+  g_clear_pointer (&error, g_error_free);
+
+  g_assert_true (fp_device_set_persistent_data (tctx->device, data, length, &error));
+  g_assert_no_error (error);
+
+  g_object_get (tctx->device, "fpi-persistent-data", &loaded, NULL);
+  g_assert_cmpvariant (initial, loaded);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -252,6 +299,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/device/sync/supports_identify", test_device_supports_identify);
   g_test_add_func ("/device/sync/supports_capture", test_device_supports_capture);
   g_test_add_func ("/device/sync/has_storage", test_device_has_storage);
+  g_test_add_func ("/device/persistent_data", test_device_persistent_data);
 
   return g_test_run ();
 }

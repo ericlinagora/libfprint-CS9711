@@ -230,6 +230,15 @@ FpDeviceFeature     fp_device_get_features (FpDevice *device);
 gboolean            fp_device_has_feature (FpDevice       *device,
                                            FpDeviceFeature feature);
 
+gboolean fp_device_get_persistent_data (FpDevice *device,
+                                        guchar  **data,
+                                        gsize    *length,
+                                        GError  **error);
+gboolean fp_device_set_persistent_data (FpDevice *device,
+                                        guchar   *data,
+                                        gsize     length,
+                                        GError  **error);
+
 /* Opening the device */
 void fp_device_open (FpDevice           *device,
                      GCancellable       *cancellable,

@@ -61,6 +61,7 @@ typedef struct
   FpDeviceFeature features;
 
   guint64         driver_data;
+  GVariant       *persistent_data;
 
   gint            nr_enroll_stages;
   GSList         *sources;
