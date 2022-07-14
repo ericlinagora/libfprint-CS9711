@@ -1400,6 +1400,14 @@ fp_device_identify (FpDevice           *device,
       return;
     }
 
+  if (prints == NULL)
+    {
+      g_task_return_error (task,
+                           fpi_device_error_new_msg (FP_DEVICE_ERROR_DATA_INVALID,
+                                                     "Invalid gallery array"));
+      return;
+    }
+
   priv->current_action = FPI_DEVICE_ACTION_IDENTIFY;
   priv->current_task = g_steal_pointer (&task);
   setup_task_cancellable (device);
