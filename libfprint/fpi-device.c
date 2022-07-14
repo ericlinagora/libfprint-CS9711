@@ -1312,12 +1312,14 @@ fpi_device_enroll_complete (FpDevice *device, FpPrint *print, GError *error)
  * @device: The #FpDevice
  * @error: A #GError if result is %FPI_MATCH_ERROR
  *
- * Finish an ongoing verify operation. The returned print should be
- * representing the new scan and not the one passed for verification.
+ * Finish an ongoing verify operation.
  *
  * Note that @error should only be set for actual errors. In the case
  * of retry errors, report these using fpi_device_verify_report()
  * and then call this function without any error argument.
+ *
+ * If @error is not set, we expect that a result (and print, in case)
+ * have been already reported via fpi_device_verify_report().
  */
 void
 fpi_device_verify_complete (FpDevice *device,
@@ -1375,9 +1377,14 @@ fpi_device_verify_complete (FpDevice *device,
  * @device: The #FpDevice
  * @error: The #GError or %NULL on success
  *
- * Finish an ongoing identify operation. The match that was identified is
- * returned in @match. The @print parameter returns the newly created scan
- * that was used for matching.
+ * Finish an ongoing identify operation.
+ *
+ * Note that @error should only be set for actual errors. In the case
+ * of retry errors, report these using fpi_device_identify_report()
+ * and then call this function without any error argument.
+ *
+ * If @error is not set, we expect that a match and / or a print have been
+ * already reported via fpi_device_identify_report()
  */
 void
 fpi_device_identify_complete (FpDevice *device,
