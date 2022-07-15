@@ -622,7 +622,14 @@ fpi_device_get_verify_data (FpDevice *device,
  * @device: The #FpDevice
  * @prints: (out) (transfer none) (element-type FpPrint): The gallery of prints
  *
- * Get data for identify.
+ * Get prints gallery for identification.
+ *
+ * The @prints array is always non-%NULL and may contain a list of #FpPrint's
+ * that the device should match against.
+ *
+ * Note that @prints can be an empty array, in such case the device is expected
+ * to report the scanned print matching the one in its internal storage, if any.
+ *
  */
 void
 fpi_device_get_identify_data (FpDevice   *device,
@@ -2009,12 +2016,26 @@ fpi_device_verify_report (FpDevice      *device,
  * fpi_device_identify_report:
  * @device: The #FpDevice
  * @match: (transfer none): The #FpPrint from the gallery that matched
- * @print: (transfer floating): The scanned #FpPrint
- * @error: A #GError if result is %FPI_MATCH_ERROR
+ * @print: (transfer floating): The scanned #FpPrint, set in the absence
+ *   of an error.
+ * @error: A #GError of %FP_DEVICE_RETRY type if @match and @print are unset.
  *
- * Report the result of a identify operation. Note that the passed @error must be
- * a retry error with the %FP_DEVICE_RETRY domain. For all other error cases,
- * the error should passed to fpi_device_identify_complete().
+ * Report the results of an identify operation.
+ *
+ * In case of successful identification @match is expected to be set to a
+ * #FpPrint that matches one from the provided gallery, while @print
+ * represents the scanned print and will be different.
+ *
+ * If there are no errors, it's expected that the device always reports the
+ * recognized @print even if there is no @match with the provided gallery (that
+ * can be potentially empty). This is required for application logic further
+ * up in the stack, such as for enroll-duplicate checking. @print needs to be
+ * sufficiently filled to do a comparison.
+ *
+ * In case of error, both @match and @print are expected to be %NULL.
+ * Note that the passed @error must be a retry error from the %FP_DEVICE_RETRY
+ * domain. For all other error cases, the error should passed to
+ * fpi_device_identify_complete().
  */
 void
 fpi_device_identify_report (FpDevice *device,
