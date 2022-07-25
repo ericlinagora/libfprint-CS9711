@@ -125,6 +125,7 @@ default_drivers = [
     'upekts',
     'goodixmoc',
     'nb1010',
+    'fpcmoc',
 
     # SPI
     'elanspi',

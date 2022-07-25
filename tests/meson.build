@@ -39,6 +39,7 @@ drivers_tests = [
     'goodixmoc',
     'nb1010',
     'egis0570',
+    'fpcmoc',
 ]
 
 if get_option('introspection')
