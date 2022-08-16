@@ -136,7 +136,8 @@ test_unsupported_list:
 flatpak:
   stage: flatpak
   extends: .flatpak
-  image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.36
+  # From https://gitlab.gnome.org/GNOME/gnome-runtime-images/container_registry
+  image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:42
   variables:
     MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
     FLATPAK_MODULE: "libfprint"
