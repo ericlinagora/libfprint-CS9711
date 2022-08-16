@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
-[ -x "$UDEV_HWDB" ] || exit 1
+if [ ! -x "$UDEV_HWDB" ]; then
+    echo "E: UDEV_HWDB (${UDEV_HWDB}) unset or not executable."
+    exit 1
+fi
 
 if [ "$UDEV_HWDB_CHECK_CONTENTS" == 1 ]; then
     generated_rules=$(mktemp "${TMPDIR:-/tmp}/libfprint-XXXXXX.hwdb")
@@ -10,6 +13,10 @@ else
 fi
 
 $UDEV_HWDB > "$generated_rules"
+if [ $? != 0 ]; then
+    echo "E: UDEV_HWDB (${UDEV_HWDB}) failed to run without error."
+    exit 1
+fi
 
 if [ "$UDEV_HWDB_CHECK_CONTENTS" != 1 ]; then
     exit 77
