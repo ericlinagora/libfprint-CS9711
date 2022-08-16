@@ -66,8 +66,7 @@
             "sources": [
                 {
                     "type": "git",
-                    "url": "https://gitlab.freedesktop.org/libfprint/libfprint.git",
-                    "branch": "wip/benzea/v2"
+                    "url": "https://gitlab.freedesktop.org/libfprint/libfprint.git"
                 }
             ]
         }
