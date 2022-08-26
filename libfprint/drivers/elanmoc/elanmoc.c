@@ -1011,6 +1011,12 @@ elanmoc_get_status_cb (FpiDeviceElanmoc *self,
 
   if (buffer_in[1] != 0x03 && self->cmd_retry_cnt != 0)
     {
+      self->cmd_retry_cnt--;
+      cmd_buf = elanmoc_compose_cmd (&cal_status_cmd);
+      elanmoc_get_cmd (FP_DEVICE (self), cmd_buf, cal_status_cmd.cmd_len, cal_status_cmd.resp_len, 0, elanmoc_get_status_cb);
+    }
+  else
+    {
       if(self->cmd_retry_cnt == 0)
         {
           fpi_ssm_mark_failed (self->task_ssm,
@@ -1018,12 +1024,6 @@ elanmoc_get_status_cb (FpiDeviceElanmoc *self,
                                                          "Sensor not ready"));
           return;
         }
-      self->cmd_retry_cnt--;
-      cmd_buf = elanmoc_compose_cmd (&cal_status_cmd);
-      elanmoc_get_cmd (FP_DEVICE (self), cmd_buf, cal_status_cmd.cmd_len, cal_status_cmd.resp_len, 0, elanmoc_get_status_cb);
-    }
-  else
-    {
       fpi_ssm_next_state (self->task_ssm);
     }
 }
