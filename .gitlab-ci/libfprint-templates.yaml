@@ -1,6 +1,7 @@
 .libfprint_common_variables:
   LIBFPRINT_DEPENDENCIES:
     doxygen
+    dnf-plugins-core
     flatpak-builder
     gcc
     gcc-c++
@@ -29,6 +30,11 @@
     diffutils
 
   LIBFPRINT_EXEC: |
+    dnf debuginfo-install -y \
+      glib2 \
+      glibc \
+      libgusb
+
     git clone https://github.com/martinpitt/umockdev.git && \
         cd umockdev && \
         meson _build --prefix=/usr && \
