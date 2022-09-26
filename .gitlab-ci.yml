@@ -15,6 +15,7 @@ variables:
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
 stages:
+  - image-build
   - check-source
   - build
   - test
@@ -158,11 +159,12 @@ flatpak:
       allow_failure: true
 
 # CONTAINERS creation stage
-container_fedora_build:
+.container_fedora_build_base:
   extends: .fdo.container-build@fedora
+  stage: image-build
   only:
     variables:
-      - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
+      - $CI_PIPELINE_SOURCE == "never"
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
     FDO_FORCE_REBUILD: 1
@@ -177,3 +179,26 @@ container_fedora_build:
         cd umockdev && \
         meson _build --prefix=/usr && \
         ninja -C _build && ninja -C _build install
+
+container_fedora_build_schedule:
+  extends: .container_fedora_build_base
+  only:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
+
+container_fedora_build_manual:
+  extends: .container_fedora_build_base
+  only:
+    variables:
+      - $LIBFPRINT_CI_ACTION == "build-image"
+
+container_fedora_build_on_deps_changed:
+  extends: .container_fedora_build_base
+  only:
+    variables:
+      - $CI_PROJECT_NAMESPACE == "libfprint"
+    refs:
+      - branches
+      - merge_requests
+    changes:
+      - .gitlab-ci/libfprint-templates.yaml
