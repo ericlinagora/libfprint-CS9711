@@ -175,10 +175,7 @@ flatpak:
       libpcap-devel
       libudev-devel
     FDO_DISTRIBUTION_EXEC: |
-      git clone https://github.com/martinpitt/umockdev.git && \
-        cd umockdev && \
-        meson _build --prefix=/usr && \
-        ninja -C _build && ninja -C _build install
+      $LIBFPRINT_EXEC
 
 container_fedora_build_schedule:
   extends: .container_fedora_build_base
