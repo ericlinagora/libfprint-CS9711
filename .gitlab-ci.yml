@@ -124,7 +124,7 @@ test_indent:
   script:
     - scripts/uncrustify.sh
     - git diff
-    - "! git status -s | grep -q ."
+    - git diff-index --name-only --exit-code HEAD
 
 test_unsupported_list:
   stage: check-source
