@@ -1,3 +1,6 @@
+# Bump image version on .gitlab-ci/libfprint-image-variables.yaml to trigger
+# a rebuild on changes to this file
+
 .libfprint_common_variables:
   LIBFPRINT_DEPENDENCIES:
     doxygen

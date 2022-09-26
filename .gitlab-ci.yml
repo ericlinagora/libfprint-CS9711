@@ -1,4 +1,5 @@
 include:
+  - local: '.gitlab-ci/libfprint-image-variables.yaml'
   - local: '.gitlab-ci/libfprint-templates.yaml'
   - project: 'freedesktop/ci-templates'
     ref: master
@@ -7,7 +8,7 @@ include:
 
 variables:
   extends: .libfprint_common_variables
-  FDO_DISTRIBUTION_TAG: latest
+  FDO_DISTRIBUTION_TAG: $LIBFPRINT_IMAGE_TAG
   FDO_DISTRIBUTION_VERSION: rawhide
   FDO_UPSTREAM_REPO: "libfprint/$CI_PROJECT_NAME"
   FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG"
@@ -198,4 +199,4 @@ container_fedora_build_on_deps_changed:
       - branches
       - merge_requests
     changes:
-      - .gitlab-ci/libfprint-templates.yaml
+      - .gitlab-ci/libfprint-image-variables.yaml
