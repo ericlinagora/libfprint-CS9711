@@ -21,6 +21,9 @@ except Exception as e:
 
 FPrint = None
 
+# Exit with error on any exception, included those happening in async callbacks
+sys.excepthook = lambda *args: (traceback.print_exception(*args), sys.exit(1))
+
 def load_image(img):
     png = cairo.ImageSurface.create_from_png(img)
 

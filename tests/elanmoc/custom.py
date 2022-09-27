@@ -1,8 +1,14 @@
 #!/usr/bin/python3
 
+import traceback
+import sys
 import gi
+
 gi.require_version('FPrint', '2.0')
 from gi.repository import FPrint, GLib
+
+# Exit with error on any exception, included those happening in async callbacks
+sys.excepthook = lambda *args: (traceback.print_exception(*args), sys.exit(1))
 
 ctx = GLib.main_context_default()
 
