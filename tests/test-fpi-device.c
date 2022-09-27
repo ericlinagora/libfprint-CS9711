@@ -2388,6 +2388,11 @@ test_driver_identify_warmup_cooldown (void)
   g_assert_true (identify_data->called);
   g_assert_error (identify_data->error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_TOO_HOT);
 
+  /* Try to identify again, and ensure that we fail early */
+  fp_device_identify_sync (device, prints, NULL, NULL, NULL, NULL, NULL, &error);
+  g_assert_error (error, FP_DEVICE_ERROR, FP_DEVICE_ERROR_TOO_HOT);
+  g_clear_error (&error);
+
   /* Now, wait for it to cool down again;
    * WARM should be reached after about 2s
    * COLD after 5s but give it some more slack. */
