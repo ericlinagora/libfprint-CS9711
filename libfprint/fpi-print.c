@@ -50,7 +50,7 @@ fpi_print_add_print (FpPrint *print, FpPrint *add)
   g_return_if_fail (add->type == FPI_PRINT_NBIS);
 
   g_assert (add->prints->len == 1);
-  g_ptr_array_add (print->prints, g_memdup (add->prints->pdata[0], sizeof (struct xyt_struct)));
+  g_ptr_array_add (print->prints, g_memdup2 (add->prints->pdata[0], sizeof (struct xyt_struct)));
 }
 
 /**

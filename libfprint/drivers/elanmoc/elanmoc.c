@@ -509,7 +509,7 @@ create_print_from_response (FpiDeviceElanmoc *self,
       return NULL;
     }
 
-  userid = g_memdup (&buffer_in[5], userid_len);
+  userid = g_memdup2 (&buffer_in[5], userid_len);
   userid_safe = g_strndup ((const char *) &buffer_in[5], userid_len);
   print = fp_print_new (FP_DEVICE (self));
   uid = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE, userid, userid_len, 1);
