@@ -317,6 +317,7 @@ irq_handler (FpiUsbTransfer *transfer,
       if (urudev->irqs_stopped_cb)
         urudev->irqs_stopped_cb (imgdev);
       urudev->irqs_stopped_cb = NULL;
+      g_clear_error (&error);
       return;
     }
   else if (error)
