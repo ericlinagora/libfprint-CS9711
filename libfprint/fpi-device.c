@@ -1718,7 +1718,7 @@ fpi_device_configure_wakeup (FpDevice *device, gboolean enabled)
     case FP_DEVICE_TYPE_USB:
       {
         g_autoptr(GString) ports = NULL;
-        GUsbDevice *dev, *parent;
+        g_autoptr(GUsbDevice) dev = NULL;
         const char *wakeup_command = enabled ? "enabled" : "disabled";
         guint8 bus;
         g_autofree gchar *sysfs_wakeup = NULL;
@@ -1729,16 +1729,20 @@ fpi_device_configure_wakeup (FpDevice *device, gboolean enabled)
         bus = g_usb_device_get_bus (priv->usb_device);
 
         /* Walk up, skipping the root hub. */
-        dev = priv->usb_device;
-        while ((parent = g_usb_device_get_parent (dev)))
+        g_set_object (&dev, priv->usb_device);
+        while (TRUE)
           {
+            g_autoptr(GUsbDevice) parent = g_usb_device_get_parent (dev);
             g_autofree gchar *port_str = NULL;
             guint8 port;
+
+            if (!parent)
+              break;
 
             port = g_usb_device_get_port_number (dev);
             port_str = g_strdup_printf ("%d.", port);
             g_string_prepend (ports, port_str);
-            dev = parent;
+            g_set_object (&dev, parent);
           }
         g_string_set_size (ports, ports->len - 1);
 
