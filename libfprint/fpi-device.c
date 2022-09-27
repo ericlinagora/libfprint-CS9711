@@ -1610,11 +1610,13 @@ update_attr (const char *attr, const char *value)
 static void
 complete_suspend_resume_task (FpDevice *device)
 {
+  g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_assert (priv->suspend_resume_task);
+  task = g_steal_pointer (&priv->suspend_resume_task);
 
-  g_task_return_boolean (g_steal_pointer (&priv->suspend_resume_task), TRUE);
+  g_task_return_boolean (task, TRUE);
 }
 
 void
@@ -1779,6 +1781,7 @@ fpi_device_configure_wakeup (FpDevice *device, gboolean enabled)
 static void
 fpi_device_suspend_completed (FpDevice *device)
 {
+  g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   /* We have an ongoing operation, allow the device to wake up the machine. */
@@ -1788,11 +1791,12 @@ fpi_device_suspend_completed (FpDevice *device)
   if (priv->critical_section)
     g_warning ("Driver was in a critical section at suspend time. It likely deadlocked!");
 
+  task = g_steal_pointer (&priv->suspend_resume_task);
+
   if (priv->suspend_error)
-    g_task_return_error (g_steal_pointer (&priv->suspend_resume_task),
-                         g_steal_pointer (&priv->suspend_error));
+    g_task_return_error (task, g_steal_pointer (&priv->suspend_error));
   else
-    g_task_return_boolean (g_steal_pointer (&priv->suspend_resume_task), TRUE);
+    g_task_return_boolean (task, TRUE);
 }
 
 /**
@@ -1820,11 +1824,12 @@ fpi_device_suspend_complete (FpDevice *device,
   g_return_if_fail (priv->suspend_resume_task);
   g_return_if_fail (priv->suspend_error == NULL);
 
-  priv->suspend_error = error;
+  priv->suspend_error = g_steal_pointer (&error);
   priv->is_suspended = TRUE;
 
   /* If there is no error, we have no running task, return immediately. */
-  if (error == NULL || !priv->current_task || g_task_get_completed (priv->current_task))
+  if (!priv->suspend_error || !priv->current_task ||
+      g_task_get_completed (priv->current_task))
     {
       fpi_device_suspend_completed (device);
       return;
@@ -1856,6 +1861,7 @@ void
 fpi_device_resume_complete (FpDevice *device,
                             GError   *error)
 {
+  g_autoptr(GTask) task = NULL;
   FpDevicePrivate *priv = fp_device_get_instance_private (device);
 
   g_return_if_fail (FP_IS_DEVICE (device));
@@ -1864,10 +1870,12 @@ fpi_device_resume_complete (FpDevice *device,
   priv->is_suspended = FALSE;
   fpi_device_configure_wakeup (device, FALSE);
 
+  task = g_steal_pointer (&priv->suspend_resume_task);
+
   if (error)
-    g_task_return_error (g_steal_pointer (&priv->suspend_resume_task), error);
+    g_task_return_error (task, error);
   else
-    g_task_return_boolean (g_steal_pointer (&priv->suspend_resume_task), TRUE);
+    g_task_return_boolean (task, TRUE);
 }
 
 /**
