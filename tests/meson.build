@@ -57,12 +57,13 @@ if get_option('introspection')
         'virtual-device',
     ]
 
+    python3 = find_program('python3')
     unittest_inspector = find_program('unittest_inspector.py')
+    umockdev_test = find_program('umockdev-test.py')
 
     foreach vdtest: virtual_devices_tests
         driver_name = '_'.join(vdtest.split('-'))
         if driver_name in drivers
-            python3 = find_program('python3')
             base_args = files(vdtest + '.py')
             suite = ['virtual-driver']
 
@@ -106,8 +107,11 @@ if get_option('introspection')
         if (driver_name in supported_drivers and
             gusb_dep.version().version_compare('>= 0.3.0'))
             test(driver_test,
-                find_program('umockdev-test.py'),
-                args: join_paths(meson.current_source_dir(), driver_test),
+                python3,
+                args: [
+                    umockdev_test.full_path(),
+                    meson.current_source_dir() / driver_test,
+                ],
                 env: driver_envs,
                 suite: ['drivers'],
                 timeout: 15,
