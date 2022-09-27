@@ -31,7 +31,7 @@ d.clear_storage_sync()
 template = FPrint.Print.new(d)
 
 def enroll_progress(*args):
-    assert d.get_finger_status() == FPrint.FingerStatusFlags.NEEDED
+    assert d.get_finger_status() & FPrint.FingerStatusFlags.NEEDED
     print('enroll progress: ' + str(args))
 
 def identify_done(dev, res):
