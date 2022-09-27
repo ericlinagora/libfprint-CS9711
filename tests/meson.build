@@ -234,17 +234,26 @@ valgrind = find_program('valgrind', required: false)
 if valgrind.found()
     glib_share = glib_dep.get_pkgconfig_variable('prefix') / 'share' / glib_dep.name()
     glib_suppressions = glib_share + '/valgrind/glib.supp'
+    libfprint_suppressions = '@0@/@1@'.format(meson.source_root(),
+        files('libfprint.supp')[0])
     python_suppressions = '@0@/@1@'.format(meson.source_root(),
         files('valgrind-python.supp')[0])
     libfprint_wrapper = [
         valgrind.path(),
         '--tool=memcheck',
         '--leak-check=full',
+        '--leak-resolution=high',
+        '--error-exitcode=1',
+        '--errors-for-leak-kinds=definite',
+        '--track-origins=yes',
+        '--show-leak-kinds=definite,possible',
+        '--show-error-list=yes',
+        '--suppressions=' + libfprint_suppressions,
         '--suppressions=' + glib_suppressions,
         '--suppressions=' + python_suppressions,
     ]
     add_test_setup('valgrind',
-        timeout_multiplier: 10,
+        timeout_multiplier: 15,
         exe_wrapper: libfprint_wrapper,
         env: [
             'G_SLICE=always-malloc',
