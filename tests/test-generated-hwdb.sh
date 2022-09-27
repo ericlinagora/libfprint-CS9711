@@ -24,7 +24,7 @@ fi
 
 if ! diff -u "$MESON_SOURCE_ROOT/data/autosuspend.hwdb" "$generated_rules"; then
     echo "E: Autosuspend file needs to be re-generated!"
-    echo "   ninja -C $MESON_BUILD_ROOT libfprint/sync-udev-hwdb"
+    echo "   ninja -C $MESON_BUILD_ROOT sync-udev-hwdb"
     exit 1
 fi
 
