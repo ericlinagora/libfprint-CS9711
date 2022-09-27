@@ -212,6 +212,7 @@ usb:v147Ep1001*
 
 # Supported by libfprint driver upektc
 usb:v0483p2015*
+usb:v0483p2017*
 usb:v147Ep3001*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
