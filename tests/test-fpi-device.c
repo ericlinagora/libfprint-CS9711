@@ -1112,6 +1112,7 @@ test_driver_enroll_update_nbis_wrong_device (void)
   fake_dev = FPI_DEVICE_FAKE (device);
 
   template_print = make_fake_nbis_print (device);
+  g_clear_pointer (&template_print->device_id, g_free);
   template_print->device_id = g_strdup ("wrong_device");
   fake_dev->ret_print = template_print;
 
@@ -1138,6 +1139,7 @@ test_driver_enroll_update_nbis_wrong_driver (void)
   fake_dev = FPI_DEVICE_FAKE (device);
 
   template_print = make_fake_nbis_print (device);
+  g_clear_pointer (&template_print->driver, g_free);
   template_print->driver = g_strdup ("wrong_driver");
   fake_dev->ret_print = template_print;
 
