@@ -187,6 +187,7 @@ fpi_device_fake_identify (FpDevice *device)
   else
     {
       fpi_device_identify_complete (device, fake_dev->ret_error);
+      g_clear_object (&fake_dev->ret_print);
     }
 }
 
