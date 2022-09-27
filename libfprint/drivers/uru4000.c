@@ -1413,6 +1413,9 @@ dev_deinit (FpImageDevice *dev)
     SECITEM_FreeItem (self->param, PR_TRUE);
   if (self->slot)
     PK11_FreeSlot (self->slot);
+
+  NSS_Shutdown ();
+
   g_usb_device_release_interface (fpi_device_get_usb_device (FP_DEVICE (dev)),
                                   self->interface, 0, &error);
   g_clear_pointer (&self->rand, g_rand_free);
