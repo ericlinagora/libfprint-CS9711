@@ -75,7 +75,7 @@ static const unsigned char upek2020_init_capture[] = {
   0x02,
   0x00, /* Wait for acceptable finger */
   0x02,
-  0x14, 0x9a /* CRC */
+  0x25, 0xa9 /* CRC */
 };
 
 #if 0
