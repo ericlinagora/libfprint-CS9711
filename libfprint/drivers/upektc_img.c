@@ -550,11 +550,7 @@ init_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
       FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_GET_CLASS (dev);
       uint16_t width = 0;
 
-#if 0
-      if (data[46] == 0x26 && data[47] == 0x00 && data[48] == 0x00 && data[49] == 0x66) /* Sensor type 66000026 = TCS1s */
-        fp_dbg ("Sensor type : TCS1s");
-#endif
-
+      self->area_sensor = !(data[49] & 0x80);
       width = (data[51] << 8) | data[50];
 
       switch (width)
@@ -563,35 +559,30 @@ init_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
           fp_dbg ("Sensor type : TCS1x"); /* 360x256 --- 270x192 must be set*/
           img_class->img_width = 192;
           img_class->img_height = 270;
-          self->area_sensor = TRUE;
           break;
 
         case 208:
           fp_dbg ("Sensor type : TCS2"); /* 288x208 --- 216x156 must be set*/
           img_class->img_width = 156;
           img_class->img_height = 216;
-          self->area_sensor = TRUE;
           break;
 
         case 248:
           fp_dbg ("Sensor type : TCS3"); /* 360x248 --- 270x186 must be set*/
           img_class->img_width = 186;
           img_class->img_height = 270;
-          self->area_sensor = FALSE;
           break;
 
         case 192:
           fp_dbg ("Sensor type : TCS4x"); /* 512x192 --- 384x144 must be set*/
           img_class->img_width = 144;
           img_class->img_height = 384;
-          self->area_sensor = FALSE;
           break;
 
         case 144:
           fp_dbg ("Sensor type : TCS5x"); /* 512x144 --- 384x108 must be set*/
           img_class->img_width = 108;
           img_class->img_height = 384;
-          self->area_sensor = FALSE;
           break;
 
         default:
