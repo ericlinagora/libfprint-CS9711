@@ -78,6 +78,22 @@ static const unsigned char upek2020_init_capture[] = {
   0x25, 0xa9 /* CRC */
 };
 
+static const unsigned char upek2020_init_capture_press[] = {
+  'C', 'i', 'a', 'o',
+  0x00,
+  0x00, 0x0e, /* Seq = 7, len = 0x00e */
+  0x28, /* CMD = 0x28 */
+  0x0b, 0x00, /* Inner len = 0x000b */
+  0x00, 0x00,
+  0x0e, /* SUBCMD = 0x0e */
+  0x02,
+  0xfe, 0xff, 0xff, 0xff, /* timeout = -2 = 0xfffffffe = infinite time */
+  0x02,
+  0x01, /* Wait for finger */
+  0x02,
+  0x14, 0x9a /* CRC */
+};
+
 #if 0
 static const unsigned char finger_status[] = {
   'C', 'i', 'a', 'o',

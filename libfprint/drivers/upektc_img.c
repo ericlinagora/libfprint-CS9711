@@ -246,8 +246,21 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
                                      CAPTURE_ACK_00_28);
               break;
 
+            case 0x13:
+              /* finger is present keep your finger on reader */
+              fpi_ssm_jump_to_state (transfer->ssm,
+                                     self->area_sensor ?
+                                     CAPTURE_ACK_00_28 : CAPTURE_ACK_00_28_TERM);
+              break;
+
             case 0x00:
               /* finger is present! */
+              fpi_ssm_jump_to_state (transfer->ssm,
+                                     CAPTURE_ACK_00_28);
+              break;
+
+            case 0x01:
+              /* no finger! */
               fpi_ssm_jump_to_state (transfer->ssm,
                                      CAPTURE_ACK_00_28);
               break;
@@ -260,18 +273,20 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
               fpi_image_device_report_finger_status (dev,
                                                      FALSE);
               fpi_ssm_jump_to_state (transfer->ssm,
-                                     CAPTURE_ACK_00_28_TERM);
+                                     self->area_sensor ?
+                                     CAPTURE_ACK_00_28 : CAPTURE_ACK_00_28_TERM);
               break;
 
             case 0x1d:
-              /* too much horisontal movement */
-              fp_err ("too much horisontal movement, aborting");
+              /* too much horizontal movement */
+              fp_err ("too much horizontal movement, aborting");
               fpi_image_device_retry_scan (dev,
                                            FP_DEVICE_RETRY_CENTER_FINGER);
               fpi_image_device_report_finger_status (dev,
                                                      FALSE);
               fpi_ssm_jump_to_state (transfer->ssm,
-                                     CAPTURE_ACK_00_28_TERM);
+                                     self->area_sensor ?
+                                     CAPTURE_ACK_00_28 : CAPTURE_ACK_00_28_TERM);
               break;
 
             default:
@@ -282,7 +297,8 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
               fpi_image_device_report_finger_status (dev,
                                                      FALSE);
               fpi_ssm_jump_to_state (transfer->ssm,
-                                     CAPTURE_ACK_00_28_TERM);
+                                     self->area_sensor ?
+                                     CAPTURE_ACK_00_28 : CAPTURE_ACK_00_28_TERM);
               break;
             }
           break;
@@ -345,8 +361,12 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
   switch (fpi_ssm_get_cur_state (ssm))
     {
     case CAPTURE_INIT_CAPTURE:
-      upektc_img_submit_req (ssm, dev, upek2020_init_capture, sizeof (upek2020_init_capture),
-                             self->seq, capture_reqs_cb);
+      if (self->area_sensor)
+        upektc_img_submit_req (ssm, dev, upek2020_init_capture_press, sizeof (upek2020_init_capture_press),
+                               self->seq, capture_reqs_cb);
+      else
+        upektc_img_submit_req (ssm, dev, upek2020_init_capture, sizeof (upek2020_init_capture),
+                               self->seq, capture_reqs_cb);
       self->seq++;
       break;
 
