@@ -25,7 +25,7 @@
 
 #include <nbis.h>
 
-#if HAVE_PIXMAN
+#ifdef HAVE_PIXMAN
 #include <pixman.h>
 #endif
 
@@ -107,7 +107,7 @@ fpi_mean_sq_diff_norm (const guint8 *buf1,
   return res / size;
 }
 
-#if HAVE_PIXMAN
+#ifdef HAVE_PIXMAN
 FpImage *
 fpi_image_resize (FpImage *orig_img,
                   guint    w_factor,
