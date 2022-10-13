@@ -197,7 +197,7 @@ container_fedora_build_on_deps_changed:
   extends: .container_fedora_build_base
   only:
     variables:
-      - $CI_PROJECT_NAMESPACE == "libfprint"
+      - $CI_PROJECT_NAMESPACE == "libfprint" && $CI_PIPELINE_SOURCE != "schedule"
     refs:
       - branches
       - merge_requests
