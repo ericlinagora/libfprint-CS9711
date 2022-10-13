@@ -248,6 +248,9 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
             case 0x13:
               /* finger is present keep your finger on reader */
+              fpi_device_report_finger_status_changes (device,
+                                                       FP_FINGER_STATUS_NEEDED,
+                                                       FP_FINGER_STATUS_NONE);
               fpi_ssm_jump_to_state (transfer->ssm,
                                      self->area_sensor ?
                                      CAPTURE_ACK_00_28 : CAPTURE_ACK_00_28_TERM);
@@ -255,12 +258,18 @@ capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
             case 0x00:
               /* finger is present! */
+              fpi_device_report_finger_status_changes (device,
+                                                       FP_FINGER_STATUS_PRESENT,
+                                                       FP_FINGER_STATUS_NONE);
               fpi_ssm_jump_to_state (transfer->ssm,
                                      CAPTURE_ACK_00_28);
               break;
 
             case 0x01:
               /* no finger! */
+              fpi_device_report_finger_status_changes (device,
+                                                       FP_FINGER_STATUS_NONE,
+                                                       FP_FINGER_STATUS_PRESENT);
               fpi_ssm_jump_to_state (transfer->ssm,
                                      CAPTURE_ACK_00_28);
               break;
