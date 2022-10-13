@@ -36,7 +36,10 @@
     dnf debuginfo-install -y \
       glib2 \
       glibc \
-      libgusb
+      libgusb \
+      libusb \
+      nss \
+      pixman
 
     git clone https://github.com/martinpitt/umockdev.git && \
         cd umockdev && \
