@@ -549,10 +549,11 @@ init_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
   FpiDeviceUpektcImg *self = FPI_DEVICE_UPEKTC_IMG (dev);
   unsigned char *data = self->response;
 
-  if (!error)
-    fpi_ssm_next_state (transfer->ssm);
-  else
-    fpi_ssm_mark_failed (transfer->ssm, error);
+  if (error)
+    {
+      fpi_ssm_mark_failed (transfer->ssm, error);
+      return;
+    }
 
   if (data[12] == 0x06 && data[13] == 0x14)  /* if get_info */
     {
@@ -608,6 +609,8 @@ init_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
       self->expected_image_size = img_class->img_width * img_class->img_height;
       self->image_bits = g_malloc0 (self->expected_image_size * 2);
     }
+
+  fpi_ssm_next_state (transfer->ssm);
 }
 
 static void
