@@ -557,39 +557,44 @@ init_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
   if (data[12] == 0x06 && data[13] == 0x14)  /* if get_info */
     {
       FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_GET_CLASS (dev);
-      uint16_t width = 0;
+      uint16_t width = (data[51] << 8) | data[50];
+      uint16_t height = (data[53] << 8) | data[52];
 
       self->area_sensor = !(data[49] & 0x80);
-      width = (data[51] << 8) | data[50];
 
       switch (width)
         {
         case 256:
-          fp_dbg ("Sensor type : TCS1x"); /* 360x256 --- 270x192 must be set*/
+          fp_dbg ("Sensor type : TCS1x, width x height: %hu x %hu", width, height); /* 360x256 --- 270x192 must be set */
+          BUG_ON (height != 360);
           img_class->img_width = 192;
           img_class->img_height = 270;
           break;
 
         case 208:
-          fp_dbg ("Sensor type : TCS2"); /* 288x208 --- 216x156 must be set*/
+          fp_dbg ("Sensor type : TCS2, width x height: %hu x %hu", width, height); /* 288x208 --- 216x156 must be set */
+          BUG_ON (height != 288);
           img_class->img_width = 156;
           img_class->img_height = 216;
           break;
 
         case 248:
-          fp_dbg ("Sensor type : TCS3"); /* 360x248 --- 270x186 must be set*/
+          fp_dbg ("Sensor type : TCS3, width x height: %hu x %hu", width, height); /* 360x248 --- 270x186 must be set */
+          BUG_ON (height != 360);
           img_class->img_width = 186;
           img_class->img_height = 270;
           break;
 
         case 192:
-          fp_dbg ("Sensor type : TCS4x"); /* 512x192 --- 384x144 must be set*/
+          fp_dbg ("Sensor type : TCS4x, width x height: %hu x %hu", width, height); /* 512x192 --- 384x144 must be set */
+          BUG_ON (height != 512);
           img_class->img_width = 144;
           img_class->img_height = 384;
           break;
 
         case 144:
-          fp_dbg ("Sensor type : TCS5x"); /* 512x144 --- 384x108 must be set*/
+          fp_dbg ("Sensor type : TCS5x, width x height: %hu x %hu", width, height); /* 512x144 --- 384x108 must be set */
+          BUG_ON (height != 512);
           img_class->img_width = 108;
           img_class->img_height = 384;
           break;
