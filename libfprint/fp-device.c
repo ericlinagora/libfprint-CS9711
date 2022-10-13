@@ -1088,6 +1088,15 @@ fp_device_resume_finish (FpDevice     *device,
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+static void
+enroll_data_free (FpEnrollData *data)
+{
+  if (data->enroll_progress_destroy)
+    data->enroll_progress_destroy (data->enroll_progress_data);
+  data->enroll_progress_data = NULL;
+  g_clear_object (&data->print);
+  g_free (data);
+}
 
 /**
  * fp_device_enroll:
@@ -1215,6 +1224,23 @@ fp_device_enroll_finish (FpDevice     *device,
                          GError      **error)
 {
   return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+static void
+match_data_free (FpMatchData *data)
+{
+  g_clear_object (&data->print);
+  g_clear_object (&data->match);
+  g_clear_error (&data->error);
+
+  if (data->match_destroy)
+    data->match_destroy (data->match_data);
+  data->match_data = NULL;
+
+  g_clear_object (&data->enrolled_print);
+  g_clear_pointer (&data->gallery, g_ptr_array_unref);
+
+  g_free (data);
 }
 
 /**
