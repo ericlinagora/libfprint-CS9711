@@ -132,7 +132,11 @@ fpc_cmd_receive_cb (FpiUsbTransfer *transfer,
     }
 
   ssm_state = fpi_ssm_get_cur_state (transfer->ssm);
-  fp_dbg ("%s current ssm state: %d", G_STRFUNC, ssm_state);
+  fp_dbg ("%s current ssm request: %d state: %d", G_STRFUNC, data->request, ssm_state);
+
+  /* clean cmd_ssm except capture command for suspend/resume case */
+  if (ssm_state != FP_CMD_SEND || data->request != FPC_CMD_ARM)
+    self->cmd_ssm = NULL;
 
   if (data->cmdtype == FPC_CMDTYPE_TO_DEVICE)
     {
@@ -358,6 +362,7 @@ fpc_sensor_cmd (FpiDeviceFpcMoc *self,
       g_clear_object (&self->interrupt_cancellable);
     }
 
+  g_assert (self->cmd_ssm == NULL);
   self->cmd_ssm = fpi_ssm_new (FP_DEVICE (self),
                                fpc_cmd_run_state,
                                FP_CMD_NUM_STATES);
