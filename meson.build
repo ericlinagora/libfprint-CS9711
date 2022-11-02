@@ -321,3 +321,5 @@ pkgconfig.generate(
     subdirs: versioned_libname,
     filebase: versioned_libname,
 )
+
+summary({'Drivers': drivers, }, section: 'Drivers')
