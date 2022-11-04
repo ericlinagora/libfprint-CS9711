@@ -5,6 +5,7 @@ project('libfprint', [ 'c', 'cpp' ],
         'buildtype=debugoptimized',
         'warning_level=1',
         'c_std=gnu99',
+        'cpp_std=c++17',
     ],
     meson_version: '>= 0.56.0')
 
