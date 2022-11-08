@@ -143,6 +143,8 @@ driver_sources = {
         [ 'drivers/fpcmoc/fpc.c' ],
     'realtek' :
         [ 'drivers/realtek/realtek.c' ],
+    'focaltech_moc' :
+        [ 'drivers/focaltech_moc/focaltech_moc.c' ],
 }
 
 helper_sources = {

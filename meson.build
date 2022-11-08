@@ -132,6 +132,7 @@ default_drivers = [
     'nb1010',
     'fpcmoc',
     'realtek',
+    'focaltech_moc',
 
     # SPI
     'elanspi',

@@ -53,6 +53,7 @@ drivers_tests = [
     'egis0570',
     'fpcmoc',
     'realtek',
+    'focaltech_moc',
 ]
 
 if get_option('introspection')
