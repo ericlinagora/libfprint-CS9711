@@ -602,10 +602,15 @@ init_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
 
         default:
           fp_dbg ("Sensor type : Unknown");
-          break;
+
+          fpi_ssm_mark_failed (transfer->ssm,
+                               fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
+                                                         "Unknown sensor type (reported size %dx%d)",
+                                                         width, height));
+
+          return;
         }
 
-      BUG_ON (img_class->img_width == -1 || img_class->img_height == -1);
       self->expected_image_size = img_class->img_width * img_class->img_height;
       self->image_bits = g_malloc0 (self->expected_image_size * 2);
     }
