@@ -173,7 +173,7 @@ typedef struct
 
 typedef struct
 {
-  SigfmImgInfo        * sigfm_info;
+  SigfmImgInfo      * sigfm_info;
   guchar            * image;
   gint                width;
   gint                height;
@@ -199,7 +199,7 @@ fp_image_sigfm_extract_free (ExtractSigfmData * data)
 
 static void
 fp_image_sigfm_extract_cb (GObject * source_object, GAsyncResult * res,
-                         gpointer user_data)
+                           gpointer user_data)
 {
   GTask * task = G_TASK (res);
   FpImage * image;
@@ -306,8 +306,8 @@ invert_colors (guint8 *data, gint width, gint height)
 
 static void
 fp_image_sigfm_extract_thread_func (GTask * task, void * src_obj,
-                                  void * task_data,
-                                  GCancellable * cancellable)
+                                    void * task_data,
+                                    GCancellable * cancellable)
 {
   ExtractSigfmData * data = task_data;
   GTimer * timer = g_timer_new ();
@@ -519,7 +519,7 @@ fp_image_get_sigfm_info (FpImage * self)
  */
 void
 fp_image_extract_sigfm_info (FpImage * self, GCancellable * cancellable,
-                           GAsyncReadyCallback callback, gpointer user_data)
+                             GAsyncReadyCallback callback, gpointer user_data)
 {
   GTask * task;
   ExtractSigfmData * data = g_new0 (ExtractSigfmData, 1);
