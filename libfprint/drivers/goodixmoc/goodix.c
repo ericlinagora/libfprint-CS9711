@@ -1360,6 +1360,7 @@ gx_fp_probe (FpDevice *device)
     case 0x6496:
     case 0x60A2:
     case 0x6014:
+    case 0x6092:
     case 0x6094:
     case 0x609C:
     case 0x631C:
@@ -1602,6 +1603,7 @@ fpi_device_goodixmoc_init (FpiDeviceGoodixMoc *self)
 static const FpIdEntry id_table[] = {
   { .vid = 0x27c6,  .pid = 0x5840,  },
   { .vid = 0x27c6,  .pid = 0x6014,  },
+  { .vid = 0x27c6,  .pid = 0x6092,  },
   { .vid = 0x27c6,  .pid = 0x6094,  },
   { .vid = 0x27c6,  .pid = 0x609C,  },
   { .vid = 0x27c6,  .pid = 0x60A2,  },
