@@ -43,7 +43,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (GDate, g_date_free);
 #define g_memdup2(data, size) g_memdup ((data), (size))
 #else
 #define g_memdup2(data, size)        \
-  (G_GNUC_EXTENSION ({               \
+        (G_GNUC_EXTENSION ({               \
     G_GNUC_BEGIN_IGNORE_DEPRECATIONS \
       g_memdup2 ((data), (size));    \
     G_GNUC_END_IGNORE_DEPRECATIONS   \

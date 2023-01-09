@@ -29,7 +29,7 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (FpPrint, fp_print, FP, PRINT, GInitiallyUnowned)
 
 #define FP_FINGER_IS_VALID(finger) \
-  ((finger) >= FP_FINGER_FIRST && (finger) <= FP_FINGER_LAST)
+        ((finger) >= FP_FINGER_FIRST && (finger) <= FP_FINGER_LAST)
 
 #include "fp-device.h"
 

@@ -102,9 +102,9 @@ plot_minutiae (unsigned char *rgbdata,
   int i;
 
 #define write_pixel(num) do { \
-      rgbdata[((num) * 3)] = 0xff; \
-      rgbdata[((num) * 3) + 1] = 0; \
-      rgbdata[((num) * 3) + 2] = 0; \
+            rgbdata[((num) * 3)] = 0xff; \
+            rgbdata[((num) * 3) + 1] = 0; \
+            rgbdata[((num) * 3) + 2] = 0; \
   } while(0)
 
   for (i = 0; i < minutiae->len; i++)

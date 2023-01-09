@@ -162,9 +162,9 @@ enum {
 
 /* Dump buffer for debug */
 #define dump_buffer(buf) \
-  fp_dbg ("%02x %02x %02x %02x %02x %02x %02x %02x", \
-          buf[6], buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13] \
-         )
+        fp_dbg ("%02x %02x %02x %02x %02x %02x %02x %02x", \
+                buf[6], buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13] \
+               )
 
 /* Callback of asynchronous send */
 static void

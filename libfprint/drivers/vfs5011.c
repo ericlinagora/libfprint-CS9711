@@ -41,30 +41,30 @@ struct usb_action
 };
 
 #define SEND(ENDPOINT, COMMAND) \
-  { \
-    .type = ACTION_SEND, \
-    .endpoint = ENDPOINT, \
-    .name = #COMMAND, \
-    .size = sizeof (COMMAND), \
-    .data = COMMAND \
-  },
+        { \
+          .type = ACTION_SEND, \
+          .endpoint = ENDPOINT, \
+          .name = #COMMAND, \
+          .size = sizeof (COMMAND), \
+          .data = COMMAND \
+        },
 
 #define RECV(ENDPOINT, SIZE) \
-  { \
-    .type = ACTION_RECEIVE, \
-    .endpoint = ENDPOINT, \
-    .size = SIZE, \
-    .data = NULL \
-  },
+        { \
+          .type = ACTION_RECEIVE, \
+          .endpoint = ENDPOINT, \
+          .size = SIZE, \
+          .data = NULL \
+        },
 
 #define RECV_CHECK(ENDPOINT, SIZE, EXPECTED) \
-  { \
-    .type = ACTION_RECEIVE, \
-    .endpoint = ENDPOINT, \
-    .size = SIZE, \
-    .data = EXPECTED, \
-    .correct_reply_size = sizeof (EXPECTED) \
-  },
+        { \
+          .type = ACTION_RECEIVE, \
+          .endpoint = ENDPOINT, \
+          .size = SIZE, \
+          .data = EXPECTED, \
+          .correct_reply_size = sizeof (EXPECTED) \
+        },
 
 struct usbexchange_data
 {

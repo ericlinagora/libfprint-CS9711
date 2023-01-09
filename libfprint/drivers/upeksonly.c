@@ -74,26 +74,26 @@ struct _FpiDeviceUpeksonly
   FpiSsm       *loopsm;
 
   /* Do we really need multiple concurrent transfers? */
-  GCancellable                    *img_cancellable;
-  GPtrArray                       *img_transfers;
-  int                              num_flying;
+  GCancellable  *img_cancellable;
+  GPtrArray     *img_transfers;
+  int            num_flying;
 
-  GSList                          *rows;
-  unsigned                         num_rows;
-  unsigned char                   *rowbuf;
-  int                              rowbuf_offset;
+  GSList        *rows;
+  unsigned       num_rows;
+  unsigned char *rowbuf;
+  int            rowbuf_offset;
 
-  int                              wraparounds;
-  int                              num_blank;
-  int                              num_nonblank;
-  enum sonly_fs                    finger_state;
-  int                              last_seqnum;
+  int            wraparounds;
+  int            num_blank;
+  int            num_nonblank;
+  enum sonly_fs finger_state;
+  int            last_seqnum;
 
   enum sonly_kill_transfers_action killing_transfers;
-  GError                          *kill_error;
-  FpiSsm                          *kill_ssm;
+  GError                   *kill_error;
+  FpiSsm                   *kill_ssm;
 
-  struct fpi_line_asmbl_ctx        assembling_ctx;
+  struct fpi_line_asmbl_ctx assembling_ctx;
 };
 G_DECLARE_FINAL_TYPE (FpiDeviceUpeksonly, fpi_device_upeksonly, FPI,
                       DEVICE_UPEKSONLY, FpImageDevice);
