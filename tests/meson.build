@@ -248,6 +248,7 @@ if valgrind.found()
         '--track-origins=yes',
         '--show-leak-kinds=definite,possible',
         '--show-error-list=yes',
+        '--gen-suppressions=all',
         '--suppressions=' + libfprint_suppressions,
         '--suppressions=' + glib_suppressions,
         '--suppressions=' + python_suppressions,
