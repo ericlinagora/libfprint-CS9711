@@ -41,6 +41,20 @@
 }
 
 {
+   ignore__py_addr32
+   Memcheck:Addr32
+   ...
+   fun:_Py*
+}
+
+{
+   ignore__py_addr32
+   Memcheck:Addr32
+   ...
+   fun:Py*
+}
+
+{
    ignore_py_leaks
    Memcheck:Leak
    ...

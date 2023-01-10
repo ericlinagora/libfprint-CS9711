@@ -17,3 +17,10 @@
    ...
 }
 
+{
+   <ignore-g-thread-new-leak>
+   Memcheck:Leak
+   fun:calloc
+   ...
+   fun:g_thread_new
+}
