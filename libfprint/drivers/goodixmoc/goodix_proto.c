@@ -343,10 +343,10 @@ gx_proto_parse_body (uint16_t cmd, uint8_t *buffer, uint16_t buffer_len, pgxfp_c
       break;
 
     case MOC_CMD0_ENROLL_INIT:
-      if (buffer_len < sizeof (gxfp_enroll_init_t) + 1)
+      if (buffer_len < sizeof (gxfp_enroll_create_t) + 1)
         return -1;
       if (presp->result == GX_SUCCESS)
-        memcpy (&presp->enroll_init.tid, &buffer[1], TEMPLATE_ID_SIZE);
+        memcpy (&presp->enroll_create.tid, &buffer[1], TEMPLATE_ID_SIZE);
       break;
 
     case MOC_CMD0_ENROLL:

@@ -105,10 +105,10 @@ typedef struct _gxfp_parse_msg
 } gxfp_parse_msg_t, *pgxfp_parse_msg_t;
 
 
-typedef struct _gxfp_enroll_init
+typedef struct _gxfp_enroll_create
 {
   uint8_t tid[TEMPLATE_ID_SIZE];
-} gxfp_enroll_init_t, *pgxfp_enroll_init_t;
+} gxfp_enroll_create_t, *pgxfp_enroll_create_t;
 
 #pragma pack(push, 1)
 typedef struct _template_format
@@ -192,7 +192,7 @@ typedef struct _fp_cmd_response
   {
     gxfp_parse_msg_t       parse_msg;
     gxfp_verify_t          verify;
-    gxfp_enroll_init_t     enroll_init;
+    gxfp_enroll_create_t   enroll_create;
     gxfp_capturedata_t     capture_data_resp;
     gxfp_check_duplicate_t check_duplicate_resp;
     gxfp_enroll_commit_t   enroll_commit;

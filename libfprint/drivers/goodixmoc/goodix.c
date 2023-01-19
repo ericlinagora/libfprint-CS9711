@@ -631,20 +631,20 @@ fp_enroll_enum_cb (FpiDeviceGoodixMoc  *self,
       return;
     }
 
-  fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_CREATE);
+  fpi_ssm_next_state (self->task_ssm);
 }
 
 static void
-fp_enroll_init_cb (FpiDeviceGoodixMoc  *self,
-                   gxfp_cmd_response_t *resp,
-                   GError              *error)
+fp_enroll_create_cb (FpiDeviceGoodixMoc  *self,
+                     gxfp_cmd_response_t *resp,
+                     GError              *error)
 {
   if (error)
     {
       fpi_ssm_mark_failed (self->task_ssm, error);
       return;
     }
-  memcpy (self->template_id, resp->enroll_init.tid, TEMPLATE_ID_SIZE);
+  memcpy (self->template_id, resp->enroll_create.tid, TEMPLATE_ID_SIZE);
   fpi_ssm_next_state (self->task_ssm);
 }
 
@@ -837,16 +837,6 @@ fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
 
   switch (fpi_ssm_get_cur_state (ssm))
     {
-    case FP_ENROLL_ENUM:
-      {
-        goodix_sensor_cmd (self, MOC_CMD0_GETFINGERLIST, MOC_CMD1_DEFAULT,
-                           false,
-                           (const guint8 *) &dummy,
-                           1,
-                           fp_enroll_enum_cb);
-      }
-      break;
-
     case FP_ENROLL_PWR_BTN_SHIELD_ON:
       {
         goodix_sensor_cmd (self, MOC_CMD0_PWR_BTN_SHIELD, MOC_CMD1_PWR_BTN_SHIELD_ON,
@@ -857,13 +847,23 @@ fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
       }
       break;
 
+    case FP_ENROLL_ENUM:
+      {
+        goodix_sensor_cmd (self, MOC_CMD0_GETFINGERLIST, MOC_CMD1_DEFAULT,
+                           false,
+                           (const guint8 *) &dummy,
+                           1,
+                           fp_enroll_enum_cb);
+      }
+      break;
+
     case FP_ENROLL_CREATE:
       {
         goodix_sensor_cmd (self, MOC_CMD0_ENROLL_INIT, MOC_CMD1_DEFAULT,
                            false,
                            (const guint8 *) &dummy,
                            1,
-                           fp_enroll_init_cb);
+                           fp_enroll_create_cb);
       }
       break;
 
