@@ -631,7 +631,7 @@ fp_enroll_enum_cb (FpiDeviceGoodixMoc  *self,
       return;
     }
 
-  fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_CAPTURE);
+  fpi_ssm_jump_to_state (self->task_ssm, FP_ENROLL_CREATE);
 }
 
 static void
