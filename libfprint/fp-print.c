@@ -681,7 +681,7 @@ fp_print_serialize (FpPrint *print,
   g_variant_builder_open (&builder, G_VARIANT_TYPE_VARDICT);
   g_variant_builder_close (&builder);
 
-  GPtrArray * to_free = g_ptr_array_new ();
+  GPtrArray * to_free = NULL;
 
   /* Insert NBIS print data for type NBIS, otherwise the GVariant directly */
   if (print->type == FPI_PRINT_NBIS)
@@ -719,6 +719,8 @@ fp_print_serialize (FpPrint *print,
     }
   else if (print->type == FPI_PRINT_SIGFM)
     {
+      to_free = g_ptr_array_new ();
+      g_ptr_array_set_free_func (to_free, free);
       GVariantBuilder nested =
         G_VARIANT_BUILDER_INIT (G_VARIANT_TYPE ("(a(ay))"));
       g_variant_builder_open (&nested, G_VARIANT_TYPE ("a(ay)"));
@@ -765,7 +767,8 @@ fp_print_serialize (FpPrint *print,
 
   g_variant_get_data (result);
   g_variant_store (result, (*data) + 3);
-  g_clear_object (&to_free);
+  if (to_free != NULL)
+    g_ptr_array_free (to_free, TRUE);
 
   return TRUE;
 }
