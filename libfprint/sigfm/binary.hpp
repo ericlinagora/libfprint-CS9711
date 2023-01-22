@@ -98,6 +98,9 @@ public:
                          bool> = true>
     constexpr stream& read(Iter&& begin, std::size_t dist)
     {
+        if (dist > store_.size()) {
+            throw std::runtime_error{"trying to read too much from a stream. wanted: " + std::to_string(dist) + " available: " + std::to_string(store_.size())};
+        }
         std::copy(store_.begin(), store_.begin() + dist, begin);
         store_.erase(store_.begin(), store_.begin() + dist);
         return *this;

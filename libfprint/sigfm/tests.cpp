@@ -89,6 +89,13 @@ TEST_SUITE("binary")
         CHECK(std::equal(input.datastart, input.dataend, output.datastart,
                          output.dataend));
     }
+    TEST_CASE("taking more than giving to a stream will cause an exception") {
+        bin::stream s;
+        s << 5;
+        int v1;
+        s >> v1;
+        CHECK_THROWS(s >> v1);
+    }
 
     TEST_CASE("vector of values can be stored and restored")
     {
