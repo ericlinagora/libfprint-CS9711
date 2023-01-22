@@ -147,5 +147,7 @@ TEST_SUITE("binary")
             info2->descriptors.datastart, info2->descriptors.dataend));
         sigfm_free_info(info);
         sigfm_free_info(info2);
+        free(bin_data);
+        free(bin_data2);
     }
 }
