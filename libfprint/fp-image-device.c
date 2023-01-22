@@ -126,9 +126,10 @@ fp_image_device_start_capture_action (FpDevice *device)
       FpPrint *enroll_print = NULL;
 
       fpi_device_get_enroll_data (device, &enroll_print);
+      FpiPrintType print_type;
       g_object_get (enroll_print, "fpi-type", &print_type, NULL);
-      if (print_type != FPI_PRINT_NBIS)
-        fpi_print_set_type (enroll_print, FPI_PRINT_NBIS);
+      if (print_type != priv->algorithm)
+        fpi_print_set_type (enroll_print, priv->algorithm);
     }
 
   priv->enroll_stage = 0;
