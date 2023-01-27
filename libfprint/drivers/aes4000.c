@@ -124,7 +124,7 @@ G_DEFINE_TYPE (FpiDeviceAes4000, fpi_device_aes4000, FPI_TYPE_DEVICE_AES3K);
 
 
 static const FpIdEntry id_table[] = {
-  { .pid = 0x08ff, .vid = 0x5501 },
+  { .vid = 0x08ff, .pid = 0x5501 },
   { .vid = 0,  .pid = 0,  .driver_data = 0 },
 };
 
