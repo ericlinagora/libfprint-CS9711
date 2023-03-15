@@ -15,6 +15,11 @@ variables:
   BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'push'
+
 stages:
   - image-build
   - check-source
