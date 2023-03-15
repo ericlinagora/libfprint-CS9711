@@ -73,8 +73,8 @@ test:
     - meson --werror -Ddrivers=all -Db_coverage=true . _build
     - ninja -C _build
     - meson test -C _build --print-errorlogs --no-stdsplit --timeout-multiplier 3
-    - ninja -C _build coverage
-    - cat _build/meson-logs/coverage.txt
+    - ninja -C _build coverage || true # FIXME: always enable this once meson is fixed
+    - cat _build/meson-logs/coverage.txt || true
   artifacts:
     reports:
       junit: "_build/meson-logs/testlog.junit.xml"
