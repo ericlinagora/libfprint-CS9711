@@ -273,7 +273,8 @@ on_stream_read_cb (GObject      *source_object,
         }
       else
         {
-          // g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "Got empty data");
+          g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+                                   "Got empty data");
           return;
         }
     }
