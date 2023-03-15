@@ -30,8 +30,10 @@
 #include "fp-print-private.h"
 
 /* gcc 12.0.1 is complaining about dangling pointers in the auto_close* functions */
+#if G_GNUC_CHECK_VERSION (12, 0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
 
 /* Utility functions */
 
@@ -69,7 +71,9 @@ auto_close_fake_device_free (FpAutoCloseDevice *device)
 }
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpAutoCloseDevice, auto_close_fake_device_free)
 
+#if G_GNUC_CHECK_VERSION (12, 0)
 #pragma GCC diagnostic pop
+#endif
 
 typedef FpDeviceClass FpAutoResetClass;
 static FpAutoResetClass default_fake_dev_class = {0};
