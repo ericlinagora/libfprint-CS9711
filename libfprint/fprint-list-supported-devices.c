@@ -132,7 +132,7 @@ main (int argc, char **argv)
     g_print ("%s", (char *) l->data);
   g_print ("\n");
 
-  g_list_free_full (usb_list, g_free);
+  g_list_free_full (g_steal_pointer (&usb_list), g_free);
 
   g_print ("## SPI devices\n");
   g_print ("\n");
@@ -146,7 +146,7 @@ main (int argc, char **argv)
     g_print ("%s", (char *) l->data);
   g_print ("\n");
 
-  g_list_free_full (usb_list, g_free);
+  g_list_free_full (g_steal_pointer (&spi_list), g_free);
 
 
   g_hash_table_destroy (printed);
