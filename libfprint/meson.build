@@ -295,6 +295,9 @@ libfprint_dep = declare_dependency(link_with: libfprint,
 install_headers(['fprint.h'] + libfprint_public_headers,
     subdir: versioned_libname
 )
+install_headers(['sigfm/sigfm.h'],
+  subdir: versioned_libname + '/sigfm'
+)
 
 libfprint_private_dep = declare_dependency(
     include_directories: include_directories('.'),
