@@ -733,7 +733,13 @@ dev_deinit (FpDevice *dev)
     }
 
   if (!self->keep_alive)
-    stop_listener (self);
+    {
+      stop_listener (self);
+      self->supports_cancellation = TRUE;
+    }
+
+  self->enroll_stages_passed = 0;
+  self->match_reported = FALSE;
 
   fpi_device_close_complete (dev, NULL);
 }
