@@ -362,13 +362,22 @@ class VirtualDeviceUnplugging(VirtualDeviceBase):
             notified_spec = spec
 
         removed = False
+        ctx_removed = False
+
+        def on_ctx_removed(ctx, dev):
+            nonlocal ctx_removed
+            ctx_removed = dev == self.dev
+            self.assertEqual(removed, ctx_removed)
+
         def on_removed(dev):
             nonlocal removed
             removed = dev.props.removed
+            self.assertNotEqual(removed, ctx_removed)
 
         self.assertFalse(self.dev.props.removed)
 
         self.dev.connect('notify::removed', on_removed_notify)
+        self.ctx.connect('device-removed', on_ctx_removed)
         self.dev.connect('removed', on_removed)
         self.send_command('UNPLUG')
         self.assertEqual(notified_spec.name, 'removed')
@@ -381,6 +390,11 @@ class VirtualDeviceUnplugging(VirtualDeviceBase):
         self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
                                                 FPrint.DeviceError.REMOVED))
 
+        while not ctx_removed:
+            ctx.iteration(True)
+
+        self.assertNotIn(self.dev, self.ctx.get_devices())
+
     def test_device_unplug_during_verify(self):
         self._close_on_teardown = False
         self._destroy_on_teardown = True
@@ -391,12 +405,21 @@ class VirtualDeviceUnplugging(VirtualDeviceBase):
             notified_spec = spec
 
         removed = False
+        ctx_removed = False
+
+        def on_ctx_removed(ctx, dev):
+            nonlocal ctx_removed
+            ctx_removed = dev == self.dev
+            self.assertEqual(removed, ctx_removed)
+
         def on_removed(dev):
             nonlocal removed
             removed = dev.props.removed
+            self.assertNotEqual(removed, ctx_removed)
 
         self.assertFalse(self.dev.props.removed)
         self.dev.connect('notify::removed', on_removed_notify)
+        self.ctx.connect('device-removed', on_ctx_removed)
         self.dev.connect('removed', on_removed)
 
         self.start_verify(FPrint.Print.new(self.dev),
@@ -420,6 +443,11 @@ class VirtualDeviceUnplugging(VirtualDeviceBase):
             self.dev.close_sync()
         self.assertTrue(error.exception.matches(FPrint.DeviceError.quark(),
                                                 FPrint.DeviceError.REMOVED))
+
+        while not ctx_removed:
+            ctx.iteration(True)
+
+        self.assertNotIn(self.dev, self.ctx.get_devices())
 
 
 class VirtualDevice(VirtualDeviceBase):
