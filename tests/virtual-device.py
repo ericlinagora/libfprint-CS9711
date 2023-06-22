@@ -59,6 +59,8 @@ class GLibErrorMessage:
 
 class VirtualDeviceBase(unittest.TestCase):
 
+    DEFAULT_ENROLL_STEPS = 5
+
     @classmethod
     def setUpClass(cls):
         unittest.TestCase.setUpClass()
@@ -101,6 +103,7 @@ class VirtualDeviceBase(unittest.TestCase):
     def tearDown(self):
         if self._close_on_teardown:
             self.assertTrue(self.dev.is_open())
+            self.send_command('SET_ENROLL_STAGES', self.DEFAULT_ENROLL_STEPS)
             self.dev.close_sync()
         self.assertFalse(self.dev.is_open())
         super().tearDown()
@@ -339,7 +342,8 @@ class VirtualDevice(VirtualDeviceBase):
         self.assertEqual(self.dev.get_name(), 'Virtual device for debugging')
         self.assertTrue(self.dev.is_open())
         self.assertEqual(self.dev.get_scan_type(), FPrint.ScanType.SWIPE)
-        self.assertEqual(self.dev.get_nr_enroll_stages(), 5)
+        self.assertEqual(self.dev.get_nr_enroll_stages(),
+                         self.DEFAULT_ENROLL_STEPS)
         self.assertFalse(self.dev.supports_identify())
         self.assertFalse(self.dev.supports_capture())
         self.assertFalse(self.dev.has_storage())
