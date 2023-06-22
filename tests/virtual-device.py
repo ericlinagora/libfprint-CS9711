@@ -103,6 +103,7 @@ class VirtualDeviceBase(unittest.TestCase):
     def tearDown(self):
         if self._close_on_teardown:
             self.assertTrue(self.dev.is_open())
+            self.set_keep_alive(False)
             self.send_command('SET_ENROLL_STAGES', self.DEFAULT_ENROLL_STEPS)
             self.dev.close_sync()
         self.assertFalse(self.dev.is_open())
