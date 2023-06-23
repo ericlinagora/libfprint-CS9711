@@ -46,12 +46,15 @@ def load_image(img):
 
     return img
 
-if hasattr(os.environ, 'MESON_SOURCE_ROOT'):
-    root = os.environ['MESON_SOURCE_ROOT']
+if 'FP_PRINTS_PATH' in os.environ:
+    prints_path = os.environ['FP_PRINTS_PATH']
 else:
-    root = os.path.join(os.path.dirname(__file__), '..')
+    if 'MESON_SOURCE_ROOT' in os.environ:
+        root = os.environ['MESON_SOURCE_ROOT']
+    else:
+        root = os.path.join(os.path.dirname(__file__), '..')
 
-imgdir = os.path.join(root, 'examples', 'prints')
+    prints_path = os.path.join(root, 'examples', 'prints')
 
 ctx = GLib.main_context_default()
 
@@ -76,9 +79,11 @@ class VirtualImage(unittest.TestCase):
         assert cls.dev is not None, "You need to compile with virtual_image for testing"
 
         cls.prints = {}
-        for f in glob.glob(os.path.join(imgdir, '*.png')):
+        for f in glob.glob(os.path.join(prints_path, '*.png')):
             n = os.path.basename(f)[:-4]
             cls.prints[n] = load_image(f)
+
+        assert cls.prints, "No prints found in " + prints_path
 
     @classmethod
     def tearDownClass(cls):

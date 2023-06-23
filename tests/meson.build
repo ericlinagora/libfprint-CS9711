@@ -19,6 +19,8 @@ envs.set('FP_DRIVERS_WHITELIST', ':'.join([
     'virtual_device_storage',
 ]))
 
+envs.set('FP_PRINTS_PATH', meson.project_source_root() / 'examples' / 'prints')
+
 envs.set('NO_AT_BRIDGE', '1')
 
 drivers_tests = [
