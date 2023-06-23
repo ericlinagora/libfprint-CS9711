@@ -13,6 +13,7 @@
     glib2-devel
     glibc-devel
     gobject-introspection-devel
+    gnome-desktop-testing
     gtk-doc
     gtk3-devel
     libabigail
