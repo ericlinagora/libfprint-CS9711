@@ -118,6 +118,27 @@ test_valgrind:
       - _build/meson-logs/testlog-valgrind.txt
     expire_in: 1 week
 
+test_installed:
+  stage: test
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - meson setup _build --prefix=/usr -Ddrivers=all
+    - meson install -C _build
+    - gnome-desktop-testing-runner --list libfprint-2
+    - gnome-desktop-testing-runner libfprint-2
+        --report-directory=_build/installed-tests-report/failed/
+        --log-directory=_build/installed-tests-report/logs/
+        --parallel=0
+  artifacts:
+    expose_as: 'GNOME Tests Runner logs'
+    when: always
+    paths:
+      - _build/meson-logs
+      - _build/installed-tests-report
+    expire_in: 1 week
+
 
 test_scan_build:
   stage: test
