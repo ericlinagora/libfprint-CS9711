@@ -1,0 +1,5 @@
+[Test]
+Type=session
+# We can't use TestEnvironment as per
+#  https://gitlab.gnome.org/GNOME/gnome-desktop-testing/-/issues/1
+Exec=env @driver_env@ @installed_tests_execdir@/@umockdev_test_name@ @installed_tests_testdir@/@driver_test@

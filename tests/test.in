@@ -1,0 +1,6 @@
+[Test]
+Type=session
+# We can't use TestEnvironment as per
+#  https://gitlab.gnome.org/GNOME/gnome-desktop-testing/-/issues/1
+Exec=env @env@ @exec@
+@extra_content@

@@ -13,6 +13,11 @@ gnome = import('gnome')
 libfprint_conf = configuration_data()
 libfprint_conf.set_quoted('LIBFPRINT_VERSION', meson.project_version())
 
+prefix = get_option('prefix')
+libdir = prefix / get_option('libdir')
+libexecdir = prefix / get_option('libexecdir')
+datadir = prefix / get_option('datadir')
+
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 host_system = host_machine.system()
@@ -297,7 +302,6 @@ subdir('libfprint')
 
 configure_file(output: 'config.h', configuration: libfprint_conf)
 
-subdir('examples')
 if get_option('doc')
     subdir('doc')
 endif
@@ -307,6 +311,8 @@ endif
 
 subdir('data')
 subdir('tests')
+
+subdir('examples')
 
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(

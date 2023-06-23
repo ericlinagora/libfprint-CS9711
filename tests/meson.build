@@ -23,6 +23,13 @@ envs.set('FP_PRINTS_PATH', meson.project_source_root() / 'examples' / 'prints')
 
 envs.set('NO_AT_BRIDGE', '1')
 
+python3 = find_program('python3')
+
+installed_tests = get_option('installed-tests')
+installed_tests_execdir = libexecdir / 'installed-tests' / versioned_libname
+installed_tests_testdir = datadir / 'installed-tests' / versioned_libname
+installed_tests_libdir = libdir
+
 drivers_tests = [
     'aes2501',
     'aes3500',
@@ -54,6 +61,16 @@ if get_option('introspection')
       output: 'create-driver-test.py')
 endif
 
+env_parser_cmd = '''
+import os;
+print(" ".join([f"{k}={v}" for k, v in os.environ.items()
+    if k.startswith("FP_") or k.startswith("G_")]))
+'''
+
+envs_str = run_command(python3, '-c', env_parser_cmd,
+    env: envs,
+    check: installed_tests).stdout().strip()
+
 if get_option('introspection')
     envs.prepend('GI_TYPELIB_PATH', meson.project_build_root() / 'libfprint')
     virtual_devices_tests = [
@@ -61,9 +78,9 @@ if get_option('introspection')
         'virtual-device',
     ]
 
-    python3 = find_program('python3')
     unittest_inspector = find_program('unittest_inspector.py')
-    umockdev_test = find_program('umockdev-test.py')
+    umockdev_test_name = 'umockdev-test.py'
+    umockdev_test = find_program(umockdev_test_name)
 
     foreach vdtest: virtual_devices_tests
         driver_name = '_'.join(vdtest.split('-'))
@@ -95,6 +112,31 @@ if get_option('introspection')
                     env: envs,
                 )
             endforeach
+
+            if installed_tests
+                install_data(base_args,
+                    install_dir: installed_tests_execdir,
+                    install_mode: 'rwxr-xr-x',
+                )
+
+                configure_file(
+                    input: 'test.in',
+                    output: vdtest + '.test',
+                    install_dir: installed_tests_testdir,
+                    configuration: {
+                        # FIXME: use fs.name() on meson 0.58
+                        'exec': installed_tests_execdir / '@0@'.format(base_args[0]).split('/')[-1],
+                        'env': ' '.join([
+                            envs_str,
+                            'LD_LIBRARY_PATH=' + installed_tests_libdir,
+                            'FP_PRINTS_PATH=' + installed_tests_testdir / 'prints',
+                            # FIXME: Adding this requires gnome-desktop-testing!12
+                            # 'GI_TYPELIB_PATH=' + installed_tests_libdir / 'girepository-1.0',
+                        ]),
+                        'extra_content': '',
+                    },
+                )
+            endif
         else
             test(vdtest,
                 find_program('sh'),
@@ -103,6 +145,7 @@ if get_option('introspection')
         endif
     endforeach
 
+    driver_tests_enabled = false
     foreach driver_test: drivers_tests
         driver_name = driver_test.split('-')[0]
         driver_envs = envs
@@ -110,6 +153,7 @@ if get_option('introspection')
 
         if (driver_name in supported_drivers and
             gusb_dep.version().version_compare('>= 0.3.0'))
+            driver_tests_enabled = true
             test(driver_test,
                 python3,
                 args: [
@@ -121,6 +165,32 @@ if get_option('introspection')
                 timeout: 15,
                 depends: libfprint_typelib,
             )
+
+            if installed_tests
+                driver_envs_str = run_command(python3, '-c', env_parser_cmd,
+                    env: driver_envs,
+                    check: true).stdout().strip()
+
+                configure_file(
+                    input: 'driver.test.in',
+                    output: 'driver-' + driver_test + '.test',
+                    install_dir: installed_tests_testdir,
+                    configuration: {
+                        'installed_tests_execdir': installed_tests_execdir,
+                        'installed_tests_testdir': installed_tests_testdir,
+                        'umockdev_test_name': umockdev_test_name,
+                        'driver_test': driver_test,
+                        'driver_env': ' '.join([
+                            driver_envs_str,
+                            'LD_LIBRARY_PATH=' + installed_tests_libdir,
+                            # FIXME: Adding this requires gnome-desktop-testing!12
+                            # 'GI_TYPELIB_PATH=' + installed_tests_libdir / 'girepository-1.0',
+                        ]),
+                    },
+                )
+
+                install_subdir(driver_test, install_dir: installed_tests_testdir)
+            endif
         else
             test(driver_test,
                 find_program('sh'),
@@ -128,6 +198,17 @@ if get_option('introspection')
             )
         endif
     endforeach
+
+    if  installed_tests and driver_tests_enabled
+        install_data(umockdev_test.full_path(),
+            install_dir: installed_tests_execdir,
+            install_mode: 'rwxr-xr-x',
+        )
+        install_data('capture.py',
+            install_dir: installed_tests_execdir,
+            install_mode: 'rwxr-xr-x',
+        )
+    endif
 else
     warning('Skipping all driver tests as introspection bindings are missing')
     test('virtual-image',
@@ -200,12 +281,27 @@ foreach test_name: unit_tests
         sources: [basename + '.c', test_config_h],
         dependencies: [ libfprint_private_dep ] + extra_deps,
         c_args: common_cflags,
-        link_with: test_utils,
+        link_whole: test_utils,
+        install: installed_tests,
+        install_dir: installed_tests_execdir,
     )
     test(test_name,
         test_exe,
         suite: ['unit-tests'],
         env: envs,
+    )
+
+    configure_file(
+        input: 'test.in',
+        output: test_name + '.test',
+        install: installed_tests,
+        install_dir: installed_tests_testdir,
+        configuration: {
+            'exec': installed_tests_execdir / basename,
+            'env': envs_str,
+            'extra_content': 'TestEnvironment=LD_LIBRARY_PATH=' +
+                installed_tests_libdir,
+        },
     )
 endforeach
 

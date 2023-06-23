@@ -30,3 +30,7 @@ option('doc',
        description: 'Whether to build the API documentation',
        type: 'boolean',
        value: true)
+option('installed-tests',
+       description: 'Whether to install the installed tests',
+       type: 'boolean',
+       value: true)
