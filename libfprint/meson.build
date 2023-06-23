@@ -263,7 +263,7 @@ libfprint_drivers = static_library('fprint-drivers',
     install: false)
 
 mapfile = files('libfprint.ver')
-vflag = '-Wl,--version-script,@0@/@1@'.format(meson.source_root(), mapfile[0])
+vflag = '-Wl,--version-script,@0@/@1@'.format(meson.project_source_root(), mapfile[0])
 
 libfprint = shared_library(versioned_libname.split('lib')[1],
     sources: [
@@ -339,7 +339,7 @@ sync_udev_udb = custom_target('sync-udev-hwdb',
     command: [
         'cp', '-v',
         udev_hwdb_generator.full_path(),
-        meson.source_root() / 'data'
+        meson.project_source_root() / 'data'
     ]
 )
 

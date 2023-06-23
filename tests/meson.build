@@ -4,9 +4,9 @@ envs.set('G_DEBUG', 'fatal-warnings')
 envs.set('G_MESSAGES_DEBUG', 'all')
 
 # Setup paths
-envs.set('MESON_SOURCE_ROOT', meson.source_root())
-envs.set('MESON_BUILD_ROOT', meson.build_root())
-envs.prepend('LD_LIBRARY_PATH', join_paths(meson.build_root(), 'libfprint'))
+envs.set('MESON_SOURCE_ROOT', meson.project_source_root())
+envs.set('MESON_BUILD_ROOT', meson.project_build_root())
+envs.prepend('LD_LIBRARY_PATH', meson.project_build_root() / 'libfprint')
 
 # Set FP_DEVICE_EMULATION so that drivers can adapt (e.g. to use fixed
 # random numbers rather than proper ones)
@@ -45,15 +45,15 @@ drivers_tests = [
 
 if get_option('introspection')
   conf = configuration_data()
-  conf.set('SRCDIR', meson.source_root())
-  conf.set('BUILDDIR', meson.build_root())
+  conf.set('SRCDIR', meson.project_source_root())
+  conf.set('BUILDDIR', meson.project_build_root())
   configure_file(configuration: conf,
       input: 'create-driver-test.py.in',
       output: 'create-driver-test.py')
 endif
 
 if get_option('introspection')
-    envs.prepend('GI_TYPELIB_PATH', join_paths(meson.build_root(), 'libfprint'))
+    envs.prepend('GI_TYPELIB_PATH', meson.project_build_root() / 'libfprint')
     virtual_devices_tests = [
         'virtual-image',
         'virtual-device',
@@ -165,7 +165,7 @@ endif
 unit_tests_deps = { 'fpi-assembling' : [cairo_dep] }
 
 test_config = configuration_data()
-test_config.set_quoted('SOURCE_ROOT', meson.source_root())
+test_config.set_quoted('SOURCE_ROOT', meson.project_source_root())
 test_config_h = configure_file(output: 'test-config.h', configuration: test_config)
 
 foreach test_name: unit_tests
@@ -218,7 +218,7 @@ test('udev-hwdb',
 gdb = find_program('gdb', required: false)
 if gdb.found()
     libfprint_wrapper = [
-        gdb.path(),
+        gdb.full_path(),
         '-batch',
         '-ex', 'run',
         '--args',
@@ -235,12 +235,12 @@ valgrind = find_program('valgrind', required: false)
 if valgrind.found()
     glib_share = glib_dep.get_pkgconfig_variable('prefix') / 'share' / glib_dep.name()
     glib_suppressions = glib_share + '/valgrind/glib.supp'
-    libfprint_suppressions = '@0@/@1@'.format(meson.source_root(),
+    libfprint_suppressions = '@0@/@1@'.format(meson.project_source_root(),
         files('libfprint.supp')[0])
-    python_suppressions = '@0@/@1@'.format(meson.source_root(),
+    python_suppressions = '@0@/@1@'.format(meson.project_source_root(),
         files('valgrind-python.supp')[0])
     libfprint_wrapper = [
-        valgrind.path(),
+        valgrind.full_path(),
         '--tool=memcheck',
         '--leak-check=full',
         '--leak-resolution=high',

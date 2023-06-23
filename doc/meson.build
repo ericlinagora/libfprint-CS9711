@@ -25,7 +25,7 @@ docpath = join_paths(get_option('datadir'), 'gtk-doc', 'html')
 
 gnome.gtkdoc(versioned_libname,
     main_xml: 'libfprint-docs.xml',
-    src_dir: join_paths(meson.source_root(), 'libfprint'),
+    src_dir: join_paths(meson.project_source_root(), 'libfprint'),
     include_directories: include_directories('../libfprint'),
     dependencies: libfprint_dep,
     content_files: content_files,
