@@ -33,7 +33,8 @@
     diffutils
 
   LIBFPRINT_EXEC: |
-    dnf debuginfo-install -y \
+    dnf -y install dnf-utils
+    debuginfo-install -y \
       glib2 \
       glibc \
       libgusb \
