@@ -207,7 +207,6 @@ flatpak:
       - $CI_PIPELINE_SOURCE == "never"
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
-    FDO_FORCE_REBUILD: 1
     # a list of packages to install
     FDO_DISTRIBUTION_PACKAGES:
       $LIBFPRINT_DEPENDENCIES
@@ -217,14 +216,22 @@ flatpak:
     FDO_DISTRIBUTION_EXEC: |
       $LIBFPRINT_EXEC
 
+.container_fedora_build_forced:
+  variables:
+    FDO_FORCE_REBUILD: 1
+
 container_fedora_build_schedule:
-  extends: .container_fedora_build_base
+  extends:
+    - .container_fedora_build_base
+    - .container_fedora_build_forced
   only:
     variables:
       - $CI_PIPELINE_SOURCE == "schedule" && $CRON_TASK == "BUILD_CI_IMAGES"
 
 container_fedora_build_manual:
-  extends: .container_fedora_build_base
+  extends:
+    - .container_fedora_build_base
+    - .container_fedora_build_forced
   only:
     variables:
       - $LIBFPRINT_CI_ACTION == "build-image"
