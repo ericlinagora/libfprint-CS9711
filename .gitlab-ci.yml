@@ -6,6 +6,16 @@ include:
     file: '/templates/fedora.yml'
   - remote: 'https://gitlab.gnome.org/GNOME/citemplates/-/raw/master/flatpak/flatpak_ci_initiative.yml'
 
+default:
+  # Auto-retry jobs in case of infra failures
+  retry:
+    max: 1
+    when:
+      - 'runner_system_failure'
+      - 'stuck_or_timeout_failure'
+      - 'scheduler_failure'
+      - 'api_failure'
+
 variables:
   extends: .libfprint_common_variables
   FDO_DISTRIBUTION_TAG: $LIBFPRINT_IMAGE_TAG
