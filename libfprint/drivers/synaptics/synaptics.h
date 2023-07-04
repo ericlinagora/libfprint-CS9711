@@ -127,4 +127,5 @@ struct _FpiDeviceSynaptics
 
   struct syna_enroll_resp_data enroll_resp_data;
   syna_state_t                 state;
+  GError                      *delay_error;
 };

@@ -106,7 +106,11 @@ cmd_receive_cb (FpiUsbTransfer *transfer,
 
           if (self->cmd_complete_on_removal)
             {
-              fpi_ssm_mark_completed (transfer->ssm);
+              if (self->delay_error)
+                fpi_ssm_mark_failed (transfer->ssm,
+                                     g_steal_pointer (&self->delay_error));
+              else
+                fpi_ssm_mark_completed (transfer->ssm);
               return;
             }
         }
@@ -641,18 +645,20 @@ verify (FpDevice *device)
 }
 
 static void
-identify_complete_after_finger_removal (FpiDeviceSynaptics *self)
+identify_complete_after_finger_removal (FpiDeviceSynaptics *self, GError *error)
 {
   FpDevice *device = FP_DEVICE (self);
 
   if (self->finger_on_sensor)
     {
       fp_dbg ("delaying identify report until after finger removal!");
+      g_propagate_error (&self->delay_error, error);
+
       self->cmd_complete_on_removal = TRUE;
     }
   else
     {
-      fpi_device_identify_complete (device, NULL);
+      fpi_device_identify_complete (device, error);
     }
 }
 
@@ -702,19 +708,18 @@ identify_msg_cb (FpiDeviceSynaptics *self,
           fp_info ("Match error occurred");
           fpi_device_identify_report (device, NULL, NULL,
                                       fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
-          identify_complete_after_finger_removal (self);
+          identify_complete_after_finger_removal (self, NULL);
         }
       else if (resp->result == BMKT_FP_NO_MATCH)
         {
           fp_info ("Print didn't match");
           fpi_device_identify_report (device, NULL, NULL, NULL);
-          identify_complete_after_finger_removal (self);
+          identify_complete_after_finger_removal (self, NULL);
         }
-      else if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS)
+      else if (resp->result == BMKT_FP_DATABASE_NO_RECORD_EXISTS || resp->result == BMKT_FP_DATABASE_EMPTY)
         {
           fp_info ("Print is not in database");
-          fpi_device_identify_complete (device,
-                                        fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND));
+          identify_complete_after_finger_removal (self, fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND));
         }
       else
         {
@@ -750,7 +755,7 @@ identify_msg_cb (FpiDeviceSynaptics *self,
         else
           fpi_device_identify_report (device, NULL, print, NULL);
 
-        identify_complete_after_finger_removal (self);
+        identify_complete_after_finger_removal (self, NULL);
       }
     }
 }
