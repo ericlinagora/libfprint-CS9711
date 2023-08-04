@@ -52,6 +52,7 @@ drivers_tests = [
     'nb1010',
     'egis0570',
     'fpcmoc',
+    'realtek',
 ]
 
 if get_option('introspection')

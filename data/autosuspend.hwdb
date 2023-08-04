@@ -202,6 +202,11 @@ usb:v298Dp1010*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
+# Supported by libfprint driver realtek
+usb:v0BDAp5813*
+ ID_AUTOSUSPEND=1
+ ID_PERSIST=0
+
 # Supported by libfprint driver synaptics
 usb:v06CBp00BD*
 usb:v06CBp00DF*
