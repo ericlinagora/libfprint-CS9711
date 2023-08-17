@@ -125,17 +125,19 @@ test_installed:
   script:
     - meson setup _build --prefix=/usr -Ddrivers=all
     - meson install -C _build
+    - mv _build _build_dir
+    - rm -rf tests
     - gnome-desktop-testing-runner --list libfprint-2
     - gnome-desktop-testing-runner libfprint-2
-        --report-directory=_build/installed-tests-report/failed/
-        --log-directory=_build/installed-tests-report/logs/
+        --report-directory=_installed-tests-report/failed/
+        --log-directory=_installed-tests-report/logs/
         --parallel=0
   artifacts:
     expose_as: 'GNOME Tests Runner logs'
     when: always
     paths:
-      - _build/meson-logs
-      - _build/installed-tests-report
+      - _build_dir/meson-logs
+      - _installed-tests-report
     expire_in: 1 week
 
 
