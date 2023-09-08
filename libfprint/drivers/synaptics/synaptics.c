@@ -652,7 +652,8 @@ identify_complete_after_finger_removal (FpiDeviceSynaptics *self, GError *error)
   if (self->finger_on_sensor)
     {
       fp_dbg ("delaying identify report until after finger removal!");
-      g_propagate_error (&self->delay_error, error);
+      if (error)
+        g_propagate_error (&self->delay_error, error);
 
       self->cmd_complete_on_removal = TRUE;
     }
