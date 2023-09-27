@@ -4,7 +4,7 @@ include:
   - project: 'freedesktop/ci-templates'
     ref: master
     file: '/templates/fedora.yml'
-  - remote: 'https://gitlab.gnome.org/GNOME/citemplates/-/raw/21e7c107/flatpak/flatpak_ci_initiative.yml'
+  - remote: 'https://gitlab.gnome.org/GNOME/citemplates/-/raw/master/flatpak/flatpak_ci_initiative.yml'
 
 default:
   # Auto-retry jobs in case of infra failures
@@ -178,13 +178,12 @@ test_unsupported_list:
 flatpak:
   stage: flatpak
   extends: .flatpak@x86_64
-  # From https://gitlab.gnome.org/GNOME/gnome-runtime-images/container_registry
-  image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/x86_64/gnome:42
   variables:
     MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
     FLATPAK_MODULE: "libfprint"
     APP_ID: "org.freedesktop.libfprint.Demo"
     BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
+    RUNTIME_REPO: "https://nightly.gnome.org/gnome-nightly.flatpakrepo"
   # Build with any builder
   tags: []
   rules:
