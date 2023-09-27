@@ -4,7 +4,7 @@ include:
   - project: 'freedesktop/ci-templates'
     ref: master
     file: '/templates/fedora.yml'
-  - remote: 'https://gitlab.gnome.org/GNOME/citemplates/-/raw/master/flatpak/flatpak_ci_initiative.yml'
+  - remote: 'https://gitlab.gnome.org/GNOME/citemplates/-/raw/21e7c107/flatpak/flatpak_ci_initiative.yml'
 
 default:
   # Auto-retry jobs in case of infra failures
@@ -22,7 +22,6 @@ variables:
   FDO_DISTRIBUTION_VERSION: rawhide
   FDO_UPSTREAM_REPO: "libfprint/$CI_PROJECT_NAME"
   FEDORA_IMAGE: "$CI_REGISTRY/libfprint/$CI_PROJECT_NAME/fedora/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG"
-  BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
   LAST_ABI_BREAK: "056ea541ddc97f5806cffbd99a12dc87e4da3546"
 
 workflow:
@@ -177,14 +176,18 @@ test_unsupported_list:
     - tests/hwdb-check-unsupported.py
 
 flatpak:
-  stage: flatpak
-  extends: .flatpak
+  #stage: flatpak
+  stage: image-build
+  extends: .flatpak@x86_64
   # From https://gitlab.gnome.org/GNOME/gnome-runtime-images/container_registry
-  image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:42
+  image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/x86_64/gnome:42
   variables:
     MANIFEST_PATH: "demo/org.freedesktop.libfprint.Demo.json"
     FLATPAK_MODULE: "libfprint"
     APP_ID: "org.freedesktop.libfprint.Demo"
+    BUNDLE: "org.freedesktop.libfprint.Demo.flatpak"
+  # Build with any builder
+  tags: []
   rules:
     - if: '$CI_PROJECT_PATH != "libfprint/libfprint"'
       when: never
