@@ -176,8 +176,7 @@ test_unsupported_list:
     - tests/hwdb-check-unsupported.py
 
 flatpak:
-  #stage: flatpak
-  stage: image-build
+  stage: flatpak
   extends: .flatpak@x86_64
   # From https://gitlab.gnome.org/GNOME/gnome-runtime-images/container_registry
   image: registry.gitlab.gnome.org/gnome/gnome-runtime-images/x86_64/gnome:42
@@ -190,7 +189,8 @@ flatpak:
   tags: []
   rules:
     - if: '$CI_PROJECT_PATH != "libfprint/libfprint"'
-      when: never
+      when: manual
+      allow_failure: true
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
@@ -200,6 +200,9 @@ flatpak:
     # For any other (commit), allow manual run.
     # This excludes MRs which would create a duplicate pipeline
     - if: '$CI_COMMIT_BRANCH'
+      when: manual
+      allow_failure: true
+    - if: '$CI_MERGE_REQUEST_ID'
       when: manual
       allow_failure: true
 
