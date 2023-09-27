@@ -285,6 +285,7 @@ usb:v138Ap0091*
  ID_PERSIST=0
 
 # Known unsupported devices
+usb:v047Dp00F2*
 usb:v04E8p730B*
 usb:v04F3p036B*
 usb:v04F3p0C00*
@@ -292,9 +293,12 @@ usb:v04F3p0C4C*
 usb:v04F3p0C57*
 usb:v04F3p0C5E*
 usb:v04F3p0C5A*
+usb:v04F3p0C6C*
 usb:v04F3p0C70*
 usb:v04F3p0C72*
+usb:v04F3p0C77*
 usb:v04F3p2706*
+usb:v04F3p3032*
 usb:v04F3p3057*
 usb:v04F3p3104*
 usb:v04F3p310D*
@@ -343,12 +347,16 @@ usb:v138Ap0094*
 usb:v138Ap0097*
 usb:v138Ap009D*
 usb:v138Ap00AB*
+usb:v138Ap00A6*
 usb:v147Ep1002*
 usb:v1491p0088*
 usb:v16D1p1027*
 usb:v1C7Ap0300*
 usb:v1C7Ap0575*
 usb:v1C7Ap0576*
+usb:v1C7Ap0577*
+usb:v1C7Ap0582*
+usb:v1C7Ap05A1*
 usb:v27C6p5042*
 usb:v27C6p5110*
 usb:v27C6p5117*
@@ -376,6 +384,8 @@ usb:v27C6p55B4*
 usb:v27C6p5740*
 usb:v27C6p5E0A*
 usb:v27C6p581A*
+usb:v27C6p589A*
+usb:v27C6p6382*
 usb:v2808p9338*
 usb:v2808p93A9*
 usb:v298Dp2020*
