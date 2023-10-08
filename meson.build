@@ -120,6 +120,7 @@ default_drivers = [
     'vfs0050',
     'etes603',
     'egis0570',
+    'egismoc',
     'vcom5s',
     'synaptics',
     'elan',
