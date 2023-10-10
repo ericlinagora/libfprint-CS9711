@@ -67,7 +67,6 @@ struct _FpImage
   guint8    *binarized;
 
   GPtrArray *minutiae;
-  guint      ref_count;
 };
 
 gint fpi_std_sq_dev (const guint8 *buf,
