@@ -1385,26 +1385,10 @@ egismoc_close (FpDevice *device)
   GError *error = NULL;
 
   egismoc_cancel (device);
+  g_clear_object (&self->interrupt_cancellable);
 
   g_usb_device_release_interface (fpi_device_get_usb_device (device), 0, 0, &error);
   fpi_device_close_complete (device, error);
-
-  if (self->task_ssm)
-    fpi_ssm_free (self->task_ssm);
-  self->task_ssm = NULL;
-
-  if (self->cmd_ssm)
-    fpi_ssm_free (self->cmd_ssm);
-  self->cmd_ssm = NULL;
-
-  self->cmd_transfer = NULL;
-
-  g_clear_object (&self->interrupt_cancellable);
-
-  if (self->enrolled_ids)
-    g_ptr_array_free (self->enrolled_ids, TRUE);
-  self->enrolled_ids = NULL;
-  self->enrolled_num = -1;
 }
 
 static void
