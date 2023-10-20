@@ -350,16 +350,26 @@ egismoc_exec_cmd (FpDevice         *device,
 
 static void
 egismoc_set_print_data (FpPrint      *print,
-                        const guchar *device_print_id)
+                        const guchar *device_print_id,
+                        const gchar  *user_id)
 {
-  g_autofree gchar *user_id = g_malloc (EGISMOC_FINGERPRINT_DATA_SIZE + 1);
   GVariant *print_id_var = NULL;
   GVariant *fpi_data = NULL;
+  g_autofree gchar *fill_user_id = NULL;
 
-  memcpy (user_id, device_print_id, EGISMOC_FINGERPRINT_DATA_SIZE);
-  memset (user_id + EGISMOC_FINGERPRINT_DATA_SIZE, '\0', sizeof (gchar));
+  if (user_id)
+    {
+      fill_user_id = g_strdup (user_id);
+    }
+  else
+    {
+      fill_user_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE + 1);
+      memcpy (fill_user_id, device_print_id, EGISMOC_FINGERPRINT_DATA_SIZE);
+      memset (fill_user_id + EGISMOC_FINGERPRINT_DATA_SIZE, '\0', sizeof (gchar));
+    }
 
-  fpi_print_fill_from_user_id (print, user_id);
+  fpi_print_fill_from_user_id (print, fill_user_id);
+
   fpi_print_set_type (print, FPI_PRINT_RAW);
   fpi_print_set_device_stored (print, TRUE);
 
@@ -384,7 +394,7 @@ egismoc_get_enrolled_prints (FpDevice *device)
   for (int i = 0; i < self->enrolled_num; i++)
     {
       print = fp_print_new (device);
-      egismoc_set_print_data (print, g_ptr_array_index (self->enrolled_ids, i));
+      egismoc_set_print_data (print, g_ptr_array_index (self->enrolled_ids, i), NULL);
       g_ptr_array_add (result, g_object_ref_sink (print));
     }
 
@@ -990,7 +1000,7 @@ egismoc_enroll_run_state (FpiSsm   *ssm,
 
       device_print_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE);
       memcpy (device_print_id, user_id, MIN (strlen (user_id), EGISMOC_FINGERPRINT_DATA_SIZE));
-      egismoc_set_print_data (enroll_print->print, device_print_id);
+      egismoc_set_print_data (enroll_print->print, device_print_id, user_id);
 
       /* create new dynamic payload of cmd_new_print_prefix + device_print_id */
       payload_length = cmd_new_print_prefix_len + EGISMOC_FINGERPRINT_DATA_SIZE;
@@ -1066,9 +1076,9 @@ egismoc_identify_check_cb (FpDevice *device,
               buffer_in + EGISMOC_IDENTIFY_RESPONSE_PRINT_ID_OFFSET,
               EGISMOC_FINGERPRINT_DATA_SIZE);
 
-      /* Create a new print from this ID and then see if it matches the one indicated */
+      /* Create a new print from this device_print_id and then see if it matches the one indicated */
       print = fp_print_new (device);
-      egismoc_set_print_data (print, device_print_id);
+      egismoc_set_print_data (print, device_print_id, NULL);
 
       if (!print)
         {
