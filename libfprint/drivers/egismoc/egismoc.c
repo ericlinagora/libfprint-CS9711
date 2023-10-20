@@ -373,7 +373,7 @@ egismoc_set_print_data (FpPrint      *print,
   fpi_print_set_type (print, FPI_PRINT_RAW);
   fpi_print_set_device_stored (print, TRUE);
 
-  g_object_set (print, "description", user_id, NULL);
+  g_object_set (print, "description", fill_user_id, NULL);
 
   print_id_var = g_variant_new_fixed_array (G_VARIANT_TYPE_BYTE,
                                             device_print_id,
