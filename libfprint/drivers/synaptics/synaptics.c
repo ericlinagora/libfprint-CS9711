@@ -46,6 +46,7 @@ static const FpIdEntry id_table[] = {
   { .vid = SYNAPTICS_VENDOR_ID,  .pid = 0x015F,  },
   { .vid = SYNAPTICS_VENDOR_ID,  .pid = 0x0104,  },
   { .vid = SYNAPTICS_VENDOR_ID,  .pid = 0x0173,  },
+  { .vid = SYNAPTICS_VENDOR_ID,  .pid = 0x0106,  },
   { .vid = 0,  .pid = 0,  .driver_data = 0 },   /* terminating entry */
 };
 
