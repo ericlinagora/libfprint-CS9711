@@ -33,6 +33,10 @@
 G_DECLARE_FINAL_TYPE (FpiDeviceEgisMoc, fpi_device_egismoc, FPI, DEVICE_EGISMOC, FpDevice)
 
 #define EGISMOC_DRIVER_FULLNAME "Egis Technology (LighTuning) Match-on-Chip"
+
+#define EGISMOC_DRIVER_CHECK_PREFIX_TYPE1 (1 << 0)
+#define EGISMOC_DRIVER_CHECK_PREFIX_TYPE2 (1 << 1)
+
 #define EGISMOC_EP_CMD_OUT (0x02 | FPI_USB_ENDPOINT_OUT)
 #define EGISMOC_EP_CMD_IN (0x81 | FPI_USB_ENDPOINT_IN)
 #define EGISMOC_EP_CMD_INTERRUPT_IN 0x83
@@ -40,7 +44,7 @@ G_DECLARE_FINAL_TYPE (FpiDeviceEgisMoc, fpi_device_egismoc, FPI, DEVICE_EGISMOC,
 #define EGISMOC_USB_CONTROL_TIMEOUT 5000
 #define EGISMOC_USB_SEND_TIMEOUT 5000
 #define EGISMOC_USB_RECV_TIMEOUT 5000
-#define EGISMOC_USB_INTERRUPT_TIMEOUT 0
+#define EGISMOC_USB_INTERRUPT_TIMEOUT 60000
 
 #define EGISMOC_USB_IN_RECV_LENGTH 4096
 #define EGISMOC_USB_INTERRUPT_IN_RECV_LENGTH 64
@@ -91,12 +95,10 @@ static gsize cmd_sensor_check_len = sizeof (cmd_sensor_check) / sizeof (cmd_sens
 
 static guchar cmd_sensor_identify[] = {0x00, 0x00, 0x00, 0x04, 0x50, 0x17, 0x01, 0x01};
 static gsize cmd_sensor_identify_len = sizeof (cmd_sensor_identify) / sizeof (cmd_sensor_identify[0]);
-static guchar rsp_identify_match_prefix[] = {0x00, 0x00, 0x00, 0x42};
-static gsize rsp_identify_match_prefix_len = sizeof (rsp_identify_match_prefix) / sizeof (rsp_identify_match_prefix[0]);
 static guchar rsp_identify_match_suffix[] = {0x90, 0x00};
 static gsize rsp_identify_match_suffix_len = sizeof (rsp_identify_match_suffix) / sizeof (rsp_identify_match_suffix[0]);
-static guchar rsp_identify_notmatch_prefix[] = {0x00, 0x00, 0x00, 0x02, 0x90, 0x04};
-static gsize rsp_identify_notmatch_prefix_len = sizeof (rsp_identify_notmatch_prefix) / sizeof (rsp_identify_notmatch_prefix[0]);
+static guchar rsp_identify_notmatch_suffix[] = {0x90, 0x04};
+static gsize rsp_identify_notmatch_suffix_len = sizeof (rsp_identify_notmatch_suffix) / sizeof (rsp_identify_notmatch_suffix[0]);
 
 static guchar cmd_sensor_enroll[] = {0x00, 0x00, 0x00, 0x04, 0x50, 0x17, 0x01, 0x00};
 static gsize cmd_sensor_enroll_len = sizeof (cmd_sensor_enroll) / sizeof (cmd_sensor_enroll[0]);
@@ -151,12 +153,14 @@ static gsize cmd_delete_prefix_len = sizeof (cmd_delete_prefix) / sizeof (cmd_de
 static guchar rsp_delete_success_prefix[] = {0x00, 0x00, 0x00, 0x02, 0x90, 0x00};
 static gsize rsp_delete_success_prefix_len = sizeof (rsp_delete_success_prefix) / sizeof (rsp_delete_success_prefix[0]);
 
-static guchar cmd_check_prefix[] = {0x50, 0x17, 0x03, 0x00, 0x00};
-static gsize cmd_check_prefix_len = sizeof (cmd_check_prefix) / sizeof (cmd_check_prefix[0]);
+static guchar cmd_check_prefix_type1[] = {0x50, 0x17, 0x03, 0x00, 0x00};
+static gsize cmd_check_prefix_type1_len = sizeof (cmd_check_prefix_type1) / sizeof (cmd_check_prefix_type1[0]);
+static guchar cmd_check_prefix_type2[] = {0x50, 0x17, 0x03, 0x80, 0x00};
+static gsize cmd_check_prefix_type2_len = sizeof (cmd_check_prefix_type2) / sizeof (cmd_check_prefix_type2[0]);
 static guchar cmd_check_suffix[] = {0x00, 0x40};
 static gsize cmd_check_suffix_len = sizeof (cmd_check_suffix) / sizeof (cmd_check_suffix[0]);
-static guchar rsp_check_not_yet_enrolled_prefix[] = {0x00, 0x00, 0x00, 0x02, 0x90};
-static gsize rsp_check_not_yet_enrolled_prefix_len = sizeof (rsp_check_not_yet_enrolled_prefix) / sizeof (rsp_check_not_yet_enrolled_prefix[0]);
+static guchar rsp_check_not_yet_enrolled_suffix[] = {0x90, 0x04};
+static gsize rsp_check_not_yet_enrolled_suffix_len = sizeof (rsp_check_not_yet_enrolled_suffix) / sizeof (rsp_check_not_yet_enrolled_suffix[0]);
 
 
 /* SSM task states and various status enums */

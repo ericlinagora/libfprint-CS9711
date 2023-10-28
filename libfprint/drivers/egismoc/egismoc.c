@@ -38,8 +38,9 @@
 G_DEFINE_TYPE (FpiDeviceEgisMoc, fpi_device_egismoc, FP_TYPE_DEVICE);
 
 static const FpIdEntry egismoc_id_table[] = {
-  { .vid = 0x1c7a, .pid = 0x0582 },
-  { .vid = 0,      .pid = 0 }
+  { .vid = 0x1c7a, .pid = 0x0582, .driver_data = EGISMOC_DRIVER_CHECK_PREFIX_TYPE1 },
+  { .vid = 0x1c7a, .pid = 0x05a1, .driver_data = EGISMOC_DRIVER_CHECK_PREFIX_TYPE2 },
+  { .vid = 0,      .pid = 0,      .driver_data = 0 }
 };
 
 typedef void (*SynCmdMsgCallback) (FpDevice *device,
@@ -808,10 +809,10 @@ egismoc_enroll_check_cb (FpDevice *device,
     }
 
   /* Check that the read payload reports "not yet enrolled" */
-  if (egismoc_validate_response_prefix (buffer_in,
+  if (egismoc_validate_response_suffix (buffer_in,
                                         length_in,
-                                        rsp_check_not_yet_enrolled_prefix,
-                                        rsp_check_not_yet_enrolled_prefix_len))
+                                        rsp_check_not_yet_enrolled_suffix,
+                                        rsp_check_not_yet_enrolled_suffix_len))
     fpi_ssm_next_state (self->task_ssm);
   else
     egismoc_enroll_status_report (device, NULL, ENROLL_STATUS_DUPLICATE,
@@ -846,9 +847,13 @@ egismoc_get_check_cmd (FpDevice *device,
 
   const gsize body_length = sizeof (guchar) * self->enrolled_num * EGISMOC_FINGERPRINT_DATA_SIZE;
 
+  /* prefix length can depend on the type */
+  const gsize check_prefix_length = (fpi_device_get_driver_data (device) & EGISMOC_DRIVER_CHECK_PREFIX_TYPE2) ?
+                                    cmd_check_prefix_type2_len : cmd_check_prefix_type1_len;
+
   /* total_length is the 6 various bytes plus all other prefixes/suffixes and the body payload */
   const gsize total_length = (sizeof (guchar) * 6)
-                             + cmd_check_prefix_len
+                             + check_prefix_length
                              + EGISMOC_CMD_CHECK_SEPARATOR_LENGTH
                              + body_length
                              + cmd_check_suffix_len;
@@ -878,8 +883,16 @@ egismoc_get_check_cmd (FpDevice *device,
     }
 
   /* command prefix */
-  memcpy (result + pos, cmd_check_prefix, cmd_check_prefix_len);
-  pos += cmd_check_prefix_len;
+  if (fpi_device_get_driver_data (device) & EGISMOC_DRIVER_CHECK_PREFIX_TYPE2)
+    {
+      memcpy (result + pos, cmd_check_prefix_type2, cmd_check_prefix_type2_len);
+      pos += cmd_check_prefix_type2_len;
+    }
+  else
+    {
+      memcpy (result + pos, cmd_check_prefix_type1, cmd_check_prefix_type1_len);
+      pos += cmd_check_prefix_type1_len;
+    }
 
   /* 2-bytes size logic for counter again */
   if (self->enrolled_num > 6)
@@ -1059,11 +1072,7 @@ egismoc_identify_check_cb (FpDevice *device,
     }
 
   /* Check that the read payload indicates "match" */
-  if (egismoc_validate_response_prefix (buffer_in,
-                                        length_in,
-                                        rsp_identify_match_prefix,
-                                        rsp_identify_match_prefix_len) &&
-      egismoc_validate_response_suffix (buffer_in,
+  if (egismoc_validate_response_suffix (buffer_in,
                                         length_in,
                                         rsp_identify_match_suffix,
                                         rsp_identify_match_suffix_len))
@@ -1119,10 +1128,10 @@ egismoc_identify_check_cb (FpDevice *device,
         }
     }
   /* If device was successfully read but it was a "not matched" */
-  else if (egismoc_validate_response_prefix (buffer_in,
+  else if (egismoc_validate_response_suffix (buffer_in,
                                              length_in,
-                                             rsp_identify_notmatch_prefix,
-                                             rsp_identify_notmatch_prefix_len))
+                                             rsp_identify_notmatch_suffix,
+                                             rsp_identify_notmatch_suffix_len))
     {
       fp_info ("Print was not identified by the device");
 
