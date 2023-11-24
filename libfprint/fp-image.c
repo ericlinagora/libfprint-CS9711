@@ -474,8 +474,11 @@ fp_image_detect_minutiae (FpImage            *self,
 
   if (!g_atomic_int_compare_and_exchange (&self->detection_in_progress,
                                           FALSE, TRUE))
-    g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_ADDRESS_IN_USE,
-                             "Minutiae detection is already in progress");
+    {
+      g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_ADDRESS_IN_USE,
+                               "Minutiae detection is already in progress");
+      return;
+    }
 
   g_task_run_in_thread (g_steal_pointer (&task),
                         fp_image_detect_minutiae_nbis_thread_func);
