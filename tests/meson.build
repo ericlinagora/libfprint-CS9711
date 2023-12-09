@@ -52,6 +52,7 @@ drivers_tests = [
     'nb1010',
     'egis0570',
     'egismoc',
+    'egismoc-05a1',
     'fpcmoc',
     'realtek',
     'focaltech_moc',
