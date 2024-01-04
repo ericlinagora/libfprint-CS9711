@@ -110,7 +110,7 @@ main (int argc, char **argv)
 
   printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
-  g_print ("%% lifprint — Supported Devices\n");
+  g_print ("%% libfprint — Supported Devices\n");
   g_print ("%% Bastien Nocera, Daniel Drake\n");
   g_print ("%% 2018\n");
   g_print ("\n");
