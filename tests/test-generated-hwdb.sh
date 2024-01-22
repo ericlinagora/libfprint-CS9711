@@ -6,7 +6,7 @@ if [ ! -x "$UDEV_HWDB" ]; then
 fi
 
 if [ "$UDEV_HWDB_CHECK_CONTENTS" = 1 ]; then
-    generated_rules=$(mktemp "${TMPDIR:-/tmp}/libfprint-XXXXXX.hwdb")
+    generated_rules=$(mktemp "${TMPDIR:-/tmp}/libfprint.hwdb.XXXXXX")
 else
     generated_rules=/dev/null
 fi
