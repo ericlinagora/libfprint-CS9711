@@ -317,6 +317,7 @@ usb:v04F3p3032*
 usb:v04F3p3057*
 usb:v04F3p3104*
 usb:v04F3p310D*
+usb:v04F3p3128*
 usb:v06CBp0081*
 usb:v06CBp0088*
 usb:v06CBp008A*
@@ -350,6 +351,7 @@ usb:v0BDAp5812*
 usb:v10A5p0007*
 usb:v10A5p9200*
 usb:v10A5p9800*
+usb:v10A5pE340*
 usb:v1188p9545*
 usb:v138Ap0007*
 usb:v138Ap003A*
