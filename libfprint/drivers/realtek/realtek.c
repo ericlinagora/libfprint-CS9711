@@ -249,9 +249,8 @@ fp_identify_feature_cb (FpiDeviceRealtek *self,
 
   if (in_status >= FP_RTK_TOO_HIGH && in_status <= FP_RTK_MERGE_FAILURE)
     {
-      GError *retry_error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
-      retry_error = fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL);
-      fpi_ssm_mark_failed (self->task_ssm, retry_error);
+      fpi_ssm_mark_failed (self->task_ssm,
+                           fpi_device_retry_new (FP_DEVICE_RETRY_GENERAL));
       return;
     }
 
