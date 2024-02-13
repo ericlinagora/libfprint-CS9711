@@ -152,6 +152,7 @@ test_scan_build:
     - SCANBUILD=$CI_PROJECT_DIR/.gitlab-ci/scan-build
       ninja -C _build scan-build
   artifacts:
+    when: on_failure
     paths:
       - _build/meson-logs
     expire_in: 1 week
