@@ -721,13 +721,12 @@ fp_print_serialize (FpPrint *print,
 
   result = g_variant_builder_end (&builder);
 
-  if (G_BYTE_ORDER == G_BIG_ENDIAN)
-    {
-      GVariant *tmp;
-      tmp = g_variant_byteswap (result);
-      g_variant_unref (result);
-      result = tmp;
-    }
+#if (G_BYTE_ORDER == G_BIG_ENDIAN)
+  GVariant *tmp;
+  tmp = g_variant_byteswap (result);
+  g_variant_unref (result);
+  result = tmp;
+#endif
 
   len = g_variant_get_size (result);
   /* Add 3 bytes of header */
@@ -800,10 +799,11 @@ fp_print_deserialize (const guchar *data,
   if (!raw_value)
     goto invalid_format;
 
-  if (G_BYTE_ORDER == G_BIG_ENDIAN)
-    value = g_variant_byteswap (raw_value);
-  else
-    value = g_variant_get_normal_form (raw_value);
+#if (G_BYTE_ORDER == G_BIG_ENDIAN)
+  value = g_variant_byteswap (raw_value);
+#else
+  value = g_variant_get_normal_form (raw_value);
+#endif
 
   g_variant_get (value,
                  "(i&s&sbymsmsi@a{sv}v)",
