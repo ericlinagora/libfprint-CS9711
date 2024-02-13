@@ -864,13 +864,12 @@ fp_verify_sm_run_state (FpiSsm *ssm, FpDevice *device)
 static void
 fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
 {
+  g_autofree gchar *user_id = NULL;
+  g_autofree guint8 *payload = NULL;
   FpiDeviceRealtek *self = FPI_DEVICE_REALTEK (device);
   FpPrint *print = NULL;
   guint8 *cmd_buf = NULL;
-
-  g_autofree gchar *user_id = NULL;
-  g_autofree guint8 *payload = NULL;
-
+  guint8 *trans_id = NULL;
   GVariant *uid = NULL;
   GVariant *data = NULL;
   gsize user_id_len;
@@ -920,8 +919,6 @@ fp_enroll_sm_run_state (FpiSsm *ssm, FpDevice *device)
       break;
 
     case FP_RTK_ENROLL_COMMIT:
-      guint8 *trans_id = NULL;
-
       fpi_device_get_enroll_data (device, &print);
       user_id = fpi_print_generate_user_id (print);
       user_id_len = strlen (user_id);
