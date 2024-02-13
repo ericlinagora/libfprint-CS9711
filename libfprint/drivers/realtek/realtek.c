@@ -104,6 +104,7 @@ fp_finish_capture_cb (FpiDeviceRealtek *self,
     }
 
   gint capture_status = buffer_in[0];
+
   if (capture_status == 0)
     {
       fpi_device_report_finger_status_changes (FP_DEVICE (self),
@@ -237,6 +238,7 @@ fp_identify_feature_cb (FpiDeviceRealtek *self,
     }
 
   gint in_status = buffer_in[0];
+
   if (in_status == FP_RTK_CMD_ERR)
     {
       fpi_ssm_mark_failed (self->task_ssm,
@@ -424,6 +426,7 @@ fp_check_duplicate_cb (FpiDeviceRealtek *self,
     }
 
   gint in_status = buffer_in[0];
+
   if (in_status == FP_RTK_CMD_ERR)
     {
       fpi_ssm_mark_failed (self->task_ssm,
