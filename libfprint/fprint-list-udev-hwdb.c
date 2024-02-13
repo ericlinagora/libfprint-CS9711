@@ -24,7 +24,7 @@
 #include "fpi-context.h"
 #include "fpi-device.h"
 
-static const FpIdEntry whitelist_id_table[] = {
+static const FpIdEntry allowlist_id_table[] = {
   /* Currently known and unsupported devices.
    * You can generate this list from the wiki page using e.g.:
    *   gio cat https://gitlab.freedesktop.org/libfprint/wiki/-/wikis/Unsupported-Devices.md | sed -n 's!|.*\([0-9a-fA-F]\{4\}\):\([0-9a-fA-F]\{4\}\).*|.*!  { .vid = 0x\1, .pid = 0x\2 },!p'
@@ -138,18 +138,18 @@ static const FpIdEntry whitelist_id_table[] = {
   { .vid = 0 },
 };
 
-static const FpIdEntry blacklist_id_table[] = {
+static const FpIdEntry denylist_id_table[] = {
   { .vid = 0x0483, .pid = 0x2016 },
   /* https://bugs.freedesktop.org/show_bug.cgi?id=66659 */
   { .vid = 0x045e, .pid = 0x00bb },
   { .vid = 0 },
 };
 
-static const FpDeviceClass whitelist = {
+static const FpDeviceClass allowlist = {
   .type = FP_DEVICE_TYPE_USB,
-  .id_table = whitelist_id_table,
-  .id = "whitelist",
-  .full_name = "Hardcoded whitelist"
+  .id_table = allowlist_id_table,
+  .id = "allowlist",
+  .full_name = "Hardcoded allowlist"
 };
 
 GHashTable *printed = NULL;
@@ -168,7 +168,7 @@ print_driver (const FpDeviceClass *cls)
       const FpIdEntry *bl_entry;
       char *key;
 
-      for (bl_entry = blacklist_id_table; bl_entry->vid != 0; bl_entry++)
+      for (bl_entry = denylist_id_table; bl_entry->vid != 0; bl_entry++)
         if (entry->vid == bl_entry->vid && entry->pid == bl_entry->pid)
           break;
 
@@ -179,7 +179,7 @@ print_driver (const FpDeviceClass *cls)
 
       if (g_hash_table_lookup (printed, key) != NULL)
         {
-          if (cls == &whitelist)
+          if (cls == &allowlist)
             g_warning ("%s implemented by driver %s",
                        key, (const char *) g_hash_table_lookup (printed, key));
           g_free (key);
@@ -190,7 +190,7 @@ print_driver (const FpDeviceClass *cls)
 
       if (num_printed == 0)
         {
-          if (cls != &whitelist)
+          if (cls != &allowlist)
             g_print ("\n# Supported by libfprint driver %s\n", cls->id);
           else
             g_print ("\n# Known unsupported devices\n");
@@ -244,7 +244,7 @@ main (int argc, char **argv)
       print_driver (cls);
     }
 
-  print_driver (&whitelist);
+  print_driver (&allowlist);
 
   g_hash_table_destroy (printed);
 

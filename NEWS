@@ -357,7 +357,7 @@ tests of the drivers using umockdev.
   - Mark fp_dscv_print functions as deprecated
 
 * Udev rules:
-  - Add some unsupported devices to the whitelist
+  - Add some unsupported devices to the allowlist
 
 2017-05-14: v0.7.0 release
 * Drivers:
@@ -407,7 +407,7 @@ tests of the drivers using umockdev.
   - Fix possible race condition, and cancellation in uru4000 driver
 
 * Udev rules:
-  - Add Microsoft keyboard to the suspend blacklist
+  - Add Microsoft keyboard to the suspend denylist
 
 * Plenty of build fixes
 

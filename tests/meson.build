@@ -15,7 +15,7 @@ envs.prepend('LD_LIBRARY_PATH', meson.project_build_root() / 'libfprint')
 envs.set('FP_DEVICE_EMULATION', '1')
 
 # Set a colon-separated list of native drivers we enable in tests
-envs.set('FP_DRIVERS_WHITELIST', ':'.join([
+envs.set('FP_DRIVERS_ALLOWLIST', ':'.join([
     'virtual_image',
     'virtual_device',
     'virtual_device_storage',
@@ -159,7 +159,7 @@ if get_option('introspection')
     foreach driver_test: drivers_tests
         driver_name = driver_test.split('-')[0]
         driver_envs = envs
-        driver_envs.set('FP_DRIVERS_WHITELIST', driver_name)
+        driver_envs.set('FP_DRIVERS_ALLOWLIST', driver_name)
 
         if (driver_name in supported_drivers and
             gusb_dep.version().version_compare('>= 0.3.0'))
