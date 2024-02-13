@@ -77,7 +77,6 @@ is_driver_allowed (const gchar *driver)
 {
   g_auto(GStrv) allowlisted_drivers = NULL;
   const char *fp_drivers_allowlist_env;
-  int i;
 
   g_return_val_if_fail (driver, TRUE);
 
@@ -87,12 +86,7 @@ is_driver_allowed (const gchar *driver)
     return TRUE;
 
   allowlisted_drivers = g_strsplit (fp_drivers_allowlist_env, ":", -1);
-
-  for (i = 0; allowlisted_drivers[i]; ++i)
-    if (g_strcmp0 (driver, allowlisted_drivers[i]) == 0)
-      return TRUE;
-
-  return FALSE;
+  return g_strv_contains ((const gchar * const *) allowlisted_drivers, driver);
 }
 
 typedef struct
