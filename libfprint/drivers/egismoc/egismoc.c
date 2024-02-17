@@ -1367,9 +1367,15 @@ egismoc_dev_init_done (FpiSsm   *ssm,
                        GError   *error)
 {
   if (error)
-    g_usb_device_release_interface (fpi_device_get_usb_device (device), 0, 0, NULL);
+    {
+      g_usb_device_release_interface (
+        fpi_device_get_usb_device (device), 0, 0, NULL);
+      egismoc_task_ssm_done (ssm, device, error);
+      return;
+    }
 
-  fpi_device_open_complete (device, error);
+  egismoc_task_ssm_done (ssm, device, NULL);
+  fpi_device_open_complete (device, NULL);
 }
 
 static void
