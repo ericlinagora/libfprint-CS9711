@@ -715,15 +715,15 @@ egismoc_delete (FpDevice *device)
 {
   fp_dbg ("Delete");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
-
-  g_autoptr(FpPrint) delete_print = NULL;
+  FpPrint *delete_print = NULL;
 
   fpi_device_get_delete_data (device, &delete_print);
 
   self->task_ssm = fpi_ssm_new (device,
                                 egismoc_delete_run_state,
                                 DELETE_STATES);
-  fpi_ssm_set_data (self->task_ssm, g_steal_pointer (&delete_print), NULL); /* todo leak or cleared by libfprint ? */
+  /* the print is owned by libfprint during deletion task */
+  fpi_ssm_set_data (self->task_ssm, delete_print, NULL);
   fpi_ssm_start (self->task_ssm, egismoc_task_ssm_done);
 }
 
