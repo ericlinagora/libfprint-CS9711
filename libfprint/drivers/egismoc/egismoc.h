@@ -55,19 +55,6 @@ G_DECLARE_FINAL_TYPE (FpiDeviceEgisMoc, fpi_device_egismoc, FPI, DEVICE_EGISMOC,
 #define EGISMOC_LIST_RESPONSE_PREFIX_SIZE 14
 #define EGISMOC_LIST_RESPONSE_SUFFIX_SIZE 2
 
-struct _FpiDeviceEgisMoc
-{
-  FpDevice        parent;
-  FpiSsm         *task_ssm;
-  FpiSsm         *cmd_ssm;
-  FpiUsbTransfer *cmd_transfer;
-  GCancellable   *interrupt_cancellable;
-
-  int             enrolled_num;
-  GPtrArray      *enrolled_ids;
-};
-
-
 /* standard prefixes for all read/writes */
 
 static guchar egismoc_write_prefix[] = {'E', 'G', 'I', 'S', 0x00, 0x00, 0x00, 0x01};
