@@ -231,7 +231,7 @@ egismoc_cmd_run_state (FpiSsm   *ssm,
           self->cmd_transfer->ssm = ssm;
           fpi_usb_transfer_submit (g_steal_pointer (&self->cmd_transfer),
                                    EGISMOC_USB_SEND_TIMEOUT,
-                                   NULL,
+                                   fpi_device_get_cancellable (device),
                                    fpi_ssm_usb_transfer_cb,
                                    NULL);
           break;
@@ -247,7 +247,7 @@ egismoc_cmd_run_state (FpiSsm   *ssm,
                                   EGISMOC_USB_IN_RECV_LENGTH);
       fpi_usb_transfer_submit (g_steal_pointer (&transfer),
                                EGISMOC_USB_RECV_TIMEOUT,
-                               NULL,
+                               fpi_device_get_cancellable (device),
                                egismoc_cmd_receive_cb,
                                fpi_ssm_get_data (ssm));
       break;
@@ -1451,7 +1451,7 @@ egismoc_dev_init_handler (FpiSsm   *ssm,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (g_steal_pointer (&transfer),
                            EGISMOC_USB_CONTROL_TIMEOUT,
-                           NULL,
+                           fpi_device_get_cancellable (device),
                            fpi_ssm_usb_transfer_cb,
                            NULL);
 }
