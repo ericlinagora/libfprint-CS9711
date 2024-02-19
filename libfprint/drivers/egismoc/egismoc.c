@@ -181,7 +181,10 @@ egismoc_cmd_receive_cb (FpiUsbTransfer *transfer,
                         gpointer        userdata,
                         GError         *error)
 {
+  g_autofree guchar *buffer = NULL;
   CommandData *data = userdata;
+  SynCmdMsgCallback callback;
+  gssize actual_length;
 
   fp_dbg ("Command receive callback");
 
@@ -197,10 +200,18 @@ egismoc_cmd_receive_cb (FpiUsbTransfer *transfer,
       return;
     }
 
-  if (data->callback)
-    data->callback (device, transfer->buffer, transfer->actual_length, NULL);
+  /* Let's complete the previous ssm and then handle the callback, so that
+   * we are sure that we won't start a transfer or a new command while there is
+   * another one still ongoing
+   */
+  callback = data->callback;
+  buffer = g_steal_pointer (&transfer->buffer);
+  actual_length = transfer->actual_length;
 
   fpi_ssm_mark_completed (transfer->ssm);
+
+  if (callback)
+    callback (device, buffer, actual_length, NULL);
 }
 
 static void
