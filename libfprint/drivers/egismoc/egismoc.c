@@ -310,7 +310,7 @@ egismoc_get_check_bytes (const guchar *value,
   for (int i = 0; i < steps; i++)
     sum_values += big_endian_values[i];
 
-  check_bytes.check_value = 0xffff - (sum_values % 0xffff);
+  check_bytes.check_value = GUINT16_TO_LE (0xffff - (sum_values % 0xffff));
   return check_bytes;
 }
 
