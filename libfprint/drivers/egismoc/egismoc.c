@@ -348,7 +348,7 @@ egismoc_exec_cmd (FpDevice         *device,
   buffer_out_length = egismoc_write_prefix_len
                       + EGISMOC_CHECK_BYTES_LENGTH
                       + cmd_length;
-  buffer_out = g_malloc0 (buffer_out_length);
+  buffer_out = g_new0 (guchar, buffer_out_length);
 
   /* Prefix */
   memcpy (buffer_out, egismoc_write_prefix, egismoc_write_prefix_len);
@@ -400,7 +400,7 @@ egismoc_set_print_data (FpPrint      *print,
     }
   else
     {
-      fill_user_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE + 1);
+      fill_user_id = g_new0 (gchar, EGISMOC_FINGERPRINT_DATA_SIZE + 1);
       memcpy (fill_user_id, device_print_id, EGISMOC_FINGERPRINT_DATA_SIZE);
     }
 
@@ -465,7 +465,7 @@ egismoc_list_fill_enrolled_ids_cb (FpDevice *device,
        pos < length_in - EGISMOC_LIST_RESPONSE_SUFFIX_SIZE;
        pos += EGISMOC_FINGERPRINT_DATA_SIZE, self->enrolled_num++)
     {
-      g_autofree guchar *print_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE + 1);
+      g_autofree guchar *print_id = g_new0 (guchar, EGISMOC_FINGERPRINT_DATA_SIZE + 1);
       memcpy (print_id, buffer_in + pos, EGISMOC_FINGERPRINT_DATA_SIZE);
       fp_dbg ("Device fingerprint %0d: %.*s", self->enrolled_num,
               EGISMOC_FINGERPRINT_DATA_SIZE, print_id);
@@ -551,7 +551,7 @@ egismoc_get_delete_cmd (FpDevice *device,
                              body_length;
 
   /* pre-fill entire payload with 00s */
-  result = g_malloc0 (total_length);
+  result = g_new0 (guchar, total_length);
 
   /* start with 00 00 (just move starting offset up by 2) */
   pos = 2;
@@ -927,7 +927,7 @@ egismoc_get_check_cmd (FpDevice *device,
                              + cmd_check_suffix_len;
 
   /* pre-fill entire payload with 00s */
-  result = g_malloc0 (total_length);
+  result = g_new0 (guchar, total_length);
 
   /* start with 00 00 (just move starting offset up by 2) */
   pos = 2;
@@ -1092,13 +1092,13 @@ egismoc_enroll_run_state (FpiSsm   *ssm,
       user_id = fpi_print_generate_user_id (enroll_print->print);
       fp_dbg ("New fingerprint ID: %s", user_id);
 
-      device_print_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE);
+      device_print_id = g_new0 (guchar, EGISMOC_FINGERPRINT_DATA_SIZE);
       memcpy (device_print_id, user_id, MIN (strlen (user_id), EGISMOC_FINGERPRINT_DATA_SIZE));
       egismoc_set_print_data (enroll_print->print, device_print_id, user_id);
 
       /* create new dynamic payload of cmd_new_print_prefix + device_print_id */
       payload_length = cmd_new_print_prefix_len + EGISMOC_FINGERPRINT_DATA_SIZE;
-      payload = g_malloc0 (payload_length);
+      payload = g_new0 (guchar, payload_length);
       memcpy (payload, cmd_new_print_prefix, cmd_new_print_prefix_len);
       memcpy (payload + cmd_new_print_prefix_len, device_print_id,
               EGISMOC_FINGERPRINT_DATA_SIZE);
@@ -1361,7 +1361,7 @@ egismoc_fw_version_cb (FpDevice *device,
    */
   prefix_length = egismoc_read_prefix_len + 2 + 3 + 1;
   fw_version_length = length_in - prefix_length - rsp_fw_version_suffix_len;
-  fw_version = g_malloc0 (fw_version_length + 1);
+  fw_version = g_new0 (guchar, fw_version_length + 1);
 
   memcpy (fw_version,
           buffer_in + prefix_length,
