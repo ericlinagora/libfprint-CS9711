@@ -142,8 +142,26 @@ default_drivers = [
 # FIXME: All the drivers should be fixed by adjusting the byte order.
 # See https://gitlab.freedesktop.org/libfprint/libfprint/-/issues/236
 endian_independent_drivers = virtual_drivers + [
+    'aes1610',
+    'aes1660',
+    'aes2550',
+    'aes2660',
     'aes3500',
+    'aes4000',
+    'egis0570',
+    'elanmoc',
+    'etes603',
+    'focaltech_moc',
+    'nb1010',
+    'realtek',
     'synaptics',
+    'upeksonly',
+    'upektc',
+    'upektc_img',
+    'upekts',
+    'vcom5s',
+    'vfs101',
+    'vfs7552',
 ]
 
 all_drivers = default_drivers + virtual_drivers
