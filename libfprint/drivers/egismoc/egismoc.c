@@ -389,7 +389,6 @@ egismoc_set_print_data (FpPrint      *print,
     {
       fill_user_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE + 1);
       memcpy (fill_user_id, device_print_id, EGISMOC_FINGERPRINT_DATA_SIZE);
-      memset (fill_user_id + EGISMOC_FINGERPRINT_DATA_SIZE, '\0', sizeof (gchar));
     }
 
   fpi_print_fill_from_user_id (print, fill_user_id);
