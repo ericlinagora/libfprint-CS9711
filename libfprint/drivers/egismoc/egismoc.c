@@ -1495,6 +1495,16 @@ egismoc_cancel (FpDevice *device)
 }
 
 static void
+egismoc_suspend (FpDevice *device)
+{
+  fp_dbg ("Suspend");
+
+  egismoc_cancel (device);
+  g_cancellable_cancel (fpi_device_get_cancellable (device));
+  fpi_device_suspend_complete (device, NULL);
+}
+
+static void
 egismoc_close (FpDevice *device)
 {
   fp_dbg ("Closing device");
@@ -1532,7 +1542,7 @@ fpi_device_egismoc_class_init (FpiDeviceEgisMocClass *klass)
 
   dev_class->open = egismoc_open;
   dev_class->cancel = egismoc_cancel;
-  dev_class->suspend = egismoc_cancel;
+  dev_class->suspend = egismoc_suspend;
   dev_class->close = egismoc_close;
   dev_class->identify = egismoc_identify_verify;
   dev_class->verify = egismoc_identify_verify;
