@@ -1181,8 +1181,6 @@ egismoc_identify_check_cb (FpDevice *device,
             fpi_device_identify_report (device, g_ptr_array_index (prints, index), print, NULL);
           else
             fpi_device_identify_report (device, NULL, print, NULL);
-
-          fpi_ssm_next_state (self->task_ssm);
         }
       else
         {
@@ -1193,8 +1191,6 @@ egismoc_identify_check_cb (FpDevice *device,
             fpi_device_verify_report (device, FPI_MATCH_SUCCESS, print, NULL);
           else
             fpi_device_verify_report (device, FPI_MATCH_FAIL, print, NULL);
-
-          fpi_ssm_next_state (self->task_ssm);
         }
     }
   /* If device was successfully read but it was a "not matched" */
@@ -1206,22 +1202,19 @@ egismoc_identify_check_cb (FpDevice *device,
       fp_info ("Print was not identified by the device");
 
       if (fpi_device_get_current_action (device) == FPI_DEVICE_ACTION_VERIFY)
-        {
-          fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, NULL);
-          fpi_ssm_next_state (self->task_ssm);
-        }
+        fpi_device_verify_report (device, FPI_MATCH_FAIL, NULL, NULL);
       else
-        {
-          fpi_device_identify_report (device, NULL, NULL, NULL);
-          fpi_ssm_next_state (self->task_ssm);
-        }
+        fpi_device_identify_report (device, NULL, NULL, NULL);
     }
   else
     {
       fpi_ssm_mark_failed (self->task_ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
                                                      "Unrecognized response from device."));
+      return;
     }
+
+  fpi_ssm_next_state (self->task_ssm);
 }
 
 static void
