@@ -149,7 +149,8 @@ egismoc_task_ssm_done (FpiSsm   *ssm,
   fp_dbg ("Task SSM done");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
 
-  /* task_ssm already freed by completion of SSM */
+  /* task_ssm is going to be freed by completion of SSM */
+  g_assert (!self->task_ssm || self->task_ssm == ssm);
   self->task_ssm = NULL;
 
   g_clear_pointer (&self->enrolled_ids, g_ptr_array_unref);
@@ -325,6 +326,7 @@ egismoc_exec_cmd (FpDevice         *device,
   g_autoptr(FpiUsbTransfer) transfer = NULL;
   CommandData *data = g_new0 (CommandData, 1);
 
+  g_assert (self->cmd_ssm == NULL);
   self->cmd_ssm = fpi_ssm_new (device,
                                egismoc_cmd_run_state,
                                CMD_STATES);
@@ -499,6 +501,7 @@ egismoc_list (FpDevice *device)
   fp_dbg ("List");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
 
+  g_assert (self->task_ssm == NULL);
   self->task_ssm = fpi_ssm_new (device,
                                 egismoc_list_run_state,
                                 LIST_STATES);
@@ -711,6 +714,7 @@ egismoc_clear_storage (FpDevice *device)
   fp_dbg ("Clear storage");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
 
+  g_assert (self->task_ssm == NULL);
   self->task_ssm = fpi_ssm_new (device,
                                 egismoc_delete_run_state,
                                 DELETE_STATES);
@@ -726,6 +730,7 @@ egismoc_delete (FpDevice *device)
 
   fpi_device_get_delete_data (device, &delete_print);
 
+  g_assert (self->task_ssm == NULL);
   self->task_ssm = fpi_ssm_new (device,
                                 egismoc_delete_run_state,
                                 DELETE_STATES);
@@ -1119,6 +1124,7 @@ egismoc_enroll (FpDevice *device)
   fpi_device_get_enroll_data (device, &enroll_print->print);
   enroll_print->stage = 0;
 
+  g_assert (self->task_ssm == NULL);
   self->task_ssm = fpi_ssm_new (device, egismoc_enroll_run_state, ENROLL_STATES);
   fpi_ssm_set_data (self->task_ssm, g_steal_pointer (&enroll_print), g_free);
   fpi_ssm_start (self->task_ssm, egismoc_task_ssm_done);
@@ -1306,6 +1312,7 @@ egismoc_identify_verify (FpDevice *device)
   fp_dbg ("Identify or Verify");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
 
+  g_assert (self->task_ssm == NULL);
   self->task_ssm = fpi_ssm_new (device, egismoc_identify_run_state, IDENTIFY_STATES);
   fpi_ssm_start (self->task_ssm, egismoc_task_ssm_done);
 }
