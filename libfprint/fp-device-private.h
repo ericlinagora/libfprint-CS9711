@@ -44,7 +44,7 @@ typedef struct
   FpDeviceType type;
 
   GUsbDevice  *usb_device;
-  const gchar *virtual_env;
+  gchar       *virtual_env;
   struct
   {
     gchar *spidev_path;

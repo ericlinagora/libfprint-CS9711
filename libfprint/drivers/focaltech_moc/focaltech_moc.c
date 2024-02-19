@@ -126,12 +126,12 @@ fp_cmd_bcc (uint8_t *data, uint16_t len)
 static uint8_t *
 focaltech_moc_compose_cmd (uint8_t cmd, const uint8_t *data, uint16_t len)
 {
-  g_autofree char *cmd_buf = NULL;
+  g_autofree uint8_t *cmd_buf = NULL;
   FpCmd *fp_cmd = NULL;
   uint8_t *bcc = NULL;
   uint16_t header_len = len + sizeof (*bcc);
 
-  cmd_buf = g_malloc0 (sizeof (FpCmd) + header_len);
+  cmd_buf = g_new0 (uint8_t, sizeof (FpCmd) + header_len);
 
   fp_cmd = (FpCmd *) cmd_buf;
 

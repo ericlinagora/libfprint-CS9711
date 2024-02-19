@@ -50,9 +50,9 @@ elanmoc_compose_cmd (
   const struct elanmoc_cmd *cmd_info
                     )
 {
-  g_autofree char *cmd_buf = NULL;
+  g_autofree uint8_t *cmd_buf = NULL;
 
-  cmd_buf = g_malloc0 (cmd_info->cmd_len);
+  cmd_buf = g_new0 (uint8_t, cmd_info->cmd_len);
   if(cmd_info->cmd_len < ELAN_MAX_HDR_LEN)
     memcpy (cmd_buf, &cmd_info->cmd_header, cmd_info->cmd_len);
   else
