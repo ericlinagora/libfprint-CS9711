@@ -273,11 +273,14 @@ egismoc_cmd_ssm_done (FpiSsm   *ssm,
     data->callback (device, NULL, 0, g_steal_pointer (&local_error));
 }
 
-typedef union egismoc_check_bytes
+typedef union
 {
-  unsigned short check_short;
-  guchar         check_bytes[EGISMOC_CHECK_BYTES_LENGTH];
+  guint16 check_value;
+  guchar  check_bytes[EGISMOC_CHECK_BYTES_LENGTH];
 } EgisMocCheckBytes;
+
+G_STATIC_ASSERT (G_SIZEOF_MEMBER (EgisMocCheckBytes, check_value) ==
+                 sizeof (guint8) * EGISMOC_CHECK_BYTES_LENGTH);
 
 /*
  * Derive the 2 "check bytes" for write payloads
@@ -290,26 +293,22 @@ egismoc_get_check_bytes (const guchar *value,
 {
   fp_dbg ("Get check bytes");
   EgisMocCheckBytes check_bytes;
-  unsigned short value_bigendian_shorts[(int) ((value_length + 1) / 2)];
+  guint16 big_endian_values[(int) ((value_length + 1) / 2)];
+  size_t sum_values = 0;
   int s = 0;
 
   for (int i = 0; i < value_length; i = i + 2, s++)
     {
       if (i + 1 < value_length)
-        value_bigendian_shorts[s] = (((short) value[i + 1]) << 8) | (0x00ff & value[i]);
+        big_endian_values[s] = (((guint16) value[i + 1]) << 8) | (0x00ff & value[i]);
       else
-        value_bigendian_shorts[s] = (((short) 0x00) << 8) | (0x00ff & value[i]);
+        big_endian_values[s] = (((guint16) 0x00) << 8) | (0x00ff & value[i]);
     }
-  unsigned long sum_shorts = 0;
 
   for (int i = 0; i < s; i++)
-    sum_shorts += value_bigendian_shorts[i];
+    sum_values += big_endian_values[i];
 
-  /*
-     derive the "first possible occurrence" of check bytes as:
-     `0xFFFF - (sum_of_32bit_words % 0xFFFF)
-   */
-  check_bytes.check_short = 0xffff - (sum_shorts % 0xffff);
+  check_bytes.check_value = 0xffff - (sum_values % 0xffff);
   return check_bytes;
 }
 
