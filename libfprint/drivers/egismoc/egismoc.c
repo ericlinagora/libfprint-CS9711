@@ -263,6 +263,9 @@ egismoc_cmd_ssm_done (FpiSsm   *ssm,
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
   CommandData *data = fpi_ssm_get_data (ssm);
 
+  g_assert (self->cmd_ssm == ssm);
+  g_assert (!self->cmd_transfer || self->cmd_transfer->ssm == ssm);
+
   self->cmd_ssm = NULL;
   self->cmd_transfer = NULL;
 
@@ -373,6 +376,8 @@ egismoc_exec_cmd (FpDevice         *device,
                                    buffer_out_length,
                                    g_free);
   transfer->ssm = self->cmd_ssm;
+
+  g_assert (self->cmd_transfer == NULL);
   self->cmd_transfer = g_steal_pointer (&transfer);
   data->callback = callback;
 
