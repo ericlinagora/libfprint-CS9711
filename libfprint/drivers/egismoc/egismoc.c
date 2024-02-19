@@ -386,23 +386,18 @@ egismoc_exec_cmd (FpDevice         *device,
 }
 
 static void
-egismoc_set_print_data (FpPrint      *print,
-                        const guchar *device_print_id,
-                        const gchar  *user_id)
+egismoc_set_print_data (FpPrint     *print,
+                        const gchar *device_print_id,
+                        const gchar *user_id)
 {
   GVariant *print_id_var = NULL;
   GVariant *fpi_data = NULL;
   g_autofree gchar *fill_user_id = NULL;
 
   if (user_id)
-    {
-      fill_user_id = g_strdup (user_id);
-    }
+    fill_user_id = g_strdup (user_id);
   else
-    {
-      fill_user_id = g_new0 (gchar, EGISMOC_FINGERPRINT_DATA_SIZE + 1);
-      memcpy (fill_user_id, device_print_id, EGISMOC_FINGERPRINT_DATA_SIZE);
-    }
+    fill_user_id = g_strndup (device_print_id, EGISMOC_FINGERPRINT_DATA_SIZE);
 
   fpi_print_fill_from_user_id (print, fill_user_id);
 
@@ -465,8 +460,8 @@ egismoc_list_fill_enrolled_ids_cb (FpDevice *device,
        pos < length_in - EGISMOC_LIST_RESPONSE_SUFFIX_SIZE;
        pos += EGISMOC_FINGERPRINT_DATA_SIZE, self->enrolled_num++)
     {
-      g_autofree guchar *print_id = g_new0 (guchar, EGISMOC_FINGERPRINT_DATA_SIZE + 1);
-      memcpy (print_id, buffer_in + pos, EGISMOC_FINGERPRINT_DATA_SIZE);
+      g_autofree gchar *print_id = g_strndup ((gchar *) buffer_in + pos,
+                                              EGISMOC_FINGERPRINT_DATA_SIZE);
       fp_dbg ("Device fingerprint %0d: %.*s", self->enrolled_num,
               EGISMOC_FINGERPRINT_DATA_SIZE, print_id);
       g_ptr_array_add (self->enrolled_ids, g_steal_pointer (&print_id));
@@ -1012,7 +1007,7 @@ egismoc_enroll_run_state (FpiSsm   *ssm,
   EnrollPrint *enroll_print = fpi_ssm_get_data (ssm);
   g_autofree guchar *payload = NULL;
   gsize payload_length = 0;
-  g_autofree guchar *device_print_id = NULL;
+  g_autofree gchar *device_print_id = NULL;
   g_autofree gchar *user_id = NULL;
 
   switch (fpi_ssm_get_cur_state (ssm))
@@ -1092,8 +1087,7 @@ egismoc_enroll_run_state (FpiSsm   *ssm,
       user_id = fpi_print_generate_user_id (enroll_print->print);
       fp_dbg ("New fingerprint ID: %s", user_id);
 
-      device_print_id = g_new0 (guchar, EGISMOC_FINGERPRINT_DATA_SIZE);
-      memcpy (device_print_id, user_id, MIN (strlen (user_id), EGISMOC_FINGERPRINT_DATA_SIZE));
+      device_print_id = g_strndup (user_id, EGISMOC_FINGERPRINT_DATA_SIZE);
       egismoc_set_print_data (enroll_print->print, device_print_id, user_id);
 
       /* create new dynamic payload of cmd_new_print_prefix + device_print_id */
@@ -1143,7 +1137,7 @@ egismoc_identify_check_cb (FpDevice *device,
 {
   fp_dbg ("Identify check callback");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
-  guchar device_print_id[EGISMOC_FINGERPRINT_DATA_SIZE];
+  gchar device_print_id[EGISMOC_FINGERPRINT_DATA_SIZE];
   FpPrint *print = NULL;
   FpPrint *verify_print = NULL;
   GPtrArray *prints;
@@ -1330,8 +1324,9 @@ egismoc_fw_version_cb (FpDevice *device,
 {
   fp_dbg ("Firmware version callback");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
-  g_autofree guchar *fw_version = NULL;
+  g_autofree gchar *fw_version = NULL;
   gsize prefix_length;
+  guchar *fw_version_start;
   gsize fw_version_length;
 
   if (error)
@@ -1360,13 +1355,9 @@ egismoc_fw_version_cb (FpDevice *device,
    * all but the last 2 bytes as the FW Version
    */
   prefix_length = egismoc_read_prefix_len + 2 + 3 + 1;
+  fw_version_start = buffer_in + prefix_length;
   fw_version_length = length_in - prefix_length - rsp_fw_version_suffix_len;
-  fw_version = g_new0 (guchar, fw_version_length + 1);
-
-  memcpy (fw_version,
-          buffer_in + prefix_length,
-          length_in - prefix_length - rsp_fw_version_suffix_len);
-  *(fw_version + fw_version_length) = '\0';
+  fw_version = g_strndup ((gchar *) fw_version_start, fw_version_length);
 
   fp_info ("Device firmware version is %s", fw_version);
 
