@@ -152,8 +152,7 @@ egismoc_task_ssm_done (FpiSsm   *ssm,
   /* task_ssm already freed by completion of SSM */
   self->task_ssm = NULL;
 
-  if (self->enrolled_ids)
-    g_ptr_array_free (self->enrolled_ids, TRUE);
+  g_clear_pointer (&self->enrolled_ids, g_ptr_array_unref);
   self->enrolled_ids = NULL;
   self->enrolled_num = -1;
 
@@ -439,8 +438,7 @@ egismoc_list_fill_enrolled_ids_cb (FpDevice *device,
       return;
     }
 
-  if (self->enrolled_ids)
-    g_ptr_array_free (self->enrolled_ids, TRUE);
+  g_clear_pointer (&self->enrolled_ids, g_ptr_array_unref);
   self->enrolled_ids = g_ptr_array_new_with_free_func (g_free);
   self->enrolled_num = 0;
 
