@@ -453,7 +453,7 @@ egismoc_list_fill_enrolled_ids_cb (FpDevice *device,
        pos < length_in - EGISMOC_LIST_RESPONSE_SUFFIX_SIZE;
        pos += EGISMOC_FINGERPRINT_DATA_SIZE, self->enrolled_num++)
     {
-      g_autofree guchar *print_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE);
+      g_autofree guchar *print_id = g_malloc0 (EGISMOC_FINGERPRINT_DATA_SIZE + 1);
       memcpy (print_id, buffer_in + pos, EGISMOC_FINGERPRINT_DATA_SIZE);
       fp_dbg ("Device fingerprint %0d: %.*s", self->enrolled_num,
               EGISMOC_FINGERPRINT_DATA_SIZE, print_id);
