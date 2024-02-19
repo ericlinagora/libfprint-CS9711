@@ -247,19 +247,15 @@ egismoc_cmd_ssm_done (FpiSsm   *ssm,
                       FpDevice *device,
                       GError   *error)
 {
+  g_autoptr(GError) local_error = error;
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
   CommandData *data = fpi_ssm_get_data (ssm);
 
   self->cmd_ssm = NULL;
   self->cmd_transfer = NULL;
 
-  if (error)
-    {
-      if (data->callback)
-        data->callback (device, NULL, 0, error);
-      else
-        g_error_free (error);
-    }
+  if (error && data && data->callback)
+    data->callback (device, NULL, 0, g_steal_pointer (&local_error));
 }
 
 typedef union egismoc_check_bytes
