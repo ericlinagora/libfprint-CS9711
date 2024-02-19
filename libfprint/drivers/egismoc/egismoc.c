@@ -1386,7 +1386,6 @@ egismoc_dev_init_handler (FpiSsm   *ssm,
                                      G_USB_DEVICE_REQUEST_TYPE_VENDOR,
                                      G_USB_DEVICE_RECIPIENT_DEVICE,
                                      32, 0x0000, 4, 16);
-      goto send_control;
       break;
 
     case DEV_INIT_CONTROL2:
@@ -1395,7 +1394,6 @@ egismoc_dev_init_handler (FpiSsm   *ssm,
                                      G_USB_DEVICE_REQUEST_TYPE_VENDOR,
                                      G_USB_DEVICE_RECIPIENT_DEVICE,
                                      32, 0x0000, 4, 40);
-      goto send_control;
       break;
 
     case DEV_INIT_CONTROL3:
@@ -1404,7 +1402,6 @@ egismoc_dev_init_handler (FpiSsm   *ssm,
                                      G_USB_DEVICE_REQUEST_TYPE_STANDARD,
                                      G_USB_DEVICE_RECIPIENT_DEVICE,
                                      0, 0x0000, 0, 2);
-      goto send_control;
       break;
 
     case DEV_INIT_CONTROL4:
@@ -1413,7 +1410,6 @@ egismoc_dev_init_handler (FpiSsm   *ssm,
                                      G_USB_DEVICE_REQUEST_TYPE_STANDARD,
                                      G_USB_DEVICE_RECIPIENT_DEVICE,
                                      0, 0x0000, 0, 2);
-      goto send_control;
       break;
 
     case DEV_INIT_CONTROL5:
@@ -1422,18 +1418,17 @@ egismoc_dev_init_handler (FpiSsm   *ssm,
                                      G_USB_DEVICE_REQUEST_TYPE_VENDOR,
                                      G_USB_DEVICE_RECIPIENT_DEVICE,
                                      82, 0x0000, 0, 8);
-      goto send_control;
       break;
 
     case DEV_GET_FW_VERSION:
       egismoc_exec_cmd (device, cmd_fw_version, cmd_fw_version_len,
                         NULL, egismoc_fw_version_cb);
-      break;
+      return;
+
+    default:
+      g_assert_not_reached ();
     }
 
-  return;
-
-send_control:
   transfer->ssm = ssm;
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (g_steal_pointer (&transfer),
@@ -1453,17 +1448,21 @@ egismoc_open (FpDevice *device)
   self->interrupt_cancellable = g_cancellable_new ();
 
   if (!g_usb_device_reset (fpi_device_get_usb_device (device), &error))
-    goto error;
+    {
+      fpi_device_open_complete (device, error);
+      return;
+    }
 
-  if (!g_usb_device_claim_interface (fpi_device_get_usb_device (device), 0, 0, &error))
-    goto error;
+  if (!g_usb_device_claim_interface (fpi_device_get_usb_device (device),
+                                     0, 0, &error))
+    {
+      fpi_device_open_complete (device, error);
+      return;
+    }
 
+  g_assert (self->task_ssm == NULL);
   self->task_ssm = fpi_ssm_new (device, egismoc_dev_init_handler, DEV_INIT_STATES);
   fpi_ssm_start (self->task_ssm, egismoc_dev_init_done);
-  return;
-
-error:
-  return fpi_device_open_complete (device, error);
 }
 
 static void
