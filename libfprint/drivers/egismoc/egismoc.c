@@ -293,19 +293,21 @@ egismoc_get_check_bytes (const guchar *value,
 {
   fp_dbg ("Get check bytes");
   EgisMocCheckBytes check_bytes;
-  guint16 big_endian_values[(int) ((value_length + 1) / 2)];
+  const size_t steps = (value_length + 1) / 2;
+  guint16 big_endian_values[steps];
   size_t sum_values = 0;
-  int s = 0;
 
-  for (int i = 0; i < value_length; i = i + 2, s++)
+  for (int i = 0, j = 0; i < value_length; i += 2, j++)
     {
-      if (i + 1 < value_length)
-        big_endian_values[s] = (((guint16) value[i + 1]) << 8) | (0x00ff & value[i]);
-      else
-        big_endian_values[s] = (((guint16) 0x00) << 8) | (0x00ff & value[i]);
+      big_endian_values[j] = 0;
+
+      if (i < value_length - 1)
+        big_endian_values[j] = value[i + 1] << 8;
+
+      big_endian_values[j] |= (value[i] & 0x00ff);
     }
 
-  for (int i = 0; i < s; i++)
+  for (int i = 0; i < steps; i++)
     sum_values += big_endian_values[i];
 
   check_bytes.check_value = 0xffff - (sum_values % 0xffff);
