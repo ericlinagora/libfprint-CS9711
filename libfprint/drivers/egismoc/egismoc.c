@@ -615,7 +615,6 @@ egismoc_get_delete_cmd (FpDevice *device,
                 g_ptr_array_index (self->enrolled_ids, i),
                 EGISMOC_FINGERPRINT_DATA_SIZE);
     }
-  pos += body_length;
 
   if (length_out)
     *length_out = total_length;
@@ -981,7 +980,6 @@ egismoc_get_check_cmd (FpDevice *device,
 
   /* command suffix */
   memcpy (result + pos, cmd_check_suffix, cmd_check_suffix_len);
-  pos += cmd_check_suffix_len;
 
   if (length_out)
     *length_out = total_length;
