@@ -269,7 +269,7 @@ if install_udev_rules
     udev_rules_dir = get_option('udev_rules_dir')
     if udev_rules_dir == 'auto'
         udev_dep = dependency('udev')
-        udev_rules_dir = udev_dep.get_pkgconfig_variable('udevdir') + '/rules.d'
+        udev_rules_dir = udev_dep.get_variable(pkgconfig: 'udevdir') + '/rules.d'
     endif
 endif
 
@@ -306,7 +306,7 @@ if not udev_hwdb.disabled()
 
     if udev_hwdb_dir == 'auto'
         udev_dep = dependency('udev')
-        udev_hwdb_dir = udev_dep.get_pkgconfig_variable('udevdir') + '/hwdb.d'
+        udev_hwdb_dir = udev_dep.get_variable(pkgconfig: 'udevdir') + '/hwdb.d'
     endif
 else
     udev_hwdb_dir = ''
