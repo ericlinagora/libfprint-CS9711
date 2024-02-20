@@ -407,4 +407,7 @@ fpi_byte_writer_fill_inline (FpiByteWriter * writer, guint8 value, guint size)
 
 #endif
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpiByteWriter, fpi_byte_writer_free);
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC (FpiByteWriter, fpi_byte_writer_reset);
+
 G_END_DECLS
