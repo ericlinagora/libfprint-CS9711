@@ -906,8 +906,9 @@ egismoc_get_check_cmd (FpDevice *device,
 {
   fp_dbg ("Get check command");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
+  g_auto(FpiByteWriter) writer = {0};
   g_autofree guchar *result = NULL;
-  gsize pos = 0;
+  gboolean written = TRUE;
 
   /*
    * The final command body should contain:
@@ -944,10 +945,10 @@ egismoc_get_check_cmd (FpDevice *device,
                              + cmd_check_suffix_len;
 
   /* pre-fill entire payload with 00s */
-  result = g_new0 (guchar, total_length);
+  fpi_byte_writer_init_with_size (&writer, total_length, TRUE);
 
   /* start with 00 00 (just move starting offset up by 2) */
-  pos = 2;
+  written &= fpi_byte_writer_set_pos (&writer, 2);
 
   /* Size Counter bytes */
   /* "easiest" way to handle 2-bytes size for counter is to hard-code logic for
@@ -956,69 +957,63 @@ egismoc_get_check_cmd (FpDevice *device,
    * (assumed max is 10) */
   if (self->enrolled_ids->len > 6)
     {
-      memset (result + pos, 0x01, sizeof (guchar));
-      pos += sizeof (guchar);
-      memset (result + pos, ((self->enrolled_ids->len - 7) * 0x20) + 0x09,
-              sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_put_uint8 (&writer, 0x01);
+      written &= fpi_byte_writer_put_uint8 (&writer,
+                                            ((self->enrolled_ids->len - 7) * 0x20)
+                                            + 0x09);
     }
   else
     {
       /* first byte is 0x00, just skip it */
-      pos += sizeof (guchar);
-      memset (result + pos, ((self->enrolled_ids->len + 1) * 0x20) + 0x09,
-              sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_change_pos (&writer, 1);
+      written &= fpi_byte_writer_put_uint8 (&writer,
+                                            ((self->enrolled_ids->len + 1) * 0x20) +
+                                            0x09);
     }
 
   /* command prefix */
   if (fpi_device_get_driver_data (device) & EGISMOC_DRIVER_CHECK_PREFIX_TYPE2)
-    {
-      memcpy (result + pos, cmd_check_prefix_type2, cmd_check_prefix_type2_len);
-      pos += cmd_check_prefix_type2_len;
-    }
+    written &= fpi_byte_writer_put_data (&writer, cmd_check_prefix_type2,
+                                         cmd_check_prefix_type2_len);
   else
-    {
-      memcpy (result + pos, cmd_check_prefix_type1, cmd_check_prefix_type1_len);
-      pos += cmd_check_prefix_type1_len;
-    }
+    written &= fpi_byte_writer_put_data (&writer, cmd_check_prefix_type1,
+                                         cmd_check_prefix_type1_len);
 
   /* 2-bytes size logic for counter again */
   if (self->enrolled_ids->len > 6)
     {
-      memset (result + pos, 0x01, sizeof (guchar));
-      pos += sizeof (guchar);
-      memset (result + pos, (self->enrolled_ids->len - 7) * 0x20, sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_put_uint8 (&writer, 0x01);
+      written &= fpi_byte_writer_put_uint8 (&writer,
+                                            (self->enrolled_ids->len - 7) * 0x20);
     }
   else
     {
       /* first byte is 0x00, just skip it */
-      pos += sizeof (guchar);
-      memset (result + pos, (self->enrolled_ids->len + 1) * 0x20, sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_change_pos (&writer, 1);
+      written &= fpi_byte_writer_put_uint8 (&writer,
+                                            (self->enrolled_ids->len + 1) * 0x20);
     }
 
   /* add 00s "separator" to offset position */
-  pos += EGISMOC_CMD_CHECK_SEPARATOR_LENGTH;
+  written &= fpi_byte_writer_change_pos (&writer,
+                                         EGISMOC_CMD_CHECK_SEPARATOR_LENGTH);
 
-  /* append all currently registered 32-byte fingerprint IDs */
-  const gsize print_id_length = sizeof (guchar) * EGISMOC_FINGERPRINT_DATA_SIZE;
-
-  for (guint i = 0; i < self->enrolled_ids->len; i++)
+  for (guint i = 0; i < self->enrolled_ids->len && written; i++)
     {
-      gchar *device_print_id = g_ptr_array_index (self->enrolled_ids, i);
-      memcpy (result + pos + (print_id_length * i), device_print_id, print_id_length);
+      written &= fpi_byte_writer_put_data (&writer,
+                                           g_ptr_array_index (self->enrolled_ids, i),
+                                           EGISMOC_FINGERPRINT_DATA_SIZE);
     }
-  pos += body_length;
 
   /* command suffix */
-  memcpy (result + pos, cmd_check_suffix, cmd_check_suffix_len);
+  written &= fpi_byte_writer_put_data (&writer, cmd_check_suffix,
+                                       cmd_check_suffix_len);
+  g_assert (written);
 
   if (length_out)
     *length_out = total_length;
 
-  return g_steal_pointer (&result);
+  return fpi_byte_writer_reset_and_get_data (&writer);
 }
 
 static void
