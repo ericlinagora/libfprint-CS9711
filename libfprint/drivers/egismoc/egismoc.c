@@ -1020,6 +1020,7 @@ static void
 egismoc_enroll_run_state (FpiSsm   *ssm,
                           FpDevice *device)
 {
+  g_auto(FpiByteWriter) writer = {0};
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
   EnrollPrint *enroll_print = fpi_ssm_get_data (ssm);
   g_autofree guchar *payload = NULL;
@@ -1107,14 +1108,23 @@ egismoc_enroll_run_state (FpiSsm   *ssm,
       device_print_id = g_strndup (user_id, EGISMOC_FINGERPRINT_DATA_SIZE);
       egismoc_set_print_data (enroll_print->print, device_print_id, user_id);
 
-      /* create new dynamic payload of cmd_new_print_prefix + device_print_id */
-      payload_length = cmd_new_print_prefix_len + EGISMOC_FINGERPRINT_DATA_SIZE;
-      payload = g_new0 (guchar, payload_length);
-      memcpy (payload, cmd_new_print_prefix, cmd_new_print_prefix_len);
-      memcpy (payload + cmd_new_print_prefix_len, device_print_id,
-              EGISMOC_FINGERPRINT_DATA_SIZE);
+      fpi_byte_writer_init (&writer);
+      if (!fpi_byte_writer_put_data (&writer, cmd_new_print_prefix,
+                                     cmd_new_print_prefix_len))
+        {
+          fpi_ssm_mark_failed (ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
+          break;
+        }
+      if (!fpi_byte_writer_put_data (&writer, (guint8 *) device_print_id,
+                                     EGISMOC_FINGERPRINT_DATA_SIZE))
+        {
+          fpi_ssm_mark_failed (ssm, fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
+          break;
+        }
 
-      egismoc_exec_cmd (device, g_steal_pointer (&payload), payload_length,
+      payload_length = fpi_byte_writer_get_size (&writer);
+      egismoc_exec_cmd (device, fpi_byte_writer_reset_and_get_data (&writer),
+                        payload_length,
                         g_free, egismoc_task_ssm_next_state_cb);
       break;
 
