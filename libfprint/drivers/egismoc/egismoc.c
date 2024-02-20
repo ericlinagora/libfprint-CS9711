@@ -457,17 +457,29 @@ egismoc_list_fill_enrolled_ids_cb (FpDevice *device,
   g_clear_pointer (&self->enrolled_ids, g_ptr_array_unref);
   self->enrolled_ids = g_ptr_array_new_with_free_func (g_free);
 
+  FpiByteReader reader;
+  gboolean read = TRUE;
+
+  fpi_byte_reader_init (&reader, buffer_in, length_in);
+
+  read &= fpi_byte_reader_set_pos (&reader, EGISMOC_LIST_RESPONSE_PREFIX_SIZE);
+
   /*
    * Each fingerprint ID will be returned in this response as a 32 byte array
    * The other stuff in the payload is 16 bytes long, so if there is at least 1
    * print then the length should be at least 16+32=48 bytes long
    */
-  for (int pos = EGISMOC_LIST_RESPONSE_PREFIX_SIZE;
-       pos < length_in - EGISMOC_LIST_RESPONSE_SUFFIX_SIZE;
-       pos += EGISMOC_FINGERPRINT_DATA_SIZE)
+  while (read)
     {
-      g_autofree gchar *print_id = g_strndup ((gchar *) buffer_in + pos,
-                                              EGISMOC_FINGERPRINT_DATA_SIZE);
+      const guint8 *data;
+      g_autofree gchar *print_id = NULL;
+
+      read &= fpi_byte_reader_get_data (&reader, EGISMOC_FINGERPRINT_DATA_SIZE,
+                                        &data);
+      if (!read)
+        break;
+
+      print_id = g_strndup ((gchar *) data, EGISMOC_FINGERPRINT_DATA_SIZE);
       fp_dbg ("Device fingerprint %0d: %.*s", self->enrolled_ids->len + 1,
               EGISMOC_FINGERPRINT_DATA_SIZE, print_id);
       g_ptr_array_add (self->enrolled_ids, g_steal_pointer (&print_id));
