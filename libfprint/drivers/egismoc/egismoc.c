@@ -43,7 +43,6 @@ struct _FpiDeviceEgisMoc
   FpiUsbTransfer *cmd_transfer;
   GCancellable   *interrupt_cancellable;
 
-  int             enrolled_num;
   GPtrArray      *enrolled_ids;
 };
 
@@ -154,8 +153,6 @@ egismoc_task_ssm_done (FpiSsm   *ssm,
   self->task_ssm = NULL;
 
   g_clear_pointer (&self->enrolled_ids, g_ptr_array_unref);
-  self->enrolled_ids = NULL;
-  self->enrolled_num = -1;
 
   if (error)
     fpi_device_action_error (device, error);
@@ -419,11 +416,13 @@ egismoc_get_enrolled_prints (FpDevice *device)
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
 
   g_autoptr(GPtrArray) result = g_ptr_array_new_with_free_func (g_object_unref);
-  FpPrint *print = NULL;
 
-  for (int i = 0; i < self->enrolled_num; i++)
+  if (!self->enrolled_ids)
+    return g_steal_pointer (&result);
+
+  for (guint i = 0; i < self->enrolled_ids->len; i++)
     {
-      print = fp_print_new (device);
+      FpPrint *print = fp_print_new (device);
       egismoc_set_print_data (print, g_ptr_array_index (self->enrolled_ids, i), NULL);
       g_ptr_array_add (result, g_object_ref_sink (print));
     }
@@ -448,7 +447,6 @@ egismoc_list_fill_enrolled_ids_cb (FpDevice *device,
 
   g_clear_pointer (&self->enrolled_ids, g_ptr_array_unref);
   self->enrolled_ids = g_ptr_array_new_with_free_func (g_free);
-  self->enrolled_num = 0;
 
   /*
    * Each fingerprint ID will be returned in this response as a 32 byte array
@@ -457,17 +455,17 @@ egismoc_list_fill_enrolled_ids_cb (FpDevice *device,
    */
   for (int pos = EGISMOC_LIST_RESPONSE_PREFIX_SIZE;
        pos < length_in - EGISMOC_LIST_RESPONSE_SUFFIX_SIZE;
-       pos += EGISMOC_FINGERPRINT_DATA_SIZE, self->enrolled_num++)
+       pos += EGISMOC_FINGERPRINT_DATA_SIZE)
     {
       g_autofree gchar *print_id = g_strndup ((gchar *) buffer_in + pos,
                                               EGISMOC_FINGERPRINT_DATA_SIZE);
-      fp_dbg ("Device fingerprint %0d: %.*s", self->enrolled_num,
+      fp_dbg ("Device fingerprint %0d: %.*s", self->enrolled_ids->len + 1,
               EGISMOC_FINGERPRINT_DATA_SIZE, print_id);
       g_ptr_array_add (self->enrolled_ids, g_steal_pointer (&print_id));
     }
 
   fp_info ("Number of currently enrolled fingerprints on the device is %d",
-           self->enrolled_num);
+           self->enrolled_ids->len);
 
   if (self->task_ssm)
     fpi_ssm_next_state (self->task_ssm);
@@ -537,7 +535,12 @@ egismoc_get_delete_cmd (FpDevice *device,
    *    identifiers (enrolled_list)
    */
 
-  const int num_to_delete = (!delete_print) ? self->enrolled_num : 1;
+  int num_to_delete = 0;
+  if (delete_print)
+    num_to_delete = 1;
+  else if (self->enrolled_ids)
+    num_to_delete = self->enrolled_ids->len;
+
   const gsize body_length = sizeof (guchar) * EGISMOC_FINGERPRINT_DATA_SIZE *
                             num_to_delete;
   /* total_length is the 6 various bytes plus prefix and body payload */
@@ -617,9 +620,9 @@ egismoc_get_delete_cmd (FpDevice *device,
       memcpy (result + pos, print_data_id, EGISMOC_FINGERPRINT_DATA_SIZE);
     }
   /* Otherwise assume this is a "clear" - just loop through and append all enrolled IDs */
-  else
+  else if (self->enrolled_ids)
     {
-      for (int i = 0; i < self->enrolled_ids->len; i++)
+      for (guint i = 0; i < self->enrolled_ids->len; i++)
         memcpy (result + pos + (EGISMOC_FINGERPRINT_DATA_SIZE * i),
                 g_ptr_array_index (self->enrolled_ids, i),
                 EGISMOC_FINGERPRINT_DATA_SIZE);
@@ -687,9 +690,7 @@ egismoc_delete_run_state (FpiSsm   *ssm,
   switch (fpi_ssm_get_cur_state (ssm))
     {
     case DELETE_GET_ENROLLED_IDS:
-      /* get enrolled_ids and enrolled_num from device for use building
-       * delete payload below
-       */
+      /* get enrolled_ids from device for use building delete payload below */
       egismoc_exec_cmd (device, cmd_list, cmd_list_len, NULL,
                         egismoc_list_fill_enrolled_ids_cb);
       break;
@@ -891,19 +892,20 @@ egismoc_get_check_cmd (FpDevice *device,
    * The final command body should contain:
    * 1) hard-coded 00 00
    * 2) 2-byte size indiciator, 20*Number enrolled identifiers plus 9 in form of:
-   *    (enrolled_num + 1) * 0x20 + 0x09
+   *    (enrolled_ids->len + 1) * 0x20 + 0x09
    *    Since max prints can be higher than 7 then this goes up to 2 bytes
    *    (e9 + 9 = 109)
    * 3) Hard-coded prefix (cmd_check_prefix)
    * 4) 2-byte size indiciator, 20*Number of enrolled identifiers without plus 9
-   *    ((enrolled_num + 1) * 0x20)
+   *    ((enrolled_ids->len + 1) * 0x20)
    * 5) Hard-coded 32 * 0x00 bytes
    * 6) All of the currently registered prints in their 32-byte device identifiers
    *    (enrolled_list)
    * 7) Hard-coded suffix (cmd_check_suffix)
    */
 
-  const gsize body_length = sizeof (guchar) * self->enrolled_num *
+  g_assert (self->enrolled_ids);
+  const gsize body_length = sizeof (guchar) * self->enrolled_ids->len *
                             EGISMOC_FINGERPRINT_DATA_SIZE;
 
   /* prefix length can depend on the type */
@@ -931,11 +933,11 @@ egismoc_get_check_cmd (FpDevice *device,
    * when we go to the 2nd byte
    * note this will not work in case any model ever supports more than 14 prints
    * (assumed max is 10) */
-  if (self->enrolled_num > 6)
+  if (self->enrolled_ids->len > 6)
     {
       memset (result + pos, 0x01, sizeof (guchar));
       pos += sizeof (guchar);
-      memset (result + pos, ((self->enrolled_num - 7) * 0x20) + 0x09,
+      memset (result + pos, ((self->enrolled_ids->len - 7) * 0x20) + 0x09,
               sizeof (guchar));
       pos += sizeof (guchar);
     }
@@ -943,7 +945,7 @@ egismoc_get_check_cmd (FpDevice *device,
     {
       /* first byte is 0x00, just skip it */
       pos += sizeof (guchar);
-      memset (result + pos, ((self->enrolled_num + 1) * 0x20) + 0x09,
+      memset (result + pos, ((self->enrolled_ids->len + 1) * 0x20) + 0x09,
               sizeof (guchar));
       pos += sizeof (guchar);
     }
@@ -961,18 +963,18 @@ egismoc_get_check_cmd (FpDevice *device,
     }
 
   /* 2-bytes size logic for counter again */
-  if (self->enrolled_num > 6)
+  if (self->enrolled_ids->len > 6)
     {
       memset (result + pos, 0x01, sizeof (guchar));
       pos += sizeof (guchar);
-      memset (result + pos, (self->enrolled_num - 7) * 0x20, sizeof (guchar));
+      memset (result + pos, (self->enrolled_ids->len - 7) * 0x20, sizeof (guchar));
       pos += sizeof (guchar);
     }
   else
     {
       /* first byte is 0x00, just skip it */
       pos += sizeof (guchar);
-      memset (result + pos, (self->enrolled_num + 1) * 0x20, sizeof (guchar));
+      memset (result + pos, (self->enrolled_ids->len + 1) * 0x20, sizeof (guchar));
       pos += sizeof (guchar);
     }
 
@@ -982,7 +984,7 @@ egismoc_get_check_cmd (FpDevice *device,
   /* append all currently registered 32-byte fingerprint IDs */
   const gsize print_id_length = sizeof (guchar) * EGISMOC_FINGERPRINT_DATA_SIZE;
 
-  for (int i = 0; i < self->enrolled_num; i++)
+  for (guint i = 0; i < self->enrolled_ids->len; i++)
     {
       gchar *device_print_id = g_ptr_array_index (self->enrolled_ids, i);
       memcpy (result + pos + (print_id_length * i), device_print_id, print_id_length);
@@ -1012,13 +1014,13 @@ egismoc_enroll_run_state (FpiSsm   *ssm,
   switch (fpi_ssm_get_cur_state (ssm))
     {
     case ENROLL_GET_ENROLLED_IDS:
-      /* get enrolled_ids and enrolled_num from device for use in check stages below */
+      /* get enrolled_ids from device for use in check stages below */
       egismoc_exec_cmd (device, cmd_list, cmd_list_len,
                         NULL, egismoc_list_fill_enrolled_ids_cb);
       break;
 
     case ENROLL_CHECK_ENROLLED_NUM:
-      if (self->enrolled_num >= EGISMOC_MAX_ENROLL_NUM)
+      if (self->enrolled_ids->len >= EGISMOC_MAX_ENROLL_NUM)
         {
           egismoc_enroll_status_report (device, enroll_print, ENROLL_STATUS_DEVICE_FULL,
                                         fpi_device_error_new (FP_DEVICE_ERROR_DATA_FULL));
@@ -1239,13 +1241,13 @@ egismoc_identify_run_state (FpiSsm   *ssm,
   switch (fpi_ssm_get_cur_state (ssm))
     {
     case IDENTIFY_GET_ENROLLED_IDS:
-      /* get enrolled_ids and enrolled_num from device for use in check stages below */
+      /* get enrolled_ids from device for use in check stages below */
       egismoc_exec_cmd (device, cmd_list, cmd_list_len,
                         NULL, egismoc_list_fill_enrolled_ids_cb);
       break;
 
     case IDENTIFY_CHECK_ENROLLED_NUM:
-      if (self->enrolled_num == 0)
+      if (self->enrolled_ids->len == 0)
         {
           fpi_ssm_mark_failed (g_steal_pointer (&self->task_ssm),
                                fpi_device_error_new (FP_DEVICE_ERROR_DATA_NOT_FOUND));
