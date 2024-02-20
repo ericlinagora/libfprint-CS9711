@@ -35,6 +35,7 @@ stages:
   - build
   - test
   - flatpak
+  - deploy
 
 image: $FEDORA_IMAGE
 
@@ -256,3 +257,18 @@ container_fedora_build_on_deps_changed:
       - merge_requests
     changes:
       - .gitlab-ci/libfprint-image-variables.yaml
+
+pages:
+  image: alpine:latest
+  stage: deploy
+  needs:
+    - job: test
+      artifacts: true
+  script:
+    - mkdir public
+    - mv _build/meson-logs/coveragereport public/coverage
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
