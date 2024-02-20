@@ -100,11 +100,17 @@ if get_option('introspection')
             base_args = files(vdtest + '.py')
             suite = ['virtual-driver']
 
-            r = run_command(unittest_inspector, files(vdtest + '.py'), check: true)
+            r = run_command(unittest_inspector, files(vdtest + '.py'), check: false)
             unit_tests = r.stdout().strip().split('\n')
 
             if r.returncode() == 0 and unit_tests.length() > 0
                 suite += vdtest
+            elif r.returncode() == 77
+                test(vdtest,
+                    sh,
+                    args: ['-c', 'exit 77']
+                )
+                continue
             else
                 unit_tests = [vdtest]
             endif
