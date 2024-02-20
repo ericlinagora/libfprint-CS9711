@@ -277,28 +277,18 @@ egismoc_cmd_ssm_done (FpiSsm   *ssm,
  * should be 0, otherwise the device will reject the payload
  */
 static guint16
-egismoc_get_check_bytes (const guchar *value,
-                         const gsize   value_length)
+egismoc_get_check_bytes (FpiByteReader *reader)
 {
   fp_dbg ("Get check bytes");
-  const size_t steps = (value_length + 1) / 2;
-  guint16 values[steps];
   size_t sum_values = 0;
+  guint16 val;
 
-  g_assert (value);
+  fpi_byte_reader_set_pos (reader, 0);
 
-  for (int i = 0, j = 0; i < value_length; i += 2, j++)
-    {
-      values[j] = (value[i] << 8 & 0xff00);
+  while (fpi_byte_reader_get_uint16_be (reader, &val))
+    sum_values += val;
 
-      if (i < value_length - 1)
-        values[j] |= value[i + 1] & 0x00ff;
-    }
-
-  for (int i = 0; i < steps; i++)
-    sum_values += values[i];
-
-  return 0xffff - (sum_values % 0xffff);
+  return G_MAXUINT16 - (sum_values % G_MAXUINT16);
 }
 
 static void
@@ -311,7 +301,6 @@ egismoc_exec_cmd (FpDevice         *device,
   g_auto(FpiByteWriter) writer = {0};
   g_autoptr(FpiUsbTransfer) transfer = NULL;
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
-  const guint8 *buffer_out = NULL;
   g_autofree CommandData *data = NULL;
   gsize buffer_out_length = 0;
   gboolean written = TRUE;
@@ -331,7 +320,8 @@ egismoc_exec_cmd (FpDevice         *device,
                       + EGISMOC_CHECK_BYTES_LENGTH
                       + cmd_length;
 
-  fpi_byte_writer_init_with_size (&writer, buffer_out_length, TRUE);
+  fpi_byte_writer_init_with_size (&writer, buffer_out_length +
+                                  (buffer_out_length % 2 ? 1 : 0), TRUE);
 
   /* Prefix */
   written &= fpi_byte_writer_put_data (&writer, egismoc_write_prefix,
@@ -346,11 +336,7 @@ egismoc_exec_cmd (FpDevice         *device,
 
   /* Now fetch and set the "real" check bytes based on the currently
    * assembled payload */
-  fpi_byte_reader_set_pos (FPI_BYTE_READER (&writer), 0);
-  written &= fpi_byte_reader_peek_data (FPI_BYTE_READER (&writer),
-                                        buffer_out_length, &buffer_out);
-  check_value = egismoc_get_check_bytes (buffer_out, buffer_out_length);
-
+  check_value = egismoc_get_check_bytes (FPI_BYTE_READER (&writer));
   fpi_byte_writer_set_pos (&writer, egismoc_write_prefix_len);
   written &= fpi_byte_writer_put_uint16_be (&writer, check_value);
 
