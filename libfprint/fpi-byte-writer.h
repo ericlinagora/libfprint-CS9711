@@ -111,6 +111,17 @@ fpi_byte_writer_set_pos (FpiByteWriter *writer, guint pos)
   return fpi_byte_reader_set_pos (FPI_BYTE_READER (writer), pos);
 }
 
+static inline gboolean
+fpi_byte_writer_change_pos (FpiByteWriter *writer, gint pos)
+{
+  pos = fpi_byte_writer_get_pos (writer) + pos;
+
+  if (pos < 0)
+    return FALSE;
+
+  return fpi_byte_reader_set_pos (FPI_BYTE_READER (writer), pos);
+}
+
 static inline guint
 fpi_byte_writer_get_size (const FpiByteWriter *writer)
 {
