@@ -211,10 +211,9 @@ fpi_byte_writer_reset_and_get_data (FpiByteWriter * writer)
 
   g_return_val_if_fail (writer != NULL, NULL);
 
-  data = (guint8 *) writer->parent.data;
+  data = (guint8 *) g_steal_pointer (&writer->parent.data);
   if (!writer->owned)
     data = g_memdup2 (data, writer->parent.size);
-  writer->parent.data = NULL;
   fpi_byte_writer_reset (writer);
 
   return data;
