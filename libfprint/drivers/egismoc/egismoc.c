@@ -32,6 +32,7 @@
 #include <sys/param.h>
 
 #include "drivers_api.h"
+#include "fpi-byte-writer.h"
 
 #include "egismoc.h"
 
@@ -270,29 +271,21 @@ egismoc_cmd_ssm_done (FpiSsm   *ssm,
     data->callback (device, NULL, 0, g_steal_pointer (&local_error));
 }
 
-typedef union
-{
-  guint16 check_value;
-  guchar  check_bytes[EGISMOC_CHECK_BYTES_LENGTH];
-} EgisMocCheckBytes;
-
-G_STATIC_ASSERT (G_SIZEOF_MEMBER (EgisMocCheckBytes, check_value) ==
-                 sizeof (guint8) * EGISMOC_CHECK_BYTES_LENGTH);
-
 /*
  * Derive the 2 "check bytes" for write payloads
  * 32-bit big-endian sum of all 16-bit words (including check bytes) MOD 0xFFFF
  * should be 0, otherwise the device will reject the payload
  */
-static EgisMocCheckBytes
+static guint16
 egismoc_get_check_bytes (const guchar *value,
                          const gsize   value_length)
 {
   fp_dbg ("Get check bytes");
-  EgisMocCheckBytes check_bytes;
   const size_t steps = (value_length + 1) / 2;
   guint16 values[steps];
   size_t sum_values = 0;
+
+  g_assert (value);
 
   for (int i = 0, j = 0; i < value_length; i += 2, j++)
     {
@@ -305,8 +298,7 @@ egismoc_get_check_bytes (const guchar *value,
   for (int i = 0; i < steps; i++)
     sum_values += values[i];
 
-  check_bytes.check_value = GUINT16_TO_BE (0xffff - (sum_values % 0xffff));
-  return check_bytes;
+  return 0xffff - (sum_values % 0xffff);
 }
 
 static void
@@ -316,22 +308,16 @@ egismoc_exec_cmd (FpDevice         *device,
                   GDestroyNotify    cmd_destroy,
                   SynCmdMsgCallback callback)
 {
-  fp_dbg ("Execute command and get response");
-  FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
-  EgisMocCheckBytes check_bytes;
-  g_autofree guchar *buffer_out = NULL;
-  gsize buffer_out_length = 0;
-
+  g_auto(FpiByteWriter) writer = {0};
   g_autoptr(FpiUsbTransfer) transfer = NULL;
-  CommandData *data = g_new0 (CommandData, 1);
+  FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
+  const guint8 *buffer_out = NULL;
+  g_autofree CommandData *data = NULL;
+  gsize buffer_out_length = 0;
+  gboolean written = TRUE;
+  guint16 check_value;
 
-  g_assert (self->cmd_ssm == NULL);
-  self->cmd_ssm = fpi_ssm_new (device,
-                               egismoc_cmd_run_state,
-                               CMD_STATES);
-
-  transfer = fpi_usb_transfer_new (device);
-  transfer->short_is_error = TRUE;
+  fp_dbg ("Execute command and get response");
 
   /*
    * buffer_out should be a fully composed command (with prefix, check bytes, etc)
@@ -344,40 +330,63 @@ egismoc_exec_cmd (FpDevice         *device,
   buffer_out_length = egismoc_write_prefix_len
                       + EGISMOC_CHECK_BYTES_LENGTH
                       + cmd_length;
-  buffer_out = g_new0 (guchar, buffer_out_length);
+
+  fpi_byte_writer_init_with_size (&writer, buffer_out_length, TRUE);
 
   /* Prefix */
-  memcpy (buffer_out, egismoc_write_prefix, egismoc_write_prefix_len);
+  written &= fpi_byte_writer_put_data (&writer, egismoc_write_prefix,
+                                       egismoc_write_prefix_len);
 
   /* Check Bytes - leave them as 00 for now then later generate and copy over
    * the real ones */
+  written &= fpi_byte_writer_change_pos (&writer, EGISMOC_CHECK_BYTES_LENGTH);
 
   /* Command Payload */
-  memcpy (buffer_out + egismoc_write_prefix_len + EGISMOC_CHECK_BYTES_LENGTH,
-          cmd, cmd_length);
-
-  /* destroy cmd if requested */
-  if (cmd_destroy)
-    cmd_destroy (cmd);
+  written &= fpi_byte_writer_put_data (&writer, cmd, cmd_length);
 
   /* Now fetch and set the "real" check bytes based on the currently
    * assembled payload */
-  check_bytes = egismoc_get_check_bytes (buffer_out, buffer_out_length);
-  memcpy (buffer_out + egismoc_write_prefix_len, check_bytes.check_bytes,
-          EGISMOC_CHECK_BYTES_LENGTH);
+  fpi_byte_reader_set_pos (FPI_BYTE_READER (&writer), 0);
+  written &= fpi_byte_reader_peek_data (FPI_BYTE_READER (&writer),
+                                        buffer_out_length, &buffer_out);
+  check_value = egismoc_get_check_bytes (buffer_out, buffer_out_length);
+
+  fpi_byte_writer_set_pos (&writer, egismoc_write_prefix_len);
+  written &= fpi_byte_writer_put_uint16_be (&writer, check_value);
+
+  /* destroy cmd if requested */
+  if (cmd_destroy)
+    g_clear_pointer (&cmd, cmd_destroy);
+
+  g_assert (self->cmd_ssm == NULL);
+  self->cmd_ssm = fpi_ssm_new (device,
+                               egismoc_cmd_run_state,
+                               CMD_STATES);
+
+  data = g_new0 (CommandData, 1);
+  data->callback = callback;
+  fpi_ssm_set_data (self->cmd_ssm, g_steal_pointer (&data), g_free);
+
+  if (!written)
+    {
+      fpi_ssm_start (self->cmd_ssm, egismoc_cmd_ssm_done);
+      fpi_ssm_mark_failed (self->cmd_ssm,
+                           fpi_device_error_new (FP_DEVICE_ERROR_PROTO));
+      return;
+    }
+
+  transfer = fpi_usb_transfer_new (device);
+  transfer->short_is_error = TRUE;
+  transfer->ssm = self->cmd_ssm;
 
   fpi_usb_transfer_fill_bulk_full (transfer,
                                    EGISMOC_EP_CMD_OUT,
-                                   g_steal_pointer (&buffer_out),
+                                   fpi_byte_writer_reset_and_get_data (&writer),
                                    buffer_out_length,
                                    g_free);
-  transfer->ssm = self->cmd_ssm;
 
   g_assert (self->cmd_transfer == NULL);
   self->cmd_transfer = g_steal_pointer (&transfer);
-  data->callback = callback;
-
-  fpi_ssm_set_data (self->cmd_ssm, data, g_free);
   fpi_ssm_start (self->cmd_ssm, egismoc_cmd_ssm_done);
 }
 
