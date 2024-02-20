@@ -533,6 +533,7 @@ egismoc_get_delete_cmd (FpDevice *device,
 {
   fp_dbg ("Get delete command");
   FpiDeviceEgisMoc *self = FPI_DEVICE_EGISMOC (device);
+  g_auto(FpiByteWriter) writer = {0};
   g_autoptr(GVariant) print_data = NULL;
   g_autoptr(GVariant) print_data_id_var = NULL;
   const guchar *print_data_id = NULL;
@@ -540,7 +541,7 @@ egismoc_get_delete_cmd (FpDevice *device,
   g_autofree gchar *print_description = NULL;
   g_autofree guchar *enrolled_print_id = NULL;
   g_autofree guchar *result = NULL;
-  gsize pos = 0;
+  gboolean written = TRUE;
 
   /*
    * The final command body should contain:
@@ -569,10 +570,10 @@ egismoc_get_delete_cmd (FpDevice *device,
                              body_length;
 
   /* pre-fill entire payload with 00s */
-  result = g_new0 (guchar, total_length);
+  fpi_byte_writer_init_with_size (&writer, total_length, TRUE);
 
   /* start with 00 00 (just move starting offset up by 2) */
-  pos = 2;
+  written &= fpi_byte_writer_set_pos (&writer, 2);
 
   /* Size Counter bytes */
   /* "easiest" way to handle 2-bytes size for counter is to hard-code logic for
@@ -581,37 +582,31 @@ egismoc_get_delete_cmd (FpDevice *device,
    * (assumed max is 10) */
   if (num_to_delete > 7)
     {
-      memset (result + pos, 0x01, sizeof (guchar));
-      pos += sizeof (guchar);
-      memset (result + pos, ((num_to_delete - 8) * 0x20) + 0x07, sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_put_uint8 (&writer, 0x01);
+      written &= fpi_byte_writer_put_uint8 (&writer, ((num_to_delete - 8) * 0x20) + 0x07);
     }
   else
     {
       /* first byte is 0x00, just skip it */
-      pos += sizeof (guchar);
-      memset (result + pos, (num_to_delete * 0x20) + 0x07, sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_change_pos (&writer, 1);
+      written &= fpi_byte_writer_put_uint8 (&writer, (num_to_delete * 0x20) + 0x07);
     }
 
   /* command prefix */
-  memcpy (result + pos, cmd_delete_prefix, cmd_delete_prefix_len);
-  pos += cmd_delete_prefix_len;
+  written &= fpi_byte_writer_put_data (&writer, cmd_delete_prefix,
+                                       cmd_delete_prefix_len);
 
   /* 2-bytes size logic for counter again */
   if (num_to_delete > 7)
     {
-      memset (result + pos, 0x01, sizeof (guchar));
-      pos += sizeof (guchar);
-      memset (result + pos, ((num_to_delete - 8) * 0x20), sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_put_uint8 (&writer, 0x01);
+      written &= fpi_byte_writer_put_uint8 (&writer, (num_to_delete - 8) * 0x20);
     }
   else
     {
       /* first byte is 0x00, just skip it */
-      pos += sizeof (guchar);
-      memset (result + pos, (num_to_delete * 0x20), sizeof (guchar));
-      pos += sizeof (guchar);
+      written &= fpi_byte_writer_change_pos (&writer, 1);
+      written &= fpi_byte_writer_put_uint8 (&writer, num_to_delete * 0x20);
     }
 
   /* append desired 32-byte fingerprint IDs */
@@ -638,21 +633,26 @@ egismoc_get_delete_cmd (FpDevice *device,
 
       fp_info ("Delete fingerprint %s (%s)", print_description, print_data_id);
 
-      memcpy (result + pos, print_data_id, EGISMOC_FINGERPRINT_DATA_SIZE);
+      written &= fpi_byte_writer_put_data (&writer, print_data_id,
+                                           EGISMOC_FINGERPRINT_DATA_SIZE);
     }
   /* Otherwise assume this is a "clear" - just loop through and append all enrolled IDs */
   else if (self->enrolled_ids)
     {
-      for (guint i = 0; i < self->enrolled_ids->len; i++)
-        memcpy (result + pos + (EGISMOC_FINGERPRINT_DATA_SIZE * i),
-                g_ptr_array_index (self->enrolled_ids, i),
-                EGISMOC_FINGERPRINT_DATA_SIZE);
+      for (guint i = 0; i < self->enrolled_ids->len && written; i++)
+        {
+          written &= fpi_byte_writer_put_data (&writer,
+                                               g_ptr_array_index (self->enrolled_ids, i),
+                                               EGISMOC_FINGERPRINT_DATA_SIZE);
+        }
     }
+
+  g_assert (written);
 
   if (length_out)
     *length_out = total_length;
 
-  return g_steal_pointer (&result);
+  return fpi_byte_writer_reset_and_get_data (&writer);
 }
 
 static void
