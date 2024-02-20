@@ -151,7 +151,7 @@ if get_option('introspection')
             endif
         else
             test(vdtest,
-                find_program('sh'),
+                sh,
                 args: ['-c', 'exit 77']
             )
         endif
@@ -205,7 +205,7 @@ if get_option('introspection')
             endif
         else
             test(driver_test,
-                find_program('sh'),
+                sh,
                 args: ['-c', 'exit 77']
             )
         endif
@@ -224,13 +224,13 @@ if get_option('introspection')
 else
     warning('Skipping all driver tests as introspection bindings are missing')
     test('virtual-image',
-        find_program('sh'),
+        sh,
         args: ['-c', 'exit 77']
     )
 
     foreach driver_test: drivers_tests
         test(driver_test,
-            find_program('sh'),
+            sh,
             args: ['-c', 'exit 77']
         )
     endforeach
@@ -273,7 +273,7 @@ foreach test_name: unit_tests
             # Create a dummy test that always skips instead
             warning('Test @0@ cannot be compiled due to missing dependencies'.format(test_name))
             test(test_name,
-                find_program('sh'),
+                sh,
                 suite: ['unit-tests'],
                 args: ['-c', 'exit 77'],
             )

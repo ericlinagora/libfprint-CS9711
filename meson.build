@@ -91,6 +91,7 @@ gusb_dep = dependency('gusb', version: '>= 0.2.0')
 mathlib_dep = cc.find_library('m', required: false)
 
 # The following dependencies are only used for tests
+sh = find_program('sh', required: true)
 cairo_dep = dependency('cairo', required: false)
 
 # introspection scanning and Gio-2.0.gir
