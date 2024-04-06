@@ -71,6 +71,12 @@ usb:v08FFp5501*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
+# Supported by libfprint driver cs9711
+usb:v2541p0236*
+usb:v2541p9711*
+ ID_AUTOSUSPEND=1
+ ID_PERSIST=0
+
 # Supported by libfprint driver egis0570
 usb:v1C7Ap0570*
 usb:v1C7Ap0571*

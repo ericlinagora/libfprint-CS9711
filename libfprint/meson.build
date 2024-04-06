@@ -141,6 +141,8 @@ driver_sources = {
         [ 'drivers/goodixmoc/goodix.c', 'drivers/goodixmoc/goodix_proto.c' ],
     'fpcmoc' :
         [ 'drivers/fpcmoc/fpc.c' ],
+    'cs9711' :
+        [ 'drivers/cs9711/cs9711.c' ],
 }
 
 helper_sources = {
