@@ -27,6 +27,9 @@
 
 G_DEFINE_TYPE (FpDeviceCs9711, fpi_device_cs9711, FP_TYPE_IMAGE_DEVICE)
 
+#define CS9711_SENSOR_WIDTH 34
+#define CS9711_SENSOR_HEIGHT 236
+
 #define CS9711_DEFAULT_WAIT_TIMEOUT 300
 #define CS9711_DEFAULT_RESET_SLEEP  250
 
@@ -95,7 +98,7 @@ usb_read_in (FpDevice *dev,
 {
   FpiUsbTransfer *transfer = NULL;
   fp_dbg("Reading %lu bytes", length);
-  // If the response is larger than the buffer, than the usb helpers
+  // If the response is larger than the buffer, then the usb helpers
   // error before. The reader doesn't seem to care about requestend
   // length, and occasionally answers out of sequence with an invalid
   // data size. So just request the max expected, and deal with errors
@@ -291,38 +294,16 @@ m_scan_submit_image (FpiSsm        *ssm,
   FpDeviceCs9711 *self = FPI_DEVICE_CS9711 (dev);
   FpImage *img;
 
-  img = fp_image_new (CS9711_OUT_WIDTH, CS9711_OUT_HEIGHT);
+  img = fp_image_new (CS9711_WIDTH, CS9711_HEIGHT);
   if (img == NULL)
     return 1;
-#if CS9711_FP_WIDTH_FACTOR != 1
-  for (gsize i = 0; i < CS9711_FP_SIZE; i++)
-    {
-      guint8 *target = img->data + i * CS9711_FP_WIDTH_FACTOR;
-      memset(target, self->image_buffer[i], CS9711_FP_WIDTH_FACTOR);
-    }
-#elif CS9711_FP_WIDTH_INTERPOLATE != 0
-  float ratios[CS9711_FP_WIDTH_INTERPOLATE + 1] = {0};
 
-  for (gsize r = 1; r <= CS9711_FP_WIDTH_INTERPOLATE; r++) // 0 is unused to simplify expressions
-    ratios[r] = (float)r / (CS9711_FP_WIDTH_INTERPOLATE + 1);
-  for (gsize i = 0; i < CS9711_FP_SIZE; i++)
-    {
-      guint8 *target = img->data + i * (CS9711_FP_WIDTH_INTERPOLATE + 1) - (i / CS9711_FP_WIDTH) * CS9711_FP_WIDTH_INTERPOLATE;
-      guint8 start = target[0] = self->image_buffer[i];
-      if ((i % CS9711_FP_WIDTH) != (CS9711_FP_WIDTH - 1))
-        {
-          guint8 end = self->image_buffer[i + 1];
-          for (gsize j = 1; j <= CS9711_FP_WIDTH_INTERPOLATE; j++)
-            {
-              float ratio = ratios[j];
-              guint32 output = (1. - ratio) * start + ratio * end;
-              target[j] = output < 0 ? 0 : output > 0xff ? 0xff : output;
-            }
-        }
+  for (gsize y = 0; y < CS9711_SENSOR_HEIGHT; y++)
+    for (gsize x = 0; x < CS9711_SENSOR_WIDTH; x++) {
+      gsize dy = y / 2;
+      gsize dx = x * 2 + y % 2;
+      img->data[dy * CS9711_WIDTH + dx] = self->image_buffer[y * CS9711_SENSOR_WIDTH + x];
     }
-#else
-  memcpy (img->data, self->image_buffer, CS9711_FP_SIZE);
-#endif
 
   img->flags = FPI_IMAGE_PARTIAL;
 
@@ -418,7 +399,7 @@ dev_open (FpImageDevice *dev)
   g_usb_device_claim_interface (fpi_device_get_usb_device (FP_DEVICE (dev)), 0, 0, &error);
 
   /* Initialize private structure */
-  memset(self->image_buffer, 0, CS9711_FP_SIZE);
+  memset(self->image_buffer, 0, CS9711_FRAME_SIZE);
 
   /* Notify open complete */
   fpi_image_device_open_complete (dev, error);
@@ -455,7 +436,7 @@ fpi_device_cs9711_class_init (FpDeviceCs9711Class *klass)
   FpDeviceClass *dev_class = FP_DEVICE_CLASS (klass);
   FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS (klass);
 
-  g_assert ((CS9711_FP_SIZE) == (CS9711_FP_RECV_LEN_1 + CS9711_FP_RECV_LEN_2));
+  g_assert ((CS9711_FRAME_SIZE) == (CS9711_FP_RECV_LEN_1 + CS9711_FP_RECV_LEN_2));
 
   dev_class->id = "cs9711";
   dev_class->full_name = "Chipsailing CS9711Fingprint";
@@ -474,6 +455,6 @@ fpi_device_cs9711_class_init (FpDeviceCs9711Class *klass)
   //      it changes with a better implementation in the future
   // img_class->bz3_threshold = 24;
 
-  img_class->img_width = CS9711_OUT_WIDTH;
-  img_class->img_height = CS9711_OUT_HEIGHT;
+  img_class->img_width = CS9711_WIDTH;
+  img_class->img_height = CS9711_HEIGHT;
 }
