@@ -1,6 +1,21 @@
 This file lists notable changes in each release. For the full history of all
 changes, see ChangeLog.
 
+2024-02-20: v1.94.7 release
+
+Highlights:
+ * synaptics: fix enroll identify problem after user reset database.
+ * synaptics: New PIDs 0x0173, 0x0106, 0x0124.
+ * goodixmoc: New PID 0x6582.
+ * build: Do not require bash to build, only posix sh.
+ * fp-image: Simplify minutiae detection tasks.
+ * GLib 2.68 is now required to build libfprint.
+
+New drivers:
+ * realtek (PID 0x5813).
+ * focaltech_moc (PIDs 0x9E48, 0xD979, 0xA959).
+ * egismoc (PIDs 0x0582, 0x05a1).
+
 2023-08-17: v1.94.6 release
 
 Highlights:
@@ -357,7 +372,7 @@ tests of the drivers using umockdev.
   - Mark fp_dscv_print functions as deprecated
 
 * Udev rules:
-  - Add some unsupported devices to the whitelist
+  - Add some unsupported devices to the allowlist
 
 2017-05-14: v0.7.0 release
 * Drivers:
@@ -407,7 +422,7 @@ tests of the drivers using umockdev.
   - Fix possible race condition, and cancellation in uru4000 driver
 
 * Udev rules:
-  - Add Microsoft keyboard to the suspend blacklist
+  - Add Microsoft keyboard to the suspend denylist
 
 * Plenty of build fixes
 

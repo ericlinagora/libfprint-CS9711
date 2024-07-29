@@ -17,7 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "fpi-print.h"
 #define FP_COMPONENT "image_device"
 #include "fpi-log.h"
 
@@ -102,6 +101,7 @@ fp_image_device_start_capture_action (FpDevice *device)
   FpImageDevice *self = FP_IMAGE_DEVICE (device);
   FpImageDevicePrivate *priv = fp_image_device_get_instance_private (self);
   FpiDeviceAction action;
+  FpiPrintType print_type;
 
   /* There is just one action that we cannot support out
    * of the box, which is a capture without first waiting
@@ -125,10 +125,9 @@ fp_image_device_start_capture_action (FpDevice *device)
       FpPrint *enroll_print = NULL;
 
       fpi_device_get_enroll_data (device, &enroll_print);
-      FpiPrintType print_type;
       g_object_get (enroll_print, "fpi-type", &print_type, NULL);
-      if (print_type != priv->algorithm)
-        fpi_print_set_type (enroll_print, priv->algorithm);
+      if (print_type != FPI_PRINT_NBIS)
+        fpi_print_set_type (enroll_print, FPI_PRINT_NBIS);
     }
 
   priv->enroll_stage = 0;
@@ -195,12 +194,9 @@ fp_image_device_constructed (GObject *obj)
   FpImageDeviceClass *cls = FP_IMAGE_DEVICE_GET_CLASS (self);
 
   /* Set default threshold. */
-  priv->score_threshold = BOZORTH3_DEFAULT_THRESHOLD;
-  if (cls->score_threshold > 0)
-    priv->score_threshold = cls->score_threshold;
-  priv->algorithm = FPI_PRINT_NBIS;
-  if (cls->algorithm > 0)
-    priv->algorithm = (FpiPrintType) cls->algorithm;
+  priv->bz3_threshold = BOZORTH3_DEFAULT_THRESHOLD;
+  if (cls->bz3_threshold > 0)
+    priv->bz3_threshold = cls->bz3_threshold;
 
   G_OBJECT_CLASS (fp_image_device_parent_class)->constructed (obj);
 }

@@ -71,15 +71,15 @@ usb:v08FFp5501*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
-# Supported by libfprint driver cs9711
-usb:v2541p0236*
-usb:v2541p9711*
- ID_AUTOSUSPEND=1
- ID_PERSIST=0
-
 # Supported by libfprint driver egis0570
 usb:v1C7Ap0570*
 usb:v1C7Ap0571*
+ ID_AUTOSUSPEND=1
+ ID_PERSIST=0
+
+# Supported by libfprint driver egismoc
+usb:v1C7Ap0582*
+usb:v1C7Ap05A1*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
@@ -159,8 +159,22 @@ usb:v04F3p0C99*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
+# Supported by libfprint driver elanmoc2
+usb:v04F3p0C00*
+usb:v04F3p0C4C*
+usb:v04F3p0C5E*
+ ID_AUTOSUSPEND=1
+ ID_PERSIST=0
+
 # Supported by libfprint driver etes603
 usb:v1C7Ap0603*
+ ID_AUTOSUSPEND=1
+ ID_PERSIST=0
+
+# Supported by libfprint driver focaltech_moc
+usb:v2808p9E48*
+usb:v2808pD979*
+usb:v2808pA959*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
@@ -192,6 +206,7 @@ usb:v27C6p63AC*
 usb:v27C6p63BC*
 usb:v27C6p63CC*
 usb:v27C6p6496*
+usb:v27C6p650C*
 usb:v27C6p6582*
 usb:v27C6p6584*
 usb:v27C6p658C*
@@ -208,6 +223,11 @@ usb:v298Dp1010*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
+# Supported by libfprint driver realtek
+usb:v0BDAp5813*
+ ID_AUTOSUSPEND=1
+ ID_PERSIST=0
+
 # Supported by libfprint driver synaptics
 usb:v06CBp00BD*
 usb:v06CBp00DF*
@@ -218,11 +238,14 @@ usb:v06CBp0100*
 usb:v06CBp00F0*
 usb:v06CBp0103*
 usb:v06CBp0123*
+usb:v06CBp0124*
 usb:v06CBp0126*
 usb:v06CBp0129*
 usb:v06CBp0168*
 usb:v06CBp015F*
 usb:v06CBp0104*
+usb:v06CBp0173*
+usb:v06CBp0106*
  ID_AUTOSUSPEND=1
  ID_PERSIST=0
 
@@ -294,10 +317,7 @@ usb:v138Ap0091*
 usb:v047Dp00F2*
 usb:v04E8p730B*
 usb:v04F3p036B*
-usb:v04F3p0C00*
-usb:v04F3p0C4C*
 usb:v04F3p0C57*
-usb:v04F3p0C5E*
 usb:v04F3p0C5A*
 usb:v04F3p0C6C*
 usb:v04F3p0C70*
@@ -308,6 +328,7 @@ usb:v04F3p3032*
 usb:v04F3p3057*
 usb:v04F3p3104*
 usb:v04F3p310D*
+usb:v04F3p3128*
 usb:v06CBp0081*
 usb:v06CBp0088*
 usb:v06CBp008A*
@@ -341,6 +362,7 @@ usb:v0BDAp5812*
 usb:v10A5p0007*
 usb:v10A5p9200*
 usb:v10A5p9800*
+usb:v10A5pE340*
 usb:v1188p9545*
 usb:v138Ap0007*
 usb:v138Ap003A*
@@ -361,8 +383,6 @@ usb:v1C7Ap0300*
 usb:v1C7Ap0575*
 usb:v1C7Ap0576*
 usb:v1C7Ap0577*
-usb:v1C7Ap0582*
-usb:v1C7Ap05A1*
 usb:v27C6p5042*
 usb:v27C6p5110*
 usb:v27C6p5117*

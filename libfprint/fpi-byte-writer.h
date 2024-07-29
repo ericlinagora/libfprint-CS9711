@@ -111,6 +111,17 @@ fpi_byte_writer_set_pos (FpiByteWriter *writer, guint pos)
   return fpi_byte_reader_set_pos (FPI_BYTE_READER (writer), pos);
 }
 
+static inline gboolean
+fpi_byte_writer_change_pos (FpiByteWriter *writer, gint pos)
+{
+  pos = fpi_byte_writer_get_pos (writer) + pos;
+
+  if (pos < 0)
+    return FALSE;
+
+  return fpi_byte_reader_set_pos (FPI_BYTE_READER (writer), pos);
+}
+
 static inline guint
 fpi_byte_writer_get_size (const FpiByteWriter *writer)
 {
@@ -406,5 +417,8 @@ fpi_byte_writer_fill_inline (FpiByteWriter * writer, guint8 value, guint size)
     G_LIKELY (fpi_byte_writer_fill_inline (writer, val, size))
 
 #endif
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpiByteWriter, fpi_byte_writer_free);
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC (FpiByteWriter, fpi_byte_writer_reset);
 
 G_END_DECLS

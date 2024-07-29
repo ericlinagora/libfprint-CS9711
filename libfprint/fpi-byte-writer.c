@@ -75,7 +75,8 @@ fpi_byte_writer_new_with_size (guint size, gboolean fixed)
   FpiByteWriter *ret = fpi_byte_writer_new ();
 
   ret->alloc_size = size;
-  ret->parent.data = g_malloc (ret->alloc_size);
+  ret->parent.data = g_malloc0 (ret->alloc_size);
+  ret->parent.size = size;
   ret->fixed = fixed;
   ret->owned = TRUE;
 
@@ -142,7 +143,8 @@ fpi_byte_writer_init_with_size (FpiByteWriter * writer, guint size,
 
   fpi_byte_writer_init (writer);
 
-  writer->parent.data = g_malloc (size);
+  writer->parent.data = g_malloc0 (size);
+  writer->parent.size = size;
   writer->alloc_size = size;
   writer->fixed = fixed;
   writer->owned = TRUE;
@@ -209,10 +211,9 @@ fpi_byte_writer_reset_and_get_data (FpiByteWriter * writer)
 
   g_return_val_if_fail (writer != NULL, NULL);
 
-  data = (guint8 *) writer->parent.data;
+  data = (guint8 *) g_steal_pointer (&writer->parent.data);
   if (!writer->owned)
     data = g_memdup2 (data, writer->parent.size);
-  writer->parent.data = NULL;
   fpi_byte_writer_reset (writer);
 
   return data;

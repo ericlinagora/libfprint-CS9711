@@ -35,6 +35,7 @@ stages:
   - build
   - test
   - flatpak
+  - deploy
 
 image: $FEDORA_IMAGE
 
@@ -152,6 +153,7 @@ test_scan_build:
     - SCANBUILD=$CI_PROJECT_DIR/.gitlab-ci/scan-build
       ninja -C _build scan-build
   artifacts:
+    when: on_failure
     paths:
       - _build/meson-logs
     expire_in: 1 week
@@ -193,8 +195,10 @@ flatpak:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
+      allow_failure: true
       when: always
     - if: '$CI_COMMIT_TAG'
+      allow_failure: true
       when: always
     # For any other (commit), allow manual run.
     # This excludes MRs which would create a duplicate pipeline
@@ -253,3 +257,18 @@ container_fedora_build_on_deps_changed:
       - merge_requests
     changes:
       - .gitlab-ci/libfprint-image-variables.yaml
+
+pages:
+  image: alpine:latest
+  stage: deploy
+  needs:
+    - job: test
+      artifacts: true
+  script:
+    - mkdir public
+    - mv _build/meson-logs/coveragereport public/coverage
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH

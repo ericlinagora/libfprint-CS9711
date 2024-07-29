@@ -41,9 +41,7 @@
       libgusb \
       libusb \
       nss \
-      pixman \
-      opencv-devel \
-      doctest-devel
+      pixman
 
     git clone https://github.com/martinpitt/umockdev.git && \
         cd umockdev && \

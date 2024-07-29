@@ -20,36 +20,6 @@
 
 #include <glib-object.h>
 
-#if !GLIB_CHECK_VERSION (2, 57, 0)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (GTypeClass, g_type_class_unref);
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (GEnumClass, g_type_class_unref);
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (GFlagsClass, g_type_class_unref);
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (GParamSpec, g_param_spec_unref);
-#else
-/* Re-define G_SOURCE_FUNC as we are technically not allowed to use it with
- * the version we depend on currently. */
-#undef G_SOURCE_FUNC
-#endif
-
-#define G_SOURCE_FUNC(f) ((GSourceFunc) (void (*)(void))(f))
-
-#if !GLIB_CHECK_VERSION (2, 63, 3)
-typedef struct _FpDeviceClass FpDeviceClass;
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpDeviceClass, g_type_class_unref);
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (GDate, g_date_free);
-#endif
-
-#if !GLIB_CHECK_VERSION (2, 68, 0)
-#define g_memdup2(data, size) g_memdup ((data), (size))
-#else
-#define g_memdup2(data, size)        \
-        (G_GNUC_EXTENSION ({               \
-    G_GNUC_BEGIN_IGNORE_DEPRECATIONS \
-      g_memdup2 ((data), (size));    \
-    G_GNUC_END_IGNORE_DEPRECATIONS   \
-  }))
-#endif
-
 #if  __GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 1)
 #define FP_GNUC_ACCESS(m, p, s) __attribute__((access (m, p, s)))
 #else

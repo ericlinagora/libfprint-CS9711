@@ -675,4 +675,6 @@ fpi_byte_reader_skip_inline (FpiByteReader * reader, guint nbytes)
 
 #endif /* FPI_BYTE_READER_DISABLE_INLINES */
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (FpiByteReader, fpi_byte_reader_free);
+
 G_END_DECLS

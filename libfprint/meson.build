@@ -119,12 +119,16 @@ driver_sources = {
         [ 'drivers/etes603.c' ],
     'egis0570' :
         [ 'drivers/egis0570.c' ],
+    'egismoc' :
+        [ 'drivers/egismoc/egismoc.c' ],
     'vfs0050' :
         [ 'drivers/vfs0050.c' ],
     'elan' :
         [ 'drivers/elan.c' ],
     'elanmoc' :
         [ 'drivers/elanmoc/elanmoc.c' ],
+    'elanmoc2' :
+        [ 'drivers/elanmoc2/elanmoc2.c' ],
     'elanspi' :
         [ 'drivers/elanspi.c' ],
     'nb1010' :
@@ -141,8 +145,10 @@ driver_sources = {
         [ 'drivers/goodixmoc/goodix.c', 'drivers/goodixmoc/goodix_proto.c' ],
     'fpcmoc' :
         [ 'drivers/fpcmoc/fpc.c' ],
-    'cs9711' :
-        [ 'drivers/cs9711/cs9711.c' ],
+    'realtek' :
+        [ 'drivers/realtek/realtek.c' ],
+    'focaltech_moc' :
+        [ 'drivers/focaltech_moc/focaltech_moc.c' ],
 }
 
 helper_sources = {
@@ -226,8 +232,6 @@ deps = [
     mathlib_dep,
 ] + optional_deps
 
-subdir('sigfm')
-
 # These are empty and only exist so that the include directories are created
 # in the build tree. This silences a build time warning.
 subdir('nbis/include')
@@ -250,15 +254,13 @@ libnbis = static_library('nbis',
     ]),
     install: false)
 
-priv_deps = deps + libsigfm
-
 libfprint_private = static_library('fprint-private',
     sources: [
         fpi_enums,
         libfprint_private_sources,
     ],
     dependencies: deps,
-    link_with: [libnbis, libsigfm],
+    link_with: libnbis,
     install: false)
 
 libfprint_drivers = static_library('fprint-drivers',
@@ -296,9 +298,6 @@ libfprint_dep = declare_dependency(link_with: libfprint,
 
 install_headers(['fprint.h'] + libfprint_public_headers,
     subdir: versioned_libname
-)
-install_headers(['sigfm/sigfm.h'],
-  subdir: versioned_libname + '/sigfm'
 )
 
 libfprint_private_dep = declare_dependency(

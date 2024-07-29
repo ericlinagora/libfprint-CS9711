@@ -36,8 +36,7 @@ typedef struct
   GError             *action_error;
   FpImage            *capture_image;
 
-  gint                score_threshold;
-  FpiPrintType        algorithm;
+  gint                bz3_threshold;
 } FpImageDevicePrivate;
 
 

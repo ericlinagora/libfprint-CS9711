@@ -67,32 +67,26 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0 };
 
 static const char *
-get_drivers_whitelist_env (void)
+get_drivers_allowlist_env (void)
 {
-  return g_getenv ("FP_DRIVERS_WHITELIST");
+  return g_getenv ("FP_DRIVERS_ALLOWLIST");
 }
 
 static gboolean
 is_driver_allowed (const gchar *driver)
 {
-  g_auto(GStrv) whitelisted_drivers = NULL;
-  const char *fp_drivers_whitelist_env;
-  int i;
+  g_auto(GStrv) allowlisted_drivers = NULL;
+  const char *fp_drivers_allowlist_env;
 
   g_return_val_if_fail (driver, TRUE);
 
-  fp_drivers_whitelist_env = get_drivers_whitelist_env ();
+  fp_drivers_allowlist_env = get_drivers_allowlist_env ();
 
-  if (!fp_drivers_whitelist_env)
+  if (!fp_drivers_allowlist_env)
     return TRUE;
 
-  whitelisted_drivers = g_strsplit (fp_drivers_whitelist_env, ":", -1);
-
-  for (i = 0; whitelisted_drivers[i]; ++i)
-    if (g_strcmp0 (driver, whitelisted_drivers[i]) == 0)
-      return TRUE;
-
-  return FALSE;
+  allowlisted_drivers = g_strsplit (fp_drivers_allowlist_env, ":", -1);
+  return g_strv_contains ((const gchar * const *) allowlisted_drivers, driver);
 }
 
 typedef struct
@@ -364,7 +358,7 @@ fp_context_init (FpContext *self)
 
   priv->drivers = fpi_get_driver_types ();
 
-  if (get_drivers_whitelist_env ())
+  if (get_drivers_allowlist_env ())
     {
       for (i = 0; i < priv->drivers->len;)
         {

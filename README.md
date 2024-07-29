@@ -1,42 +1,4 @@
 
-# Proposal fork for support of Chipsailing CS9711Fingprint
-
-This fork of [libfprint](https://gitlab.freedesktop.org/libfprint/libfprint) is a proposal for the [Chipsailing CS9711](http://www.chipsailing.com/ProductsStd_250.html) fingerprint reader, tracked in this [issue](https://gitlab.freedesktop.org/libfprint/libfprint/-/issues/610). This reader is commonly in accessible USB dongles as `2541:0236`, and also the one included in the GPD Win Max 2 2023 as `2541:9711`.
-
-Note that enrollment count is 15 touches, so insist a bit.
-
-Note also that this is based on an experimental image recognition from the [`sigfm`](https://gitlab.freedesktop.org/libfprint/libfprint/-/merge_requests/418) proposal.
-
-**No garantees are made by this author as to the validity and security of this code,
-while this author is very happy with the result, it should not be used for anything
-serious without serious testing.**
-
-## Nix
-
-```nix
-  services.fprintd.enable = true;
-  nixpkgs.overlays = [
-    (final: prev: {
-      libfprint = prev.libfprint.overrideAttrs (oldAttrs: {
-        version = "git";
-        src = final.fetchFromGitHub {
-          owner = "ericlinagora";
-          repo = "libfprint-CS9711";
-          rev = "c242a40fcc51aec5b57d877bdf3edfe8cb4883fd";
-          sha256 = "sha256-WFq8sNitwhOOS3eO8V35EMs+FA73pbILRP0JoW/UR80=";
-        };
-        nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
-          final.opencv
-          final.cmake
-          final.doctest
-        ];
-      });
-    })
-  ];
-```
-
-# Original `README.md` left below
-<hr />
 
 <div align="center">
 
