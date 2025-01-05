@@ -11,6 +11,10 @@ Note also that this is based on an experimental image recognition from the [`sig
 while this author is very happy with the result, it should not be used for anything
 serious without serious testing.**
 
+## Fedora
+
+Thanks to stormerxd for contributing [instructions here](https://github.com/ericlinagora/libfprint-CS9711/issues/5#issuecomment-2564730532) .
+
 ## Nix
 
 ```nix
